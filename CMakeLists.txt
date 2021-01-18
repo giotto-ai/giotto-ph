@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.9)
 project(gtda_bindings LANGUAGES CXX)
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/pybind11)
-set(BINDINGS_DIR "src/bindings")
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/giotto_ph/pybind11)
+set(BINDINGS_DIR "giotto_ph/bindings")
 
 # Base folder containing C++ Backend
-set(CPP_HEADER_DIR "src/cpp")
+set(CPP_HEADER_DIR "giotto_ph/cpp")
 
 #######################################################################
 #                              Collapser                              #
