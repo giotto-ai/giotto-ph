@@ -1,0 +1,52 @@
+name: Build Wheels
+
+on : [push, pull_request]
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v2
+        name: Install Python
+
+      - name: Install dependencies
+        run: |
+          apt update 
+          apt -y install cmake g++ gcc make 
+          python -m pip install pytest
+
+      - name: Build giotto-ph
+        run: python -m pip install -e .
+
+      - name: Run test
+        run: |
+          python -m pytest
+
+      - name: Clean build
+        run: |
+          rm -rf build
+
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel==1.7.4
+
+      - name: Build wheels
+        run: python -m cibuildwheel --output-dir wheelhouse
+        env:
+          # Specify which Python versions to build wheels
+          # https://cibuildwheel.readthedocs.io/en/stable/options/#build-skip
+          CIBW_BUILD: "cp36-* cp37-* cp38-* cp39-*"
+          # Skip 32 bit architectures
+          CIBW_SKIP: "*-win32 *-manylinux_i686"
+          CIBW_BEFORE_BUILD: pip install cmake
+
+      - uses: actions/upload-artifact@v2
+        name: Upload wheels
+        with:
+          path: ./wheelhouse/*.whl
