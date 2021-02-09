@@ -3,10 +3,38 @@ name: Build Wheels
 on : [push, pull_request]
 
 jobs:
-  build_wheels:
-    name: Build wheels on ${{ matrix.os }}
+
+  build_package:
+    name: Build ${{ github.event.repository.name }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v2
+        name: Install Python
+
+      - name: Install dependencies
+        run: |
+          python -m pip install pytest 
+
+      - name: Build giotto-ph
+        run: python -m pip install -e .
+
+      - name: Run test
+        run: |
+          python -m pytest
+
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    needs: build_package
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
