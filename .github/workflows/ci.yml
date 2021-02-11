@@ -14,10 +14,12 @@ jobs:
         include:
           - os: ubuntu-latest
             path: ~/.cache/pip
-            path_ccache: ~/.cache/ccache
+              # ccache requires absolute path
+            path_ccache: /home/runner/cache/ccache
           - os: macos-latest
             path: ~/Library/Caches/pip
-            path_ccache: ~/Library/Caches/ccache
+              # ccache requires absolute path
+            path_ccache: /Users/runner/Library/Caches/ccache
           - os: windows-latest
             path: ~\AppData\Local\pip\Cache
             path_ccache: ~\AppData\Local\ccache\Cache
@@ -66,8 +68,9 @@ jobs:
       - name: Build giotto-ph on Linux and MacOs
         if: ${{ runner.os != 'Windows' }}
         run: |
+          # Print cache status before and after
           ccache -s
-          python -m pip install -v -e .
+          python -m pip install -e .
           ccache -s
         env:
           CC: "ccache gcc"
