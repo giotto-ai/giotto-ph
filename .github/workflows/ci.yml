@@ -40,9 +40,9 @@ jobs:
         if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
         run: |
           if [ "$RUNNER_OS" == "Linux" ]; then
-            apt -y install ccache
+            sudo apt -y install ccache
           elif [ "$RUNNER_OS" == "macOS" ]; then
-            brew -N install --HEAD ccache
+            brew install --HEAD ccache
           fi
         shell: bash
 
@@ -53,6 +53,7 @@ jobs:
         with:
           path: ${{ matrix.path_ccache }}
           key: ${{ runner.os }}-ccache-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-ccache-
 
       - name: Install dependencies
         run: |
