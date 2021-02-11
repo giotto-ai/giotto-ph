@@ -54,7 +54,8 @@ jobs:
         continue-on-error: true
         with:
           path: ${{ matrix.path_ccache }}
-          key: ${{ runner.os }}-ccache-${{ github.sha }}
+            # TODO: When updating c++ backend, use new date
+          key: ${{ runner.os }}-ccache-21-02-11
           restore-keys: ${{ runner.os }}-ccache-
 
       - name: Install dependencies
