@@ -37,7 +37,7 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
 
       - name: Install ccache for Linux and Mac
-        if: runner.os == 'Linux' || if: runner.os == 'macOS'
+        if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
         run: |
           if [ "$RUNNER_OS" == "Linux" ]; then
             apt -y install ccache
