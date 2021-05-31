@@ -91,5 +91,5 @@ jobs:
 
       - name: Run test
         run: |
-          python -m pip install pytest 
+          python -m pip install pytest hypothesis
           python -m pytest
