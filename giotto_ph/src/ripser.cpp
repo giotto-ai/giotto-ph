@@ -895,7 +895,7 @@ public:
 
     value_t compute_diameter(const index_t index, const index_t dim) const
     {
-        static thread_local std::vector<index_t> vertices;
+        std::vector<index_t> vertices;
         value_t diam = -std::numeric_limits<value_t>::infinity();
 
         vertices.resize(dim + 1);
@@ -972,7 +972,7 @@ public:
     diameter_entry_t get_zero_pivot_facet(const diameter_entry_t simplex,
                                           const index_t dim)
     {
-        static thread_local simplex_boundary_enumerator facets(0, *this);
+        simplex_boundary_enumerator facets(0, *this);
         facets.set_simplex(simplex, dim);
         while (facets.has_next()) {
             diameter_entry_t facet = facets.next();
@@ -985,7 +985,7 @@ public:
     diameter_entry_t get_zero_pivot_cofacet(const diameter_entry_t simplex,
                                             const index_t dim)
     {
-        static thread_local simplex_coboundary_enumerator cofacets(*this);
+        simplex_coboundary_enumerator cofacets(*this);
         cofacets.set_simplex(simplex, dim);
         while (cofacets.has_next()) {
             diameter_entry_t cofacet = cofacets.next();
@@ -1261,11 +1261,11 @@ public:
         const index_t& dim, entry_hash_map& pivot_column_index,
         const index_t index_column_to_reduce)
     {
-        static thread_local std::vector<diameter_entry_t> cofacet_entries;
+        std::vector<diameter_entry_t> cofacet_entries;
         bool check_for_emergent_pair = true;
         cofacet_entries.clear();
         cofacet_entries.reserve(dim + 1);
-        static thread_local simplex_coboundary_enumerator cofacets(*this);
+        simplex_coboundary_enumerator cofacets(*this);
         cofacets.set_simplex(simplex, dim);
         while (cofacets.has_next()) {
             diameter_entry_t cofacet = cofacets.next();
@@ -1299,7 +1299,7 @@ public:
     {
         if (add_diagonal)
             working_reduction_column.push(simplex);
-        static thread_local simplex_coboundary_enumerator cofacets(*this);
+        simplex_coboundary_enumerator cofacets(*this);
         cofacets.set_simplex(simplex, dim);
         while (cofacets.has_next()) {
             diameter_entry_t cofacet = cofacets.next();
@@ -1650,11 +1650,10 @@ public:
                       std::greater<>());
 #endif
             for (size_t i = 0; i < idx_essential; ++i) {
-                if (!std::isinf(essential_pair[i]))
-                {
+                if (!std::isinf(essential_pair[i])) {
                     births_and_deaths_by_dim[dim].push_back(essential_pair[i]);
                     births_and_deaths_by_dim[dim].push_back(
-                            std::numeric_limits<value_t>::infinity());
+                        std::numeric_limits<value_t>::infinity());
                 }
             }
         }
