@@ -1259,7 +1259,7 @@ public:
     std::pair<diameter_entry_t, bool> init_coboundary_and_get_pivot(
         const diameter_entry_t simplex, WorkingColumn& working_coboundary,
         const index_t& dim, entry_hash_map& pivot_column_index,
-        const size_t index_column_to_reduce)
+        const index_t index_column_to_reduce)
     {
         static thread_local std::vector<diameter_entry_t> cofacet_entries;
         bool check_for_emergent_pair = true;
@@ -1711,8 +1711,9 @@ class ripser<compressed_lower_distance_matrix>::simplex_coboundary_enumerator
     const binomial_coeff_table& binomial_coeff;
 
 public:
-    simplex_coboundary_enumerator(const diameter_entry_t _simplex,
-                                  const index_t _dim, const ripser& parent)
+    simplex_coboundary_enumerator(
+        const diameter_entry_t _simplex, const index_t _dim,
+        const ripser<compressed_lower_distance_matrix>& parent)
         : parent(parent), idx_below(get_index(_simplex)), idx_above(0),
           v(parent.n - 1), k(_dim + 1), vertices(_dim + 1), simplex(_simplex),
           modulus(parent.modulus), dist(parent.dist),
@@ -1722,7 +1723,8 @@ public:
                                     vertices.rbegin());
     }
 
-    simplex_coboundary_enumerator(const ripser& _parent)
+    simplex_coboundary_enumerator(
+        const ripser<compressed_lower_distance_matrix>& _parent)
         : parent(_parent), modulus(_parent.modulus), dist(_parent.dist),
           binomial_coeff(_parent.binomial_coeff)
     {
@@ -1784,7 +1786,8 @@ class ripser<sparse_distance_matrix>::simplex_coboundary_enumerator
 
 public:
     simplex_coboundary_enumerator(const diameter_entry_t _simplex,
-                                  const index_t _dim, const ripser& _parent)
+                                  const index_t _dim,
+                                  const ripser<sparse_distance_matrix>& _parent)
         : parent(_parent), idx_below(get_index(_simplex)), idx_above(0),
           k(_dim + 1), vertices(_dim + 1), simplex(_simplex),
           modulus(parent.modulus), dist(parent.dist),
@@ -1801,7 +1804,7 @@ public:
         }
     }
 
-    simplex_coboundary_enumerator(const ripser& _parent)
+    simplex_coboundary_enumerator(const ripser<sparse_distance_matrix>& _parent)
         : parent(_parent), modulus(_parent.modulus), dist(_parent.dist),
           binomial_coeff(_parent.binomial_coeff)
     {
