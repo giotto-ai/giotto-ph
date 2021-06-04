@@ -1310,7 +1310,7 @@ public:
 
     void add_coboundary(MatrixColumn* reduction_column_to_add,
                         const std::vector<diameter_index_t>& columns_to_reduce,
-                        const size_t index_column_to_add,
+                        const index_t index_column_to_add,
                         const coefficient_t factor, const size_t& dim,
                         WorkingColumn& working_reduction_column,
                         WorkingColumn& working_coboundary,
@@ -1430,7 +1430,7 @@ public:
     diameter_entry_t
     get_column_pivot(MatrixColumn* column,
                      const std::vector<diameter_index_t>& columns_to_reduce,
-                     const size_t index, const coefficient_t factor,
+                     const index_t index, const coefficient_t factor,
                      const size_t& dim)
     {
         WorkingColumn tmp_working_reduction_column, tmp_working_coboundary;
@@ -1702,7 +1702,7 @@ value_t ripser<sparse_distance_matrix>::get_vertex_birth(index_t i)
 template <>
 class ripser<compressed_lower_distance_matrix>::simplex_coboundary_enumerator
 {
-    const ripser& parent;
+    const ripser<compressed_lower_distance_matrix>& parent;
     index_t idx_below, idx_above, v, k;
     std::vector<index_t> vertices;
     diameter_entry_t simplex;
@@ -1769,7 +1769,7 @@ public:
 template <>
 class ripser<sparse_distance_matrix>::simplex_coboundary_enumerator
 {
-    const ripser& parent;
+    const ripser<sparse_distance_matrix>& parent;
     index_t idx_below, idx_above, k;
     std::vector<index_t> vertices;
     diameter_entry_t simplex;
