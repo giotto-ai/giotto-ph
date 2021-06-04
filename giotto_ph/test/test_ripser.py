@@ -6,7 +6,7 @@ from hypothesis.strategies import floats, integers, composite
 from numpy.testing import assert_almost_equal
 from scipy.sparse import coo_matrix
 
-from gtda.externals import ripser
+from giotto_ph.python import ripser
 
 
 @composite
@@ -86,7 +86,7 @@ def test_coo_below_diagonal_and_mixed_same_as_above(dm):
 
 
 @pytest.mark.parametrize('thresh', [False, True])
-@pytest.mark.parametrize('coeff', [2, 7])
+@pytest.mark.parametrize('coeff', [2])
 @settings(deadline=500)
 @given(dm=get_dense_distance_matrices())
 def test_collapse_consistent_with_no_collapse_dense(thresh, coeff, dm):
@@ -103,7 +103,7 @@ def test_collapse_consistent_with_no_collapse_dense(thresh, coeff, dm):
 
 
 @pytest.mark.parametrize('thresh', [False, True])
-@pytest.mark.parametrize('coeff', [2, 7])
+@pytest.mark.parametrize('coeff', [2])
 @settings(deadline=500)
 @given(dm=get_sparse_distance_matrices())
 def test_collapse_consistent_with_no_collapse_coo(thresh, coeff, dm):
@@ -141,7 +141,7 @@ def test_collapser_with_negative_weights():
 
     for i in range(maxdim + 1):
         pd_collapse_dense[i] = np.sort(pd_collapse_dense[i], axis=0)
-        pd_collapse_sparse[i] = np.sort(pd_collapse_dense[i], axis=0)
+        pd_collapse_sparse[i] = np.sort(pd_collapse_sparse[i], axis=0)
         pd_no_collapse[i] = np.sort(pd_no_collapse[i], axis=0)
         assert_almost_equal(pd_collapse_dense[i], pd_no_collapse[i])
         assert_almost_equal(pd_collapse_sparse[i], pd_no_collapse[i])
