@@ -17,7 +17,8 @@ def get_dense_distance_matrices(draw):
     dm = draw(arrays(dtype=float,
                      elements=floats(allow_nan=False,
                                      allow_infinity=True,
-                                     min_value=0),
+                                     min_value=0,
+                                     width=32),
                      shape=(shapes, shapes), unique=False))
     np.fill_diagonal(dm, 0)
     return dm
@@ -31,7 +32,8 @@ def get_sparse_distance_matrices(draw):
     dm = draw(arrays(dtype=float,
                      elements=floats(allow_nan=False,
                                      allow_infinity=True,
-                                     min_value=0),
+                                     min_value=0,
+                                     width=32),
                      shape=(shapes, shapes), unique=False))
     dm = np.triu(dm, k=1)
     dm = coo_matrix(dm)
