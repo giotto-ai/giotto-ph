@@ -205,7 +205,7 @@ public:
     }
 
     void quiescent(void) { junction::DefaultQSBR.update(qsbrContext); }
-    iterator end() { return iterator(); }
+    iterator end() { return iterator(-1); }
     void reserve(size_t hint) {}
     template <class F>
     void foreach (const F& f) const
@@ -254,8 +254,9 @@ static const std::string clear_line("\r\033[K");
 
 static const size_t num_coefficient_bits = 8;
 
+// 1L on windows is ALWAYS 32 bits, when on unix systems is pointer size
 static const index_t max_simplex_index =
-    (1l << (8 * sizeof(index_t) - 1 - num_coefficient_bits)) - 1;
+    (uintptr_t(1) << (8 * sizeof(index_t) - 1 - num_coefficient_bits)) - 1;
 
 void check_overflow(index_t i)
 {
@@ -301,16 +302,6 @@ public:
     }
 };
 
-bool is_prime(const coefficient_t n)
-{
-    if (!(n & 1) || n < 2)
-        return n == 2;
-    for (coefficient_t p = 3; p <= n / p; p += 2)
-        if (!(n % p))
-            return false;
-    return true;
-}
-
 std::vector<coefficient_t> multiplicative_inverse_vector(const coefficient_t m)
 {
     std::vector<coefficient_t> inverse(m);
@@ -324,20 +315,37 @@ std::vector<coefficient_t> multiplicative_inverse_vector(const coefficient_t m)
 }
 
 #ifdef USE_COEFFICIENTS
-static const index_t coefficient_mask =
-    (static_cast<index_t>(1) << num_coefficient_bits) - 1;
 
-typedef index_t entry_t;
+// https://stackoverflow.com/a/3312896/13339777
+#ifdef _MSC_VER
+#define PACK(...) __pragma(pack(push, 1)) __VA_ARGS__ __pragma(pack(pop))
+#else
+#define PACK(...) __attribute__((__packed__)) __VA_ARGS__
+#endif
 
-entry_t make_entry(index_t i, coefficient_t c)
+PACK(struct entry_t {
+    index_t index : 8 * sizeof(index_t) - num_coefficient_bits;
+    index_t coefficient : num_coefficient_bits;
+    entry_t(index_t _index, coefficient_t _coefficient)
+        : index(_index), coefficient(_coefficient)
+    {
+    }
+    entry_t(index_t _index) : index(_index), coefficient(0) {}
+    entry_t() : index(0), coefficient(0) {}
+});
+
+static_assert(sizeof(entry_t) == sizeof(index_t),
+              "size of entry_t is not the same as index_t");
+
+entry_t make_entry(index_t i, coefficient_t c) { return entry_t(i, c); }
+index_t get_index(const entry_t& e) { return e.index; }
+index_t get_coefficient(const entry_t& e) { return e.coefficient; }
+void set_coefficient(entry_t& e, const coefficient_t c) { e.coefficient = c; }
+
+std::ostream& operator<<(std::ostream& stream, const entry_t& e)
 {
-    return (i << num_coefficient_bits) | c;
-}
-index_t get_index(const entry_t& e) { return (e >> num_coefficient_bits); }
-index_t get_coefficient(const entry_t& e) { return (e & coefficient_mask); }
-void set_coefficient(entry_t& e, const coefficient_t c)
-{
-    e = (e & ~coefficient_mask) | c;
+    stream << get_index(e) << ":" << get_coefficient(e);
+    return stream;
 }
 
 #else
@@ -517,7 +525,9 @@ struct greater_diameter_or_smaller_index {
 enum compressed_matrix_layout { LOWER_TRIANGULAR, UPPER_TRIANGULAR };
 
 template <compressed_matrix_layout Layout>
-struct compressed_distance_matrix {
+class compressed_distance_matrix
+{
+public:
     std::vector<value_t> distances;
     std::vector<value_t*> rows;
 
@@ -541,6 +551,7 @@ struct compressed_distance_matrix {
     }
 
     value_t operator()(const index_t i, const index_t j) const;
+
     size_t size() const { return rows.size(); }
     void init_rows();
 };
@@ -603,12 +614,9 @@ struct sparse_distance_matrix {
     {
         for (size_t i = 0; i < size(); ++i)
             for (size_t j = 0; j < size(); ++j)
-                if (i != j) {
-                    const auto d = mat(i, j);
-                    if (d <= threshold) {
-                        ++num_edges;
-                        neighbors[i].push_back({j, d});
-                    }
+                if (i != j && mat(i, j) <= threshold) {
+                    ++num_edges;
+                    neighbors[i].push_back({j, mat(i, j)});
                 }
     }
 
@@ -638,8 +646,9 @@ struct sparse_distance_matrix {
 
     value_t operator()(const index_t i, const index_t j) const
     {
-        auto neighbor = std::lower_bound(
-            neighbors[i].begin(), neighbors[i].end(), index_diameter_t{j, 0});
+        auto neighbor =
+            std::lower_bound(neighbors[i].begin(), neighbors[i].end(),
+                             index_diameter_t{j, vertex_births[j]});
         return (neighbor != neighbors[i].end() && get_index(*neighbor) == j)
                    ? get_diameter(*neighbor)
                    : std::numeric_limits<value_t>::infinity();
@@ -690,14 +699,6 @@ public:
 
     index_t find(index_t x)
     {
-        // index_t y = x, z;
-        // while ((z = parent[y]) != y)
-        //     y = z;
-        // while ((z = parent[x]) != y) {
-        //     parent[x] = y;
-        //     x = z;
-        // }
-        // return z;
         index_t y = x, z = parent[y];
         while (z != y) {
             y = z;
@@ -714,15 +715,6 @@ public:
 
     void link(index_t x, index_t y)
     {
-        // if ((x = find(x)) != (y = find(y))) {
-        //     if (rank[x] > rank[y])
-        //         parent[y] = x;
-        //     else {
-        //         parent[x] = y;
-        //         if (rank[x] == rank[y])
-        //             ++rank[y];
-        //     }
-        // }
         x = find(x);
         y = find(y);
         if (x == y)
@@ -857,9 +849,7 @@ public:
 
     ripser(DistanceMatrix&& _dist, index_t _dim_max, value_t _threshold,
            float _ratio, coefficient_t _modulus, unsigned _num_threads)
-        : dist(std::move(_dist)), n(dist.size()),
-          dim_max(std::max<index_t>(
-              0, std::min(_dim_max, index_t(dist.size() - 2)))),
+        : dist(std::move(_dist)), n(dist.size()), dim_max(_dim_max),
           threshold(_threshold), ratio(_ratio), modulus(_modulus),
           num_threads((!_num_threads ? 1 : _num_threads)),
           binomial_coeff(n, dim_max + 2),
@@ -1181,6 +1171,8 @@ public:
     void compute_dim_0_pairs(std::vector<diameter_index_t>& edges,
                              std::vector<diameter_index_t>& columns_to_reduce)
     {
+        // TODO: Get correct birth times if the edges are negative (required for
+        // lower star)
         union_find dset(n);
         for (index_t i = 0; i < n; i++) {
             dset.set_birth(i, get_vertex_birth(i));
@@ -1204,6 +1196,8 @@ public:
 
             if (u != v) {
                 if (get_diameter(e) != 0) {
+                    // Elder rule; youngest class (max birth time of u and v)
+                    // dies first
                     value_t birth =
                         std::max(dset.get_birth(u), dset.get_birth(v));
                     value_t death = get_diameter(e);
@@ -1657,9 +1651,12 @@ public:
                       std::greater<>());
 #endif
             for (size_t i = 0; i < idx_essential; ++i) {
-                births_and_deaths_by_dim[dim].push_back(essential_pair[i]);
-                births_and_deaths_by_dim[dim].push_back(
-                    std::numeric_limits<value_t>::infinity());
+                if (!std::isinf(essential_pair[i]))
+                {
+                    births_and_deaths_by_dim[dim].push_back(essential_pair[i]);
+                    births_and_deaths_by_dim[dim].push_back(
+                            std::numeric_limits<value_t>::infinity());
+                }
             }
         }
     }
@@ -1674,6 +1671,7 @@ public:
         births_and_deaths_by_dim.resize(dim_max + 1);
 
         compute_dim_0_pairs(simplices, columns_to_reduce);
+        /* pre allocate Container for each dimension */
         entry_hash_map pivot_column_index(columns_to_reduce.size());
 
         for (index_t dim = 1; dim <= dim_max; ++dim) {
@@ -1878,7 +1876,7 @@ ripser<compressed_lower_distance_matrix>::get_edges()
     std::vector<index_t> vertices(2);
     std::vector<diameter_index_t> edges;
     edges.reserve(n);
-    for (index_t index = binomial_coeff(n, 2) - 1; index > 0; --index) {
+    for (index_t index = binomial_coeff(n, 2); index-- > 0;) {
         get_simplex_vertices(index, 1, dist.size(), vertices.rbegin());
         value_t length = dist(vertices[0], vertices[1]);
         if (length <= threshold)
@@ -1925,6 +1923,10 @@ ripserResults rips_dm(float* D, int N, int modulus, int dim_max,
             ++num_edges;
     }
 
+    if (threshold == std::numeric_limits<value_t>::infinity()) {
+        threshold = std::numeric_limits<value_t>::max();
+    }
+
     value_t enclosing_radius = std::numeric_limits<value_t>::infinity();
     if (threshold == std::numeric_limits<value_t>::max()) {
         for (size_t i = 0; i < dist.size(); ++i) {
@@ -1940,8 +1942,9 @@ ripserResults rips_dm(float* D, int N, int modulus, int dim_max,
 
     ripserResults res;
     if (threshold == std::numeric_limits<value_t>::max()) {
-        ripser<compressed_lower_distance_matrix> r(
-            std::move(dist), dim_max, threshold, ratio, modulus, num_threads);
+        ripser<compressed_lower_distance_matrix> r(std::move(dist), dim_max,
+                                                   enclosing_radius, ratio,
+                                                   modulus, num_threads);
         r.compute_barcodes();
         r.copy_results(res);
     } else {
