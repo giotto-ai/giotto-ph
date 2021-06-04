@@ -32,13 +32,13 @@ from sklearn.utils.validation import column_or_1d
 from ..modules import giotto_ph_ripser, gtda_collapser
 
 
-def DRFDM(DParam, maxHomDim, thresh=-1, coeff=2, num_threads=8):
+def DRFDM(DParam, maxHomDim, thresh=-1, coeff=2, num_threads=1):
     ret = giotto_ph_ripser.rips_dm(DParam, DParam.shape[0], coeff, maxHomDim,
                                    thresh, num_threads)
     return ret
 
 
-def DRFDMSparse(I, J, V, N, maxHomDim, thresh=-1, coeff=2, num_threads=8):
+def DRFDMSparse(I, J, V, N, maxHomDim, thresh=-1, coeff=2, num_threads=1):
     ret = giotto_ph_ripser.rips_dm_sparse(I, J, V, I.size, N, coeff, maxHomDim,
                                           thresh, num_threads)
     return ret
@@ -250,7 +250,7 @@ def _ideal_thresh(dm, thresh):
 
 def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
            metric_params={}, weights=None, weight_params=None,
-           collapse_edges=False, n_perm=None):
+           collapse_edges=False, n_perm=None, num_threads=1):
     """Compute persistence diagrams for X data array using Ripser [1]_.
 
     If X is not a distance matrix, it will be converted to a distance matrix
@@ -341,6 +341,10 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         lieu of the full point cloud for a faster computation, at the expense
         of some accuracy, which can be bounded as a maximum bottleneck distance
         to all diagrams on the original point set.
+
+    num_threads : int, optional, default: ``1``
+        Maximum number of threads available to use during persistent
+        homology computation
 
     Returns
     -------
@@ -461,8 +465,9 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             row, col, data = _collapse_coo(row, col, data, thresh)
 
     else:
-        if thresh:
-            thresh = _ideal_thresh(dm, thresh)
+        # Disable thresh optimzation, something unexpected is going on
+        # if thresh:
+        #     thresh = _ideal_thresh(dm, thresh)
         if weights is not None:
             if (dm < 0).any():
                 raise ValueError("Distance matrix has negative entries. "
@@ -506,7 +511,8 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                           n_points,
                           maxdim,
                           thresh,
-                          coeff)
+                          coeff,
+                          num_threads)
     else:
         # Only consider strict upper diagonal
         DParam = squareform(dm, checks=False).astype(np.float32)
