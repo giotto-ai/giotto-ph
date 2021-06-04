@@ -62,7 +62,6 @@
 #include <unordered_map>
 
 #include <future>
-#include <pthread.h>  // naming threads
 #include <thread>
 
 #include <reclamation.hpp>
