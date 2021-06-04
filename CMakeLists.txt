@@ -15,6 +15,8 @@ set(CPP_INC_DIR "${BASE_LIB_DIR}/inc")
 # Or similar for all compilers
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+set (CMAKE_CXX_STANDARD 14)
+
 set(TURF_PREFER_CPP11 TRUE CACHE BOOL "Prefer C++11 atomics, threads, etc. over native implementations")
 set(JUNCTION_WITH_SAMPLES FALSE CACHE BOOL "Include all Junction samples in generated build system")
 add_subdirectory(${EXT_DIR}/junction)
