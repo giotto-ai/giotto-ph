@@ -1497,6 +1497,11 @@ public:
                     pivot = get_pivot(working_coboundary);
                 }
                 diameter_entry_t e;
+
+                /* prevent reducing an already reduced column */
+                if (get_index(pivot) == -1)
+                    return index_column_to_reduce;
+
                 while (true) {
                     if (get_index(pivot) != -1) {
                         auto pair = pivot_column_index.find(get_entry(pivot));
