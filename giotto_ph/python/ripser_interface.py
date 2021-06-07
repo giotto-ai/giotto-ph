@@ -519,7 +519,7 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         # Run garbage collector to free up memory taken by `dm`
         del dm
         gc.collect()
-        res = DRFDM(DParam, maxdim, thresh, coeff)
+        res = DRFDM(DParam, maxdim, thresh, coeff, num_threads)
 
     # Unwrap persistence diagrams
     dgms = res.births_and_deaths_by_dim
