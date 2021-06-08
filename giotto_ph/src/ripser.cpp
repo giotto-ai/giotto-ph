@@ -1360,7 +1360,7 @@ public:
                   << columns_to_reduce.size() << " columns" << std::endl;
 #endif
         std::atomic<size_t> achunk(0);
-        size_t chunk_size = (columns_to_reduce.size() / num_threads);
+        size_t chunk_size = (columns_to_reduce.size() / num_threads) >> 6;
         chunk_size = (chunk_size) ? chunk_size : 1;
         mrzv::MemoryManager<MatrixColumn> memory_manager(num_threads);
 
@@ -1443,7 +1443,7 @@ public:
     void retire_column(const index_t& idx_col,
                        WorkingColumn& working_reduction_column, Matrix& mat,
                        const std::vector<diameter_index_t>& columns_to_reduce,
-                       const index_t dim, const diameter_entry_t& pivot,
+                       const index_t dim, const index_t& pivot_index,
                        mrzv::MemoryManager<MatrixColumn>& mem_manager)
     {
         MatrixColumn* new_column =
@@ -1452,8 +1452,7 @@ public:
         mem_manager.retire(previous);
 
         assert(get_index(get_column_pivot(new_column, columns_to_reduce,
-                                          idx_col, 1, dim)) ==
-               get_index(pivot));
+                                          idx_col, 1, dim)) == pivot_index);
     }
 
     void compute_pairs(const std::vector<diameter_index_t>& columns_to_reduce,
@@ -1556,8 +1555,8 @@ public:
                                 retire_column(index_column_to_reduce,
                                               working_reduction_column,
                                               reduction_matrix,
-                                              columns_to_reduce, dim, pivot,
-                                              memory_manager);
+                                              columns_to_reduce, dim,
+                                              get_index(pivot), memory_manager);
 
                                 if (pivot_column_index.update(
                                         pair, entry_column_to_add,
@@ -1581,7 +1580,8 @@ public:
                             retire_column(index_column_to_reduce,
                                           working_reduction_column,
                                           reduction_matrix, columns_to_reduce,
-                                          dim, pivot, memory_manager);
+                                          dim, get_index(pivot),
+                                          memory_manager);
 
                             // equivalent to CAS in the original algorithm
                             auto insertion_result = pivot_column_index.insert(
