@@ -160,7 +160,8 @@ def _collapse_coo(row, col, data, thresh):
     diag = row == col
     row_diag, col_diag, data_diag = row[diag], col[diag], data[diag]
     row, col, data = gtda_collapser. \
-        flag_complex_collapse_edges_coo(row, col, data, thresh)
+        flag_complex_collapse_edges_coo(row, col, data.astype(np.float32),
+                                        thresh)
     return (np.hstack([row_diag, row]),
             np.hstack([col_diag, col]),
             np.hstack([data_diag, data]))
@@ -500,7 +501,7 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                 row, col, data = _collapse_coo(row, col, data, thresh)
         elif collapse_edges:
             row, col, data = gtda_collapser.\
-                flag_complex_collapse_edges_dense(dm, thresh)
+                flag_complex_collapse_edges_dense(dm.astype(np.float32), thresh)
         else:
             use_sparse_computer = False
 
