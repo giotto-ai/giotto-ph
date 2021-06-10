@@ -64,6 +64,7 @@
 #include <future>
 #include <thread>
 
+/* Memory Manager */
 #include <reclamation.hpp>
 
 #ifdef USE_THREAD_POOL
@@ -524,9 +525,7 @@ struct greater_diameter_or_smaller_index {
 enum compressed_matrix_layout { LOWER_TRIANGULAR, UPPER_TRIANGULAR };
 
 template <compressed_matrix_layout Layout>
-class compressed_distance_matrix
-{
-public:
+struct compressed_distance_matrix {
     std::vector<value_t> distances;
     std::vector<value_t*> rows;
 
@@ -602,7 +601,7 @@ struct sparse_distance_matrix {
     sparse_distance_matrix(
         std::vector<std::vector<index_diameter_t>>&& _neighbors,
         index_t _num_edges)
-        : neighbors(std::move(_neighbors)), vertex_births(_neighbors.size(), 0),
+        : neighbors(std::move(_neighbors)), vertex_births(neighbors.size(), 0),
           num_edges(_num_edges)
     {
     }
@@ -1072,7 +1071,7 @@ public:
                                          simplices.size());
 
                     for (; from < to; ++from) {
-                        auto& simplex = simplices[from];
+                        const auto& simplex = simplices[from];
                         cofacets.set_simplex(diameter_entry_t(simplex, 1),
                                              dim - 1);
                         while (cofacets.has_next(false)) {
@@ -1142,16 +1141,18 @@ public:
 
 #if defined(USE_THREAD_POOL)
         /* Pre-allocate in parallel the hash map for next dimension */
-        auto fut = p.push([&](int idx) {
-            pivot_column_index =
-                std::move(entry_hash_map(columns_to_reduce.size()));
-        });
+        if (columns_to_reduce.size()) {
+            auto fut = p.push([&](int idx) {
+                pivot_column_index =
+                    std::move(entry_hash_map(columns_to_reduce.size()));
+            });
 
-        mergesort_mt3(columns_to_reduce.begin(), columns_to_reduce.end(),
-                      greater_diameter_or_smaller_index<diameter_index_t>(),
-                      num_threads - 1, &p);
+            mergesort_mt3(columns_to_reduce.begin(), columns_to_reduce.end(),
+                          greater_diameter_or_smaller_index<diameter_index_t>(),
+                          num_threads - 1, &p);
 
-        fut.get();
+            fut.get();
+        }
 #else
         std::thread thread_(
             mergesort_mt3<decltype(columns_to_reduce.begin()),
@@ -1501,8 +1502,8 @@ public:
                 diameter_entry_t e;
 
                 /* prevent reducing an already reduced column */
-                if (get_index(pivot) == -1)
-                    return index_column_to_reduce;
+                // if (get_index(pivot) == -1)
+                //     return index_column_to_reduce;
 
                 while (true) {
                     if (get_index(pivot) != -1) {
