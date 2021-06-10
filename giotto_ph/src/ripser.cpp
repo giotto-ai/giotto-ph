@@ -1045,17 +1045,18 @@ public:
         std::atomic<int> progress{0};
 #endif
 
-        mat_simplicies_t next_simplices_vec(num_threads);
-        mat_simplicies_t columns_to_reduce_vec(num_threads);
+        const size_t n_thr = (chunk_size < num_threads) ? 1 : num_threads;
+        mat_simplicies_t next_simplices_vec(n_thr);
+        mat_simplicies_t columns_to_reduce_vec(n_thr);
 #if defined(USE_THREAD_POOL)
         std::vector<std::future<void>> futures;
-        futures.reserve(num_threads);
-        for (unsigned i = 0; i < num_threads; ++i)
+        futures.reserve(n_thr);
+        for (unsigned i = 0; i < n_thr; ++i)
             futures.emplace_back(p.push([&, i](int t_idx) {
 #else
         std::vector<std::thread> threads;
-        threads.reserve(num_threads);
-        for (unsigned i = 0; i < num_threads; ++i)
+        threads.reserve(n_thr);
+        for (unsigned i = 0; i < n_thr; ++i)
             threads.emplace_back([&, i]() {
 #endif
 
@@ -1364,15 +1365,17 @@ public:
         chunk_size = (chunk_size) ? chunk_size : 1;
         mrzv::MemoryManager<MatrixColumn> memory_manager(num_threads);
 
+        const size_t n_thr = (chunk_size < num_threads) ? 1 : num_threads;
+
 #if defined(USE_THREAD_POOL)
         std::vector<std::future<void>> futures;
-        futures.reserve(num_threads);
-        for (unsigned i = 0; i < num_threads; ++i)
+        futures.reserve(n_thr);
+        for (unsigned i = 0; i < n_thr; ++i)
             futures.emplace_back(p.push([&](int t_idx) {
 #else
         std::vector<std::thread> threads;
-        threads.reserve(num_threads);
-        for (unsigned t = 0; t < num_threads; ++t)
+        threads.reserve(n_thr);
+        for (unsigned t = 0; t < n_thr; ++t)
             threads.emplace_back([&]() {
 #endif
 
