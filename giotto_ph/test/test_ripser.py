@@ -172,3 +172,20 @@ def test_coo_results_independent_of_order():
     for i in range(2):
         assert np.array_equal(diagrams[i], expected[i])
         assert np.array_equal(diagrams_csr[i], expected[i])
+
+
+@settings(deadline=500)
+@given(dm=get_dense_distance_matrices())
+def test_multithread_consistent(dm):
+    """Test that varying the number of threads produces consistent results"""
+    maxdim = 3
+    nb_threads_to_test = [1, 2, 3, 4, 5]
+    res = []
+    for nb_threads in nb_threads_to_test:
+        res.append(ripser(dm, maxdim=maxdim, metric='precomputed',
+                          num_threads=nb_threads)['dgms'])
+    for dim in range(maxdim + 1):
+        res[0][dim] = np.sort(res[0][dim], axis=0)
+        for i in range(1, len(res)):
+            res[i][dim] = np.sort(res[i][dim], axis=0)
+            assert_almost_equal(res[0][dim], res[i][dim])
