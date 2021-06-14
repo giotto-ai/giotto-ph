@@ -29,18 +29,27 @@ from sklearn.metrics.pairwise import pairwise_distances
 from sklearn.neighbors import kneighbors_graph
 from sklearn.utils.validation import column_or_1d
 
-from ..modules import giotto_ph_ripser, gtda_collapser
+from ..modules import giotto_ph_ripser, giotto_ph_ripser_coeff, gtda_collapser
 
 
 def DRFDM(DParam, maxHomDim, thresh=-1, coeff=2, num_threads=1):
-    ret = giotto_ph_ripser.rips_dm(DParam, DParam.shape[0], coeff, maxHomDim,
-                                   thresh, num_threads)
+    if coeff == 2:
+        ret = giotto_ph_ripser.rips_dm(DParam, DParam.shape[0], coeff,
+                                       maxHomDim, thresh, num_threads)
+    else:
+        ret = giotto_ph_ripser_coeff.rips_dm(DParam, DParam.shape[0], coeff,
+                                             maxHomDim, thresh, num_threads)
     return ret
 
 
 def DRFDMSparse(I, J, V, N, maxHomDim, thresh=-1, coeff=2, num_threads=1):
-    ret = giotto_ph_ripser.rips_dm_sparse(I, J, V, I.size, N, coeff, maxHomDim,
-                                          thresh, num_threads)
+    if coeff == 2:
+        ret = giotto_ph_ripser.rips_dm_sparse(I, J, V, I.size, N, coeff,
+                                              maxHomDim, thresh, num_threads)
+    else:
+        ret = giotto_ph_ripser_coeff.rips_dm_sparse(I, J, V, I.size, N, coeff,
+                                                    maxHomDim, thresh,
+                                                    num_threads)
     return ret
 
 
