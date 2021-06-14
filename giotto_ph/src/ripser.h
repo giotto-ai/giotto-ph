@@ -82,6 +82,7 @@ using std::chrono::milliseconds;
 
 #if defined(USE_JUNCTION)
 #include <junction/ConcurrentMap_Leapfrog.h>
+#include <mutex>
 
 template <class K, class D>
 class TrivialIterator
@@ -183,8 +184,10 @@ public:
             return end();
     }
 
+    // std::mutex g_i_mutex;
     insert_return_type insert(const key_type& k, const mapped_type& d)
     {
+        // std::lock_guard<std::mutex> lock(g_i_mutex);
         auto mutator = hash->insertOrFind(k + 1);
         auto inserted = mutator.getValue() == ValueTraits<T>::NullValue;
 
@@ -215,6 +218,17 @@ public:
             f(value_type(it.getKey() - 1, it.getValue() - 1));
         }
     }
+};
+#elif defined(USE_TRIVIAL_CONCURRENT_HASHMAP)
+#include <atomic_ref.hpp>
+#include <trivial_concurrent_hash_map.hpp>
+template <class Key, class T, class H, class E>
+class hash_map : public mrzv::trivial_concurrent_hash_map<Key, T, H, E>
+{
+public:
+    hash_map() {}
+    hash_map(size_t) {}
+    void quiescent(void) {}
 };
 #else
 template <class Key, class T, class H, class E>
@@ -1036,7 +1050,7 @@ public:
 
         columns_to_reduce.clear();
         std::vector<diameter_index_t> next_simplices;
-        size_t chunk_size = (simplices.size() / num_threads) >> 6;
+        size_t chunk_size = (simplices.size() / num_threads) >> 2;
         chunk_size = (chunk_size) ? chunk_size : 1;
         std::atomic<size_t> achunk(0);
 
@@ -1362,7 +1376,7 @@ public:
                   << columns_to_reduce.size() << " columns" << std::endl;
 #endif
         std::atomic<size_t> achunk(0);
-        size_t chunk_size = (columns_to_reduce.size() / num_threads) >> 6;
+        size_t chunk_size = (columns_to_reduce.size() / num_threads) >> 2;
         chunk_size = (chunk_size) ? chunk_size : 1;
         mrzv::MemoryManager<MatrixColumn> memory_manager(num_threads);
 
@@ -1907,87 +1921,4 @@ std::vector<diameter_index_t> ripser<sparse_distance_matrix>::get_edges()
                 edges.push_back({get_diameter(n), get_edge_index(i, j)});
         }
     return edges;
-}
-
-ripserResults rips_dm(float* D, int N, int modulus, int dim_max,
-                      float threshold, int num_threads)
-{
-    // Setup distance matrix and figure out threshold
-    std::vector<value_t> distances(D, D + N);
-    compressed_lower_distance_matrix dist = compressed_lower_distance_matrix(
-        compressed_upper_distance_matrix(std::move(distances)));
-
-    // TODO: This seems like a dummy parameter at the moment
-    float ratio = 1.0;
-
-    value_t min = std::numeric_limits<value_t>::infinity(),
-            max = -std::numeric_limits<value_t>::infinity(), max_finite = max;
-    int num_edges = 0;
-
-    for (auto d : dist.distances) {
-        min = std::min(min, d);
-        max = std::max(max, d);
-        if (d != std::numeric_limits<value_t>::infinity())
-            max_finite = std::max(max_finite, d);
-        if (d <= threshold)
-            ++num_edges;
-    }
-
-    if (threshold == std::numeric_limits<value_t>::infinity()) {
-        threshold = std::numeric_limits<value_t>::max();
-    }
-
-    value_t enclosing_radius = std::numeric_limits<value_t>::infinity();
-    if (threshold == std::numeric_limits<value_t>::max()) {
-        for (size_t i = 0; i < dist.size(); ++i) {
-            value_t r_i = dist(i, 0);
-            for (size_t j = 1; j < dist.size(); ++j)
-                r_i = std::max(r_i, dist(i, j));
-            enclosing_radius = std::min(enclosing_radius, r_i);
-        }
-
-        if (enclosing_radius == std::numeric_limits<value_t>::infinity())
-            threshold = max_finite;
-    }
-
-    ripserResults res;
-    if (threshold == std::numeric_limits<value_t>::max()) {
-        ripser<compressed_lower_distance_matrix> r(std::move(dist), dim_max,
-                                                   enclosing_radius, ratio,
-                                                   modulus, num_threads);
-        r.compute_barcodes();
-        r.copy_results(res);
-    } else {
-        ripser<sparse_distance_matrix> r(
-            sparse_distance_matrix(std::move(dist), threshold), dim_max,
-            threshold, ratio, modulus, num_threads);
-        r.compute_barcodes();
-        r.copy_results(res);
-    }
-    res.num_edges = num_edges;
-    return res;
-}
-
-ripserResults rips_dm_sparse(int* I, int* J, float* V, int NEdges, int N,
-                             int modulus, int dim_max, float threshold,
-                             int num_threads)
-{
-    // TODO: This seems like a dummy parameter at the moment
-    float ratio = 1.0;
-    // Setup distance matrix and figure out threshold
-    ripser<sparse_distance_matrix> r(
-        sparse_distance_matrix(I, J, V, NEdges, N, threshold), dim_max,
-        threshold, ratio, modulus, num_threads);
-    r.compute_barcodes();
-    // Report the number of edges that were added
-    int num_edges = 0;
-    for (int idx = 0; idx < NEdges; idx++) {
-        if (I[idx] < J[idx] && V[idx] <= threshold) {
-            num_edges++;
-        }
-    }
-    ripserResults res;
-    r.copy_results(res);
-    res.num_edges = num_edges;
-    return res;
 }
