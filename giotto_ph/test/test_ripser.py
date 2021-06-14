@@ -94,7 +94,7 @@ def test_coo_below_diagonal_and_mixed_same_as_above(dm):
 
 
 @pytest.mark.parametrize('thresh', [False, True])
-@pytest.mark.parametrize('coeff', [2])
+@pytest.mark.parametrize('coeff', [2, 7])
 @settings(deadline=500)
 @given(dm=get_dense_distance_matrices())
 def test_collapse_consistent_with_no_collapse_dense(thresh, coeff, dm):
@@ -111,7 +111,7 @@ def test_collapse_consistent_with_no_collapse_dense(thresh, coeff, dm):
 
 
 @pytest.mark.parametrize('thresh', [False, True])
-@pytest.mark.parametrize('coeff', [2])
+@pytest.mark.parametrize('coeff', [2, 7])
 @settings(deadline=500)
 @given(dm=get_sparse_distance_matrices())
 def test_collapse_consistent_with_no_collapse_coo(thresh, coeff, dm):
