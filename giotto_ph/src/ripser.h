@@ -118,6 +118,12 @@ struct ValueTraits {
     static constexpr IntType Redirect = -1;
 };
 
+template <typename T>
+constexpr T ValueTraits<T>::NullValue;
+
+template <typename T>
+constexpr T ValueTraits<T>::Redirect;
+
 template <class Key, class T, class H, class E>
 class hash_map
 {
@@ -326,8 +332,19 @@ PACK(struct entry_t {
         : index(_index), coefficient(_coefficient)
     {
     }
-    entry_t(index_t _index) : index(_index), coefficient(0) {}
-    entry_t() : index(0), coefficient(0) {}
+    constexpr entry_t(index_t _index) : index(_index), coefficient(0) {}
+    constexpr entry_t() : index(0), coefficient(0) {}
+    bool operator==(const entry_t& rhs) const { return index == rhs.index; }
+    bool operator!=(const entry_t& rhs) const { return !(*this == rhs); }
+    explicit operator index_t() const { return index; }
+    entry_t operator+(index_t idx) const
+    {
+        return entry_t(index + idx, coefficient);
+    }
+    entry_t operator-(index_t idx) const
+    {
+        return entry_t(index - idx, coefficient);
+    }
 });
 
 static_assert(sizeof(entry_t) == sizeof(index_t),
@@ -823,7 +840,7 @@ class ripser
         }
     };
 
-    using entry_hash_map = hash_map<entry_t, entry_t, entry_hash, equal_index>;
+    using entry_hash_map = hash_map<index_t, entry_t, entry_hash, equal_index>;
     using Matrix = compressed_sparse_matrix<diameter_entry_t>;
     using MatrixColumn = typename Matrix::Column;
     using WorkingColumn = std::priority_queue<
@@ -835,7 +852,7 @@ private:
     const bool is_not_present(entry_hash_map& hm,
                               const diameter_entry_t& elem) const
     {
-        return hm.find(get_entry(elem)) == hm.end();
+        return hm.find(get_index(get_entry(elem))) == hm.end();
     }
 
 public:
@@ -1275,7 +1292,7 @@ public:
                         (get_index(get_zero_apparent_facet(cofacet, dim + 1)) ==
                          -1))
                         if (pivot_column_index
-                                .insert({get_entry(cofacet),
+                                .insert({get_index(get_entry(cofacet)),
                                          make_entry(index_column_to_reduce,
                                                     get_coefficient(cofacet))})
                                 .second)
@@ -1469,150 +1486,143 @@ public:
         std::vector<value_t> essential_pair;
         essential_pair.resize(columns_to_reduce.size());
 
-        foreach (
-            columns_to_reduce,
-            [&](index_t index_column_to_reduce, bool first,
-                mrzv::MemoryManager<MatrixColumn>& memory_manager) {
-                const diameter_entry_t column_to_reduce(
-                    columns_to_reduce[index_column_to_reduce], 1);
+        foreach (columns_to_reduce, [&](index_t index_column_to_reduce,
+                                        bool first,
+                                        mrzv::MemoryManager<MatrixColumn>&
+                                            memory_manager) {
+            const diameter_entry_t column_to_reduce(
+                columns_to_reduce[index_column_to_reduce], 1);
 
-                WorkingColumn working_reduction_column, working_coboundary;
+            WorkingColumn working_reduction_column, working_coboundary;
 
-                diameter_entry_t pivot;
-                if (first) {
-                    bool emergent;
-                    std::tie(pivot, emergent) = init_coboundary_and_get_pivot(
-                        column_to_reduce, working_coboundary, dim,
-                        pivot_column_index, index_column_to_reduce);
-                    if (emergent)
-                        return index_column_to_reduce;
-                } else {
-                    MatrixColumn* reduction_column_to_reduce =
-                        reduction_matrix.column(index_column_to_reduce);
-                    add_coboundary(reduction_column_to_reduce,
-                                   columns_to_reduce, index_column_to_reduce, 1,
-                                   dim, working_reduction_column,
-                                   working_coboundary, false);
-                    pivot = get_pivot(working_coboundary);
-                }
-                diameter_entry_t e;
+            diameter_entry_t pivot;
+            if (first) {
+                bool emergent;
+                std::tie(pivot, emergent) = init_coboundary_and_get_pivot(
+                    column_to_reduce, working_coboundary, dim,
+                    pivot_column_index, index_column_to_reduce);
+                if (emergent)
+                    return index_column_to_reduce;
+            } else {
+                MatrixColumn* reduction_column_to_reduce =
+                    reduction_matrix.column(index_column_to_reduce);
+                add_coboundary(reduction_column_to_reduce, columns_to_reduce,
+                               index_column_to_reduce, 1, dim,
+                               working_reduction_column, working_coboundary,
+                               false);
+                pivot = get_pivot(working_coboundary);
+            }
+            diameter_entry_t e;
 
-                /* prevent reducing an already reduced column */
-                // if (get_index(pivot) == -1)
-                //     return index_column_to_reduce;
+            while (true) {
+                if (get_index(pivot) != -1) {
+                    auto pair =
+                        pivot_column_index.find(get_index(get_entry(pivot)));
+                    if (pair != pivot_column_index.end()) {
+                        entry_t old_entry_column_to_add;
+                        index_t index_column_to_add;
+                        MatrixColumn* reduction_column_to_add;
+                        entry_t entry_column_to_add =
+                            pivot_column_index.value(pair);
+                        do {
+                            old_entry_column_to_add = entry_column_to_add;
 
-                while (true) {
-                    if (get_index(pivot) != -1) {
-                        auto pair = pivot_column_index.find(get_entry(pivot));
-                        if (pair != pivot_column_index.end()) {
-                            entry_t old_entry_column_to_add;
-                            index_t index_column_to_add;
-                            MatrixColumn* reduction_column_to_add;
-                            entry_t entry_column_to_add =
+                            index_column_to_add =
+                                get_index(entry_column_to_add);
+
+                            reduction_column_to_add =
+                                reduction_matrix.column(index_column_to_add);
+
+                            // this is a weaker check than in the original
+                            // lockfree persistence paper (it would suffice
+                            // that the pivot in reduction_column_to_add)
+                            // hasn't changed, but given that matrix V is
+                            // stored, rather than matrix R, it's easier to
+                            // check that pivot_column_index entry we read
+                            // hasn't changed
+                            // TODO: think through memory orders, and
+                            // whether we need to adjust anything
+                            entry_column_to_add =
                                 pivot_column_index.value(pair);
-                            do {
-                                old_entry_column_to_add = entry_column_to_add;
+                        } while (old_entry_column_to_add !=
+                                 entry_column_to_add);
 
-                                index_column_to_add =
-                                    get_index(entry_column_to_add);
+                        if (index_column_to_add < index_column_to_reduce) {
+                            // pivot to the left; usual reduction
+                            coefficient_t factor =
+                                modulus -
+                                get_coefficient(pivot) *
+                                    multiplicative_inverse[get_coefficient(
+                                        entry_column_to_add)] %
+                                    modulus;
 
-                                reduction_column_to_add =
-                                    reduction_matrix.column(
-                                        index_column_to_add);
-
-                                // this is a weaker check than in the original
-                                // lockfree persistence paper (it would suffice
-                                // that the pivot in reduction_column_to_add)
-                                // hasn't changed, but given that matrix V is
-                                // stored, rather than matrix R, it's easier to
-                                // check that pivot_column_index entry we read
-                                // hasn't changed
-                                // TODO: think through memory orders, and
-                                // whether we need to adjust anything
-                                entry_column_to_add =
-                                    pivot_column_index.value(pair);
-                            } while (old_entry_column_to_add !=
-                                     entry_column_to_add);
-
-                            if (index_column_to_add < index_column_to_reduce) {
-                                // pivot to the left; usual reduction
-                                coefficient_t factor =
-                                    modulus -
-                                    get_coefficient(pivot) *
-                                        multiplicative_inverse[get_coefficient(
-                                            entry_column_to_add)] %
-                                        modulus;
-
-                                add_coboundary(reduction_column_to_add,
-                                               columns_to_reduce,
-                                               index_column_to_add, factor, dim,
-                                               working_reduction_column,
-                                               working_coboundary);
-
-                                pivot = get_pivot(working_coboundary);
-                            } else {
-                                // pivot to the right
-                                retire_column(index_column_to_reduce,
-                                              working_reduction_column,
-                                              reduction_matrix,
-                                              columns_to_reduce, dim,
-                                              get_index(pivot), memory_manager);
-
-                                if (pivot_column_index.update(
-                                        pair, entry_column_to_add,
-                                        make_entry(index_column_to_reduce,
-                                                   get_coefficient(pivot)))) {
-                                    return index_column_to_add;
-                                } else {
-                                    continue;  // re-read the pair
-                                }
-                            }
-                        } else if (get_index(e = get_zero_apparent_facet(
-                                                 pivot, dim + 1)) != -1) {
-                            set_coefficient(e, modulus - get_coefficient(e));
-
-                            add_simplex_coboundary(e, dim,
-                                                   working_reduction_column,
-                                                   working_coboundary);
+                            add_coboundary(
+                                reduction_column_to_add, columns_to_reduce,
+                                index_column_to_add, factor, dim,
+                                working_reduction_column, working_coboundary);
 
                             pivot = get_pivot(working_coboundary);
                         } else {
+                            // pivot to the right
                             retire_column(index_column_to_reduce,
                                           working_reduction_column,
                                           reduction_matrix, columns_to_reduce,
                                           dim, get_index(pivot),
                                           memory_manager);
 
-                            // equivalent to CAS in the original algorithm
-                            auto insertion_result = pivot_column_index.insert(
-                                {get_entry(pivot),
-                                 make_entry(index_column_to_reduce,
-                                            get_coefficient(pivot))});
-                            if (!insertion_result
-                                     .second)  // failed to insert, somebody
-                                               // got there before us,
-                                               // continue reduction
-                                continue;  // TODO: insertion_result.first is
+                            if (pivot_column_index.update(
+                                    pair, entry_column_to_add,
+                                    make_entry(index_column_to_reduce,
+                                               get_coefficient(pivot)))) {
+                                return index_column_to_add;
+                            } else {
+                                continue;  // re-read the pair
+                            }
+                        }
+                    } else if (get_index(e = get_zero_apparent_facet(
+                                             pivot, dim + 1)) != -1) {
+                        set_coefficient(e, modulus - get_coefficient(e));
+
+                        add_simplex_coboundary(e, dim, working_reduction_column,
+                                               working_coboundary);
+
+                        pivot = get_pivot(working_coboundary);
+                    } else {
+                        retire_column(index_column_to_reduce,
+                                      working_reduction_column,
+                                      reduction_matrix, columns_to_reduce, dim,
+                                      get_index(pivot), memory_manager);
+
+                        // equivalent to CAS in the original algorithm
+                        auto insertion_result = pivot_column_index.insert(
+                            {get_index(get_entry(pivot)),
+                             make_entry(index_column_to_reduce,
+                                        get_coefficient(pivot))});
+                        if (!insertion_result
+                                 .second)  // failed to insert, somebody
+                                           // got there before us,
+                                           // continue reduction
+                            continue;      // TODO: insertion_result.first is
                                            // the new pair; could elide and
                                            // extra atomic load
 
-                            /* Pairs should be extracted if insertation was
-                             * first one ! */
-                            size_t location = last_diameter_index++;
-                            diameters[location] = get_diameter(pivot);
-                            deaths.insert({get_entry(pivot), location});
-                            break;
-                        }
-                    } else {
-                        essential_pair[idx_essential++] =
-                            get_diameter(column_to_reduce);
-                        // TODO: these will need special attention, if output
-                        // happens after the reduction, not during
+                        /* Pairs should be extracted if insertation was
+                         * first one ! */
+                        size_t location = last_diameter_index++;
+                        diameters[location] = get_diameter(pivot);
+                        deaths.insert({get_index(get_entry(pivot)), location});
                         break;
                     }
+                } else {
+                    essential_pair[idx_essential++] =
+                        get_diameter(column_to_reduce);
+                    // TODO: these will need special attention, if output
+                    // happens after the reduction, not during
+                    break;
                 }
-                return index_column_to_reduce;
-            })
+            }
+            return index_column_to_reduce;
+        })
             ;
         pivot_column_index.quiescent();
         deaths.quiescent();
@@ -1625,7 +1635,7 @@ public:
                 auto it = deaths.find(x.first);
                 if (it == deaths.end())
                     return;
-                value_t death = diameters[it->second];
+                value_t death = diameters[get_index(it->second)];
                 value_t birth =
                     get_diameter(columns_to_reduce[get_index(x.second)]);
                 if (death > birth * ratio) {
