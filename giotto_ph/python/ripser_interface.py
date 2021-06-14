@@ -233,11 +233,18 @@ def _check_weights(weights, n_points):
 
 
 def _ideal_thresh(dm, thresh):
+    """This fonction computes enclosing radius. Enclosing radius
+    indicates that all distances above this threshold will produce
+    trivial homology
+
+    Enclosing radius is only computed if input matrix is square
+    """
 
     # Check that matrix is square
-    if dm.shape[0] != dm.shape[1] and dm.shape[1] != 1:
+    if dm.shape[0] != dm.shape[1]:
         return thresh
 
+    # Compute an array containing the maximal value by column
     if dm.shape[1] != 1:
         max_by_array = np.apply_along_axis(np.amax, axis=1, arr=dm)
     else:
@@ -246,7 +253,9 @@ def _ideal_thresh(dm, thresh):
         for i in range(dm.shape[0]):
             max_by_array.append(np.amax(dm_[i:]))
 
-    return np.amin([np.amin(max_by_array), thresh])
+    enclosing_radius = np.amin(max_by_array)
+
+    return np.amin([enclosing_radius, thresh])
 
 
 def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
@@ -466,9 +475,6 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             row, col, data = _collapse_coo(row, col, data, thresh)
 
     else:
-        # Disable thresh optimzation, something unexpected is going on
-        # if thresh:
-        #     thresh = _ideal_thresh(dm, thresh)
         if weights is not None:
             if (dm < 0).any():
                 raise ValueError("Distance matrix has negative entries. "
@@ -504,6 +510,10 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                 flag_complex_collapse_edges_dense(dm.astype(np.float32), thresh)
         else:
             use_sparse_computer = False
+            # Compute ideal threshold only when a distance matrix is passed
+            # as input without specifying any threshold
+            if thresh != np.inf:
+                thresh = _ideal_thresh(dm, thresh)
 
     if use_sparse_computer:
         res = DRFDMSparse(np.asarray(row, dtype=np.int32, order="C"),
