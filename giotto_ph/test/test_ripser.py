@@ -21,6 +21,10 @@ def get_dense_distance_matrices(draw):
                                      exclude_min=True,
                                      width=32),
                      shape=(shapes, shapes), unique=False))
+    # mirror along the diagonal the values of the
+    # distance matrix
+    dm = np.triu(dm.astype(np.float32), k=0)
+    dm = dm + dm.T
     np.fill_diagonal(dm, 0)
     return dm
 
@@ -37,7 +41,7 @@ def get_sparse_distance_matrices(draw):
                                      exclude_min=True,
                                      width=32),
                      shape=(shapes, shapes), unique=False))
-    dm = np.triu(dm, k=1)
+    dm = np.triu(dm.astype(np.float32), k=1)
     dm = coo_matrix(dm)
     row, col, data = dm.row, dm.col, dm.data
     not_inf_idx = data != np.inf
