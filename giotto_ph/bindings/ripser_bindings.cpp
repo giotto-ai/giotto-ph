@@ -36,10 +36,10 @@ PYBIND11_MODULE(giotto_ph_ripser, m)
 
     m.def(
         "rips_dm",
-        [](py::array_t<float>& D, int N, int modulus, int dim_max,
+        [](py::array_t<value_t>& D, int N, int modulus, int dim_max,
            float threshold, int num_threads) {
             // Setup distance matrix and figure out threshold
-            auto D_ = static_cast<float*>(D.request().ptr);
+            auto D_ = static_cast<value_t*>(D.request().ptr);
             std::vector<value_t> distances(D_, D_ + N);
             compressed_lower_distance_matrix dist =
                 compressed_lower_distance_matrix(
@@ -102,12 +102,12 @@ PYBIND11_MODULE(giotto_ph_ripser, m)
 
     m.def(
         "rips_dm_sparse",
-        [](py::array_t<int>& I, py::array_t<int>& J, py::array_t<float>& V,
-           int NEdges, int N, int modulus, int dim_max, float threshold,
-           int num_threads) {
-            auto I_ = static_cast<int*>(I.request().ptr);
-            auto J_ = static_cast<int*>(J.request().ptr);
-            auto V_ = static_cast<float*>(V.request().ptr);
+        [](py::array_t<index_t>& I, py::array_t<index_t>& J,
+           py::array_t<value_t>& V, int NEdges, int N, int modulus, int dim_max,
+           float threshold, int num_threads) {
+            auto I_ = static_cast<index_t*>(I.request().ptr);
+            auto J_ = static_cast<index_t*>(J.request().ptr);
+            auto V_ = static_cast<value_t*>(V.request().ptr);
             // TODO: This seems like a dummy parameter at the moment
             const float ratio = 1.0;
             // Setup distance matrix and figure out threshold

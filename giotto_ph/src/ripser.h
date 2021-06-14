@@ -71,10 +71,6 @@
 #include <ctpl_stl.h>
 #endif
 
-#ifdef USE_PARALLEL_STL
-#include <execution>
-#endif
-
 using std::chrono::duration;
 using std::chrono::duration_cast;
 using std::chrono::high_resolution_clock;
@@ -82,7 +78,6 @@ using std::chrono::milliseconds;
 
 #if defined(USE_JUNCTION)
 #include <junction/ConcurrentMap_Leapfrog.h>
-#include <mutex>
 
 template <class K, class D>
 class TrivialIterator
@@ -184,10 +179,8 @@ public:
             return end();
     }
 
-    // std::mutex g_i_mutex;
     insert_return_type insert(const key_type& k, const mapped_type& d)
     {
-        // std::lock_guard<std::mutex> lock(g_i_mutex);
         auto mutator = hash->insertOrFind(k + 1);
         auto inserted = mutator.getValue() == ValueTraits<T>::NullValue;
 
@@ -218,17 +211,6 @@ public:
             f(value_type(it.getKey() - 1, it.getValue() - 1));
         }
     }
-};
-#elif defined(USE_TRIVIAL_CONCURRENT_HASHMAP)
-#include <atomic_ref.hpp>
-#include <trivial_concurrent_hash_map.hpp>
-template <class Key, class T, class H, class E>
-class hash_map : public mrzv::trivial_concurrent_hash_map<Key, T, H, E>
-{
-public:
-    hash_map() {}
-    hash_map(size_t) {}
-    void quiescent(void) {}
 };
 #else
 template <class Key, class T, class H, class E>
@@ -633,8 +615,8 @@ struct sparse_distance_matrix {
     }
 
     // Initialize from COO format
-    sparse_distance_matrix(int* I, int* J, value_t* V, int NEdges, int N,
-                           const value_t threshold)
+    sparse_distance_matrix(index_t* I, index_t* J, value_t* V, int NEdges,
+                           int N, const value_t threshold)
         : neighbors(N), vertex_births(N, 0), num_edges(0)
     {
         int i, j;
