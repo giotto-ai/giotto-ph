@@ -1046,7 +1046,7 @@ public:
         std::chrono::steady_clock::time_point next =
             std::chrono::steady_clock::now() + time_step;
 #endif
-
+        const bool check_clearing = columns_to_reduce.size();
         columns_to_reduce.clear();
         std::vector<diameter_index_t> next_simplices;
         size_t chunk_size = (simplices.size() / num_threads) >> 2;
@@ -1110,6 +1110,7 @@ public:
                                 }
 
                                 if (!is_in_zero_apparent_pair(cofacet, dim) &&
+                                    check_clearing &&
                                     is_not_present(pivot_column_index, cofacet))
                                     columns_to_reduce_vec[i].push_back(
                                         {get_diameter(cofacet),
@@ -1690,7 +1691,10 @@ public:
         for (index_t dim = 1; dim <= dim_max; ++dim) {
             pivot_column_index.reserve(columns_to_reduce.size());
 
-            compute_pairs(columns_to_reduce, pivot_column_index, dim);
+            // Only try to compute pairs if any column needs to be
+            // reduced
+            if (columns_to_reduce.size())
+                compute_pairs(columns_to_reduce, pivot_column_index, dim);
 
             if (dim < dim_max)
                 assemble_columns_to_reduce(simplices, columns_to_reduce,
