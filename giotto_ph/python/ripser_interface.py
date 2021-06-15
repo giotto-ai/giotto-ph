@@ -521,7 +521,7 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             use_sparse_computer = False
             # Compute ideal threshold only when a distance matrix is passed
             # as input without specifying any threshold
-            if thresh != np.inf:
+            if thresh == np.inf:
                 thresh = _ideal_thresh(dm, thresh)
 
     if use_sparse_computer:
