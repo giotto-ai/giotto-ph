@@ -78,7 +78,6 @@ using std::chrono::milliseconds;
 
 #if defined(USE_JUNCTION)
 #include <junction/ConcurrentMap_Leapfrog.h>
-#include <mutex>
 
 template <class K, class D>
 class TrivialIterator
@@ -135,7 +134,6 @@ private:
                                          ValueTraits<T>>;
     std::unique_ptr<internal_table_type> hash;
     junction::QSBR::Context qsbrContext;
-    std::mutex g_i_mutex;
 
     size_t next_power_2(size_t n)
     {
@@ -179,7 +177,6 @@ public:
 
     iterator find(const key_type& k)
     {
-        std::lock_guard<std::mutex> lock(g_i_mutex);
         mapped_type r = hash->get(k + 1);
 
         if (r != ValueTraits<T>::NullValue)
@@ -190,7 +187,6 @@ public:
 
     insert_return_type insert(const key_type& k, const mapped_type& d)
     {
-        std::lock_guard<std::mutex> lock(g_i_mutex);
         auto mutator = hash->insertOrFind(k + 1);
         auto inserted = mutator.getValue() == ValueTraits<T>::NullValue;
 
@@ -207,7 +203,6 @@ public:
 
     bool update(iterator& it, T& expected, T desired)
     {
-        std::lock_guard<std::mutex> lock(g_i_mutex);
         return hash->exchange(it->first + 1, desired + 1) == (expected + 1);
     }
 
