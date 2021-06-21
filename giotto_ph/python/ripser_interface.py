@@ -398,6 +398,14 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
 
             dm = _weight_filtration_dense(dm, weights, weights_p)
             np.fill_diagonal(dm, weights)
+        if not (dm.diagonal() != 0).any():
+            # Compute ideal threshold only when a distance matrix is passed
+            # as input without specifying any threshold
+            # We check if any element and if no entries is present in the
+            # diagonal. This allow to have the enclosing radius before
+            # calling collapser if computed
+            if thresh == np.inf:
+                thresh = _ideal_thresh(dm, thresh)
 
         if (dm.diagonal() != 0).any():
             # Convert to sparse format, because currently that's the only
@@ -412,10 +420,6 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                                                   thresh)
         else:
             use_sparse_computer = False
-            # Compute ideal threshold only when a distance matrix is passed
-            # as input without specifying any threshold
-            if thresh == np.inf:
-                thresh = _ideal_thresh(dm, thresh)
 
     if use_sparse_computer:
         res = _compute_ph_vr_sparse(

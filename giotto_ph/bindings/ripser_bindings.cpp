@@ -47,53 +47,19 @@ PYBIND11_MODULE(giotto_ph_ripser, m)
 
             // TODO: This seems like a dummy parameter at the moment
             float ratio = 1.0;
-
-            value_t min = std::numeric_limits<value_t>::infinity(),
-                    max = -std::numeric_limits<value_t>::infinity(),
-                    max_finite = max;
             int num_edges = 0;
 
             for (auto d : dist.distances) {
-                min = std::min(min, d);
-                max = std::max(max, d);
-                if (d != std::numeric_limits<value_t>::infinity())
-                    max_finite = std::max(max_finite, d);
                 if (d <= threshold)
                     ++num_edges;
             }
 
-            if (threshold == std::numeric_limits<value_t>::infinity()) {
-                threshold = std::numeric_limits<value_t>::max();
-            }
-
-            value_t enclosing_radius = std::numeric_limits<value_t>::infinity();
-            if (threshold == std::numeric_limits<value_t>::max()) {
-                for (size_t i = 0; i < dist.size(); ++i) {
-                    value_t r_i = dist(i, 0);
-                    for (size_t j = 1; j < dist.size(); ++j)
-                        r_i = std::max(r_i, dist(i, j));
-                    enclosing_radius = std::min(enclosing_radius, r_i);
-                }
-
-                if (enclosing_radius ==
-                    std::numeric_limits<value_t>::infinity())
-                    threshold = max_finite;
-            }
-
             ripserResults res;
-            if (threshold == std::numeric_limits<value_t>::max()) {
-                ripser<compressed_lower_distance_matrix> r(
-                    std::move(dist), dim_max, enclosing_radius, ratio, modulus,
-                    num_threads);
-                r.compute_barcodes();
-                r.copy_results(res);
-            } else {
-                ripser<sparse_distance_matrix> r(
-                    sparse_distance_matrix(std::move(dist), threshold), dim_max,
-                    threshold, ratio, modulus, num_threads);
-                r.compute_barcodes();
-                r.copy_results(res);
-            }
+            ripser<compressed_lower_distance_matrix> r(std::move(dist), dim_max,
+                                                       threshold, ratio,
+                                                       modulus, num_threads);
+            r.compute_barcodes();
+            r.copy_results(res);
             res.num_edges = num_edges;
             return res;
         },
@@ -108,6 +74,7 @@ PYBIND11_MODULE(giotto_ph_ripser, m)
             auto I_ = static_cast<index_t*>(I.request().ptr);
             auto J_ = static_cast<index_t*>(J.request().ptr);
             auto V_ = static_cast<value_t*>(V.request().ptr);
+
             // TODO: This seems like a dummy parameter at the moment
             const float ratio = 1.0;
             // Setup distance matrix and figure out threshold
