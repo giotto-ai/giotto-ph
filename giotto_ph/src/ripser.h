@@ -134,6 +134,7 @@ private:
                                          ValueTraits<T>>;
     std::unique_ptr<internal_table_type> hash;
     junction::QSBR::Context qsbrContext;
+    // std::mutex g_i_mutex;
 
     size_t next_power_2(size_t n)
     {
@@ -177,6 +178,7 @@ public:
 
     iterator find(const key_type& k)
     {
+        // std::lock_guard<std::mutex> lock(g_i_mutex);
         mapped_type r = hash->get(k + 1);
 
         if (r != ValueTraits<T>::NullValue)
@@ -187,6 +189,7 @@ public:
 
     insert_return_type insert(const key_type& k, const mapped_type& d)
     {
+        // std::lock_guard<std::mutex> lock(g_i_mutex);
         auto mutator = hash->insertOrFind(k + 1);
         auto inserted = mutator.getValue() == ValueTraits<T>::NullValue;
 
@@ -203,6 +206,7 @@ public:
 
     bool update(iterator& it, T& expected, T desired)
     {
+        // std::lock_guard<std::mutex> lock(g_i_mutex);
         return hash->exchange(it->first + 1, desired + 1) == (expected + 1);
     }
 
@@ -1482,9 +1486,10 @@ public:
 
         // extra vector is a work-around inability to store floats in the
         // hash_map
-        std::atomic<size_t> last_diameter_index{0}, idx_essential{0};
-        entry_hash_map deaths;
-        deaths.reserve(columns_to_reduce.size());
+        std::atomic<size_t> nb_barcodes{0}, idx_essential{0};
+        std::vector<std::pair<value_t, value_t>> barcodes(
+            columns_to_reduce.size());
+
         std::vector<value_t> diameters(columns_to_reduce.size());
         std::vector<value_t> essential_pair;
         essential_pair.resize(columns_to_reduce.size());
@@ -1611,9 +1616,9 @@ public:
 
                         /* Pairs should be extracted if insertation was
                          * first one ! */
-                        size_t location = last_diameter_index++;
-                        diameters[location] = get_diameter(pivot);
-                        deaths.insert({get_index(get_entry(pivot)), location});
+                        size_t location = nb_barcodes++;
+                        barcodes[location] = {get_diameter(column_to_reduce),
+                                              get_diameter(pivot)};
                         break;
                     }
                 } else {
@@ -1628,28 +1633,23 @@ public:
         })
             ;
         pivot_column_index.quiescent();
-        deaths.quiescent();
         /* persistence pairs */
 #if defined(SORT_BARCODES)
         std::vector<std::pair<value_t, value_t>> persistence_pair;
 #endif
-        pivot_column_index.foreach (
-            [&](const typename entry_hash_map::value_type& x) {
-                auto it = deaths.find(x.first);
-                if (it == deaths.end())
-                    return;
-                value_t death = diameters[get_index(it->second)];
-                value_t birth =
-                    get_diameter(columns_to_reduce[get_index(x.second)]);
-                if (death > birth * ratio) {
+
+        for (size_t i = 0; i < nb_barcodes; ++i) {
+            value_t birth = barcodes[i].first;
+            value_t death = barcodes[i].second;
+            if (death > birth * ratio) {
 #if defined(SORT_BARCODES)
-                    persistence_pair.push_back({birth, death});
+                persistence_pair.push_back({birth, death});
 #else
-                    births_and_deaths_by_dim[dim].push_back(birth);
-                    births_and_deaths_by_dim[dim].push_back(death);
+                births_and_deaths_by_dim[dim].push_back(birth);
+                births_and_deaths_by_dim[dim].push_back(death);
 #endif
-                }
-            });
+            }
+        }
 #if defined(SORT_BARCODES)
         if (persistence_pair.size()) {
             std::sort(persistence_pair.begin(), persistence_pair.end(),
