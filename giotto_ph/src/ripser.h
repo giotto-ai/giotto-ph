@@ -1486,9 +1486,9 @@ public:
 
         // extra vector is a work-around inability to store floats in the
         // hash_map
-        std::atomic<size_t> nb_barcodes{0}, idx_essential{0};
-        std::vector<std::pair<value_t, value_t>> barcodes(
-            columns_to_reduce.size());
+        std::atomic<size_t> last_diameter_index{0}, idx_essential{0};
+        entry_hash_map deaths;
+        deaths.reserve(columns_to_reduce.size());
 
         std::vector<value_t> diameters(columns_to_reduce.size());
         std::vector<value_t> essential_pair;
@@ -1616,9 +1616,9 @@ public:
 
                         /* Pairs should be extracted if insertation was
                          * first one ! */
-                        size_t location = nb_barcodes++;
-                        barcodes[location] = {get_diameter(column_to_reduce),
-                                              get_diameter(pivot)};
+                        size_t location = last_diameter_index++;
+                        diameters[location] = get_diameter(pivot);
+                        deaths.insert({get_index(get_entry(pivot)), location});
                         break;
                     }
                 } else {
@@ -1633,23 +1633,29 @@ public:
         })
             ;
         pivot_column_index.quiescent();
+        deaths.quiescent();
         /* persistence pairs */
 #if defined(SORT_BARCODES)
         std::vector<std::pair<value_t, value_t>> persistence_pair;
 #endif
 
-        for (size_t i = 0; i < nb_barcodes; ++i) {
-            value_t birth = barcodes[i].first;
-            value_t death = barcodes[i].second;
-            if (death > birth * ratio) {
+        pivot_column_index.foreach (
+            [&](const typename entry_hash_map::value_type& x) {
+                auto it = deaths.find(x.first);
+                if (it == deaths.end())
+                    return;
+                value_t death = diameters[get_index(it->second)];
+                value_t birth =
+                    get_diameter(columns_to_reduce[get_index(x.second)]);
+                if (death > birth * ratio) {
 #if defined(SORT_BARCODES)
-                persistence_pair.push_back({birth, death});
+                    persistence_pair.push_back({birth, death});
 #else
-                births_and_deaths_by_dim[dim].push_back(birth);
-                births_and_deaths_by_dim[dim].push_back(death);
+                    births_and_deaths_by_dim[dim].push_back(birth);
+                    births_and_deaths_by_dim[dim].push_back(death);
 #endif
-            }
-        }
+                }
+            });
 #if defined(SORT_BARCODES)
         if (persistence_pair.size()) {
             std::sort(persistence_pair.begin(), persistence_pair.end(),
