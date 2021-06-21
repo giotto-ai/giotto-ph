@@ -53,79 +53,6 @@ def DRFDMSparse(I, J, V, N, maxHomDim, thresh=-1, coeff=2, num_threads=1):
     return ret
 
 
-def dpoint2pointcloud(X, i, metric):
-    """Return the distance from the ith point in a Euclidean point cloud
-    to the rest of the points.
-
-    Parameters
-    ----------
-    X: ndarray (n_samples, n_features)
-        A numpy array of data
-
-    i: int
-        The index of the point from which to return all distances
-
-    metric: string or callable
-        The metric to use when calculating distance between instances in a
-        feature array
-
-    """
-    ds = pairwise_distances(X, X[i, :][None, :], metric=metric).flatten()
-    ds[i] = 0
-    return ds
-
-
-def get_greedy_perm(X, n_perm=None, metric="euclidean"):
-    """Compute a furthest point sampling permutation of a set of points
-
-    Parameters
-    ----------
-    X: ndarray (n_samples, n_features)
-        A numpy array of either data or distance matrix
-
-    n_perm: int
-        Number of points to take in the permutation
-
-    metric: string or callable
-        The metric to use when calculating distance between instances in a
-        feature array
-
-    Returns
-    -------
-    idx_perm: ndarray(n_perm)
-        Indices of points in the greedy permutation
-
-    lambdas: ndarray(n_perm)
-        Covering radii at different points
-
-    dperm2all: ndarray(n_perm, n_samples)
-        Distances from points in the greedy permutation to points
-        in the original point set
-
-    """
-    if not n_perm:
-        n_perm = X.shape[0]
-    # By default, takes the first point in the list to be the
-    # first point in the permutation, but could be random
-    idx_perm = np.zeros(n_perm, dtype=np.int64)
-    lambdas = np.zeros(n_perm)
-    if metric == 'precomputed':
-        def dpoint2all(i): X[i, :]
-    else:
-        def dpoint2all(i): dpoint2pointcloud(X, i, metric)
-    ds = dpoint2all(0)
-    dperm2all = [ds]
-    for i in range(1, n_perm):
-        idx = np.argmax(ds)
-        idx_perm[i] = idx
-        lambdas[i - 1] = ds[idx]
-        dperm2all.append(dpoint2all(idx))
-        ds = np.minimum(ds, dperm2all[-1])
-    lambdas[-1] = np.max(ds)
-    dperm2all = np.array(dperm2all)
-    return idx_perm, lambdas, dperm2all
-
-
 def _resolve_symmetry_conflicts(coo):
     """Given a sparse matrix in COO format, filter out any entry at location
     (i, j) strictly below the diagonal if the entry at (j, i) is also
@@ -354,13 +281,6 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         Whether to use the edge collapse algorithm as described in [2]_ prior
         to calling ``ripser``.
 
-    n_perm : int or None, optional, default: ``None``
-        The number of points to subsample in a "greedy permutation", or a
-        furthest point sampling of the points. These points will be used in
-        lieu of the full point cloud for a faster computation, at the expense
-        of some accuracy, which can be bounded as a maximum bottleneck distance
-        to all diagrams on the original point set.
-
     num_threads : int, optional, default: ``1``
         Maximum number of threads available to use during persistent
         homology computation
@@ -376,15 +296,6 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             second column representing the death time of each pair.
         'num_edges': int
             The number of edges added during the computation
-        'dperm2all': None or ndarray (n_perm, n_samples)
-            ``None`` if n_perm is ``None``. Otherwise, the distance from all
-            points in the permutation to all points in the dataset.
-        'idx_perm': ndarray(n_perm) if n_perm > 0
-            Index into the original point cloud of the points used
-            as a subsample in the greedy permutation
-        'r_cover': float
-            Covering radius of the subsampled points.
-            If n_perm <= 0, then the full point cloud was used and this is 0
     }
 
     Notes
@@ -416,29 +327,11 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
            <https://doi.org/10.1007/978-3-030-43408-3_2>`_.
 
     """
-    if n_perm and issparse(X):
-        raise Exception("Greedy permutation is not supported for sparse "
-                        "distance matrices")
-    if n_perm and n_perm > X.shape[0]:
-        raise Exception("Number of points in greedy permutation is greater "
-                        "than number of points in the point cloud")
-    if n_perm and n_perm < 0:
-        raise Exception("There should be a strictly positive number of points "
-                        "in the greedy permutation")
 
-    idx_perm = np.arange(X.shape[0])
-    r_cover = 0.0
-    if n_perm:
-        idx_perm, lambdas, dperm2all = \
-            get_greedy_perm(X, n_perm=n_perm, metric=metric)
-        r_cover = lambdas[-1]
-        dm = dperm2all[:, idx_perm]
+    if metric == 'precomputed':
+        dm = X
     else:
-        if metric == 'precomputed':
-            dm = X
-        else:
-            dm = pairwise_distances(X, metric=metric, **metric_params)
-        dperm2all = None
+        dm = pairwise_distances(X, metric=metric, **metric_params)
 
     n_points = max(dm.shape)
 
@@ -516,7 +409,8 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                 row, col, data = _collapse_coo(row, col, data, thresh)
         elif collapse_edges:
             row, col, data = gtda_collapser.\
-                flag_complex_collapse_edges_dense(dm.astype(np.float32), thresh)
+                flag_complex_collapse_edges_dense(dm.astype(np.float32),
+                                                  thresh)
         else:
             use_sparse_computer = False
             # Compute ideal threshold only when a distance matrix is passed
@@ -549,8 +443,6 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
 
     ret = {"dgms": dgms,
            "num_edges": res.num_edges,
-           "dperm2all": dperm2all,
-           "idx_perm": idx_perm,
-           "r_cover": r_cover}
+           }
 
     return ret
