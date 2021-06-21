@@ -183,7 +183,7 @@ def test_multithread_consistent(dm):
     res = []
     for nb_threads in nb_threads_to_test:
         res.append(ripser(dm, maxdim=maxdim, metric='precomputed',
-                          num_threads=nb_threads)['dgms'])
+                          n_threads=nb_threads)['dgms'])
     for dim in range(maxdim + 1):
         res[0][dim] = np.sort(res[0][dim], axis=0)
         for i in range(1, len(res)):

@@ -32,24 +32,25 @@ from sklearn.utils.validation import column_or_1d
 from ..modules import giotto_ph_ripser, giotto_ph_ripser_coeff, gtda_collapser
 
 
-def DRFDM(DParam, maxHomDim, thresh=-1, coeff=2, num_threads=1):
+def _compute_ph_vr_dense(DParam, maxHomDim, thresh=-1, coeff=2, n_threads=1):
     if coeff == 2:
         ret = giotto_ph_ripser.rips_dm(DParam, DParam.shape[0], coeff,
-                                       maxHomDim, thresh, num_threads)
+                                       maxHomDim, thresh, n_threads)
     else:
         ret = giotto_ph_ripser_coeff.rips_dm(DParam, DParam.shape[0], coeff,
-                                             maxHomDim, thresh, num_threads)
+                                             maxHomDim, thresh, n_threads)
     return ret
 
 
-def DRFDMSparse(I, J, V, N, maxHomDim, thresh=-1, coeff=2, num_threads=1):
+def _compute_ph_vr_sparse(I, J, V, N, maxHomDim, thresh=-1, coeff=2,
+                          n_threads=1):
     if coeff == 2:
         ret = giotto_ph_ripser.rips_dm_sparse(I, J, V, I.size, N, coeff,
-                                              maxHomDim, thresh, num_threads)
+                                              maxHomDim, thresh, n_threads)
     else:
         ret = giotto_ph_ripser_coeff.rips_dm_sparse(I, J, V, I.size, N, coeff,
                                                     maxHomDim, thresh,
-                                                    num_threads)
+                                                    n_threads)
     return ret
 
 
@@ -196,7 +197,7 @@ def _ideal_thresh(dm, thresh):
 
 def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
            metric_params={}, weights=None, weight_params=None,
-           collapse_edges=False, n_perm=None, num_threads=1):
+           collapse_edges=False, n_threads=1):
     """Compute persistence diagrams for X data array using Ripser [1]_.
 
     If X is not a distance matrix, it will be converted to a distance matrix
@@ -281,7 +282,7 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         Whether to use the edge collapse algorithm as described in [2]_ prior
         to calling ``ripser``.
 
-    num_threads : int, optional, default: ``1``
+    n_threads : int, optional, default: ``1``
         Maximum number of threads available to use during persistent
         homology computation
 
@@ -294,8 +295,6 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             than maxdim. Each diagram is an ndarray of size (n_pairs, 2)
             with the first column representing the birth time and the
             second column representing the death time of each pair.
-        'num_edges': int
-            The number of edges added during the computation
     }
 
     Notes
@@ -419,21 +418,22 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                 thresh = _ideal_thresh(dm, thresh)
 
     if use_sparse_computer:
-        res = DRFDMSparse(np.asarray(row, dtype=np.int32, order="C"),
-                          np.asarray(col, dtype=np.int32, order="C"),
-                          np.asarray(data, dtype=np.float32, order="C"),
-                          n_points,
-                          maxdim,
-                          thresh,
-                          coeff,
-                          num_threads)
+        res = _compute_ph_vr_sparse(
+            np.asarray(row, dtype=np.int32, order="C"),
+            np.asarray(col, dtype=np.int32, order="C"),
+            np.asarray(data, dtype=np.float32, order="C"),
+            n_points,
+            maxdim,
+            thresh,
+            coeff,
+            n_threads)
     else:
         # Only consider strict upper diagonal
         DParam = squareform(dm, checks=False).astype(np.float32)
         # Run garbage collector to free up memory taken by `dm`
         del dm
         gc.collect()
-        res = DRFDM(DParam, maxdim, thresh, coeff, num_threads)
+        res = _compute_ph_vr_dense(DParam, maxdim, thresh, coeff, n_threads)
 
     # Unwrap persistence diagrams
     dgms = res.births_and_deaths_by_dim
@@ -441,8 +441,6 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         N = int(len(dgms[dim]) / 2)
         dgms[dim] = np.reshape(np.array(dgms[dim]), [N, 2])
 
-    ret = {"dgms": dgms,
-           "num_edges": res.num_edges,
-           }
+    ret = {"dgms": dgms}
 
     return ret
