@@ -36,9 +36,7 @@
 
 */
 
-//#define USE_COEFFICIENTS
-
-// #define INDICATE_PROGRESS
+// #define USE_COEFFICIENTS
 
 // #define USE_TRIVIAL_CONCURRENT_HASHMAP
 #define USE_JUNCTION
@@ -49,7 +47,6 @@
 #include <algorithm>
 #include <atomic>
 #include <cassert>
-#include <chrono>
 #include <cmath>
 #include <cstdlib>  // rand
 #include <cstring>  // memcpy
@@ -71,10 +68,6 @@
 #include <common/ctpl_stl.h>
 #endif
 
-using std::chrono::duration;
-using std::chrono::duration_cast;
-using std::chrono::high_resolution_clock;
-using std::chrono::milliseconds;
 
 #if defined(USE_JUNCTION)
 #include <common/concurrent_hash_map.hpp>
@@ -82,10 +75,7 @@ template <class Key, class T, class H, class E>
 class hash_map : public concurrent_hash_map::junction_leapfrog_hm<Key, T, H, E>
 {
 public:
-    hash_map()
-        : concurrent_hash_map::junction_leapfrog_hm<Key, T, H, E>()
-    {
-    }
+    hash_map() : concurrent_hash_map::junction_leapfrog_hm<Key, T, H, E>() {}
     hash_map(size_t cap)
         : concurrent_hash_map::junction_leapfrog_hm<Key, T, H, E>(cap)
     {
@@ -96,12 +86,6 @@ public:
 typedef float value_t;
 typedef int64_t index_t;
 typedef uint16_t coefficient_t;
-
-#ifdef INDICATE_PROGRESS
-static const std::chrono::milliseconds time_step(40);
-#endif
-
-static const std::string clear_line("\r\033[K");
 
 static const size_t num_coefficient_bits = 8;
 
@@ -890,21 +874,12 @@ public:
                                std::vector<diameter_index_t>& columns_to_reduce,
                                entry_hash_map& pivot_column_index, index_t dim)
     {
-#ifdef INDICATE_PROGRESS
-        std::cerr << clear_line << "assembling columns" << std::flush;
-        std::chrono::steady_clock::time_point next =
-            std::chrono::steady_clock::now() + time_step;
-#endif
         const bool check_clearing = !!columns_to_reduce.size();
         columns_to_reduce.clear();
         std::vector<diameter_index_t> next_simplices;
         size_t chunk_size = (simplices.size() / num_threads) >> 2;
         chunk_size = (chunk_size) ? chunk_size : 1;
         std::atomic<size_t> achunk(0);
-
-#ifdef INDICATE_PROGRESS
-        std::atomic<int> progress{0};
-#endif
 
         const size_t n_thr = (chunk_size < num_threads) ? 1 : num_threads;
         mat_simplicies_t next_simplices_vec(n_thr);
@@ -920,10 +895,6 @@ public:
         for (unsigned i = 0; i < n_thr; ++i)
             threads.emplace_back([&, i]() {
 #endif
-
-#ifdef INDICATE_PROGRESS
-                int indicate_progress = progress++;
-#endif
                 simplex_coboundary_enumerator cofacets(*this);
                 for (size_t cur_chunk = achunk++;
                      cur_chunk * chunk_size < simplices.size();
@@ -937,19 +908,6 @@ public:
                         cofacets.set_simplex(diameter_entry_t(simplex, 1),
                                              dim - 1);
                         while (cofacets.has_next(false)) {
-#ifdef INDICATE_PROGRESS
-                            if (indicate_progress == 0) {
-                                if (std::chrono::steady_clock::now() > next) {
-                                    std::cerr
-                                        << clear_line
-                                        << "assembling columns (processing "
-                                        << from << "/" << simplices.size()
-                                        << " simplices)" << std::flush;
-                                    next = std::chrono::steady_clock::now() +
-                                           time_step;
-                                }
-                            }
-#endif
                             const auto& cofacet = cofacets.next();
                             if (get_diameter(cofacet) <= threshold) {
                                 if (dim != dim_max) {
@@ -999,11 +957,6 @@ public:
         // copy into the arrays
         simplices.swap(next_simplices);
 
-#ifdef INDICATE_PROGRESS
-        std::cerr << clear_line << "sorting " << columns_to_reduce.size()
-                  << " columns" << std::flush;
-#endif
-
 #if defined(USE_THREAD_POOL)
         /* Pre-allocate in parallel the hash map for next dimension */
         if (columns_to_reduce.size()) {
@@ -1027,9 +980,6 @@ public:
         pivot_column_index =
             std::move(entry_hash_map(columns_to_reduce.size()));
         thread_.join();
-#endif
-#ifdef INDICATE_PROGRESS
-        std::cerr << clear_line << std::flush;
 #endif
     }
 
@@ -1221,11 +1171,6 @@ public:
     void foreach (const std::vector<diameter_index_t>& columns_to_reduce,
                   const F& f)
     {
-#if defined(INDICATE_PROGRESS)
-        std::atomic<int> progress(0);
-        std::cerr << clear_line << "Starting reduction of "
-                  << columns_to_reduce.size() << " columns" << std::endl;
-#endif
         std::atomic<size_t> achunk(0);
         size_t chunk_size = (columns_to_reduce.size() / num_threads) >> 2;
         chunk_size = (chunk_size) ? chunk_size : 1;
@@ -1244,29 +1189,12 @@ public:
         for (unsigned t = 0; t < n_thr; ++t)
             threads.emplace_back([&]() {
 #endif
-
-#ifdef INDICATE_PROGRESS
-                int indicate_progress = progress++;
-                std::chrono::steady_clock::time_point next =
-                    std::chrono::steady_clock::now() + time_step;
-#endif
-
                 for (size_t cur_chunk = achunk++;
                      cur_chunk * chunk_size < columns_to_reduce.size();
                      cur_chunk = achunk++) {
                     size_t from = cur_chunk * chunk_size;
                     const size_t to = std::min((cur_chunk + 1) * chunk_size,
                                                columns_to_reduce.size());
-#ifdef INDICATE_PROGRESS
-                    if (indicate_progress == 0) {
-                        if (std::chrono::steady_clock::now() > next) {
-                            std::cerr << clear_line << "reducing columns "
-                                      << from << " - " << to << "/"
-                                      << columns_to_reduce.size() << std::flush;
-                            next = std::chrono::steady_clock::now() + time_step;
-                        }
-                    }
-#endif
                     for (; from < to; ++from) {
                         size_t idx_col_to_reduce = from;
                         /* first run => true parameter */
