@@ -65,10 +65,10 @@
 #include <thread>
 
 /* Memory Manager */
-#include <reclamation.hpp>
+#include <common/reclamation.hpp>
 
 #ifdef USE_THREAD_POOL
-#include <ctpl_stl.h>
+#include <common/ctpl_stl.h>
 #endif
 
 using std::chrono::duration;
@@ -77,173 +77,18 @@ using std::chrono::high_resolution_clock;
 using std::chrono::milliseconds;
 
 #if defined(USE_JUNCTION)
-#include <junction/ConcurrentMap_Leapfrog.h>
-
-template <class K, class D>
-class TrivialIterator
-{
-private:
-    std::pair<K, D> pair;
-
-public:
-    using key_type = K;
-    using mapped_type = D;
-    using value_type = std::pair<K, D>;
-    using reference = value_type&;
-
-    TrivialIterator(const key_type& k = key_type(),
-                    const mapped_type& d = mapped_type())
-        : pair(k, d)
-    {
-    }
-
-    const std::pair<K, D>& operator*() { return pair; }
-    std::pair<K, D>* operator->() { return &pair; }
-
-    inline bool operator==(const TrivialIterator& r) const
-    {
-        return pair.first == r.pair.first;
-    }
-    inline bool operator!=(const TrivialIterator& r) const
-    {
-        return pair.first != r.pair.first;
-    }
-};
-
-template <typename T>
-struct ValueTraits {
-    using IntType = T;
-
-    static constexpr IntType NullValue = 0;
-    static constexpr IntType Redirect = -1;
-};
-
-template <typename T>
-constexpr T ValueTraits<T>::NullValue;
-
-template <typename T>
-constexpr T ValueTraits<T>::Redirect;
-
+#include <common/concurrent_hash_map.hpp>
 template <class Key, class T, class H, class E>
-class hash_map
+class hash_map : public concurrent_hash_map::junction_leapfrog_hm<Key, T, H, E>
 {
-private:
-    using junc_dflt_type = junction::DefaultKeyTraits<Key>;
-    using internal_table_type =
-        junction::ConcurrentMap_Leapfrog<Key, T, junc_dflt_type,
-                                         ValueTraits<T>>;
-    std::unique_ptr<internal_table_type> hash;
-    junction::QSBR::Context qsbrContext;
-    // std::mutex g_i_mutex;
-
-    size_t next_power_2(size_t n)
-    {
-        size_t temp = 1;
-        while (n >= temp)
-            temp <<= 1;
-        return temp;
-    }
-
 public:
-    using key_type = Key;
-    using mapped_type = T;
-    using value_type = std::pair<const key_type, mapped_type>;
-    using iterator = TrivialIterator<key_type, mapped_type>;
-    using insert_return_type = std::pair<iterator, bool>;
-
-    const T value(iterator it) const { return it->second; }
-    hash_map() : hash(std::make_unique<internal_table_type>())
+    hash_map()
+        : concurrent_hash_map::junction_leapfrog_hm<Key, T, H, E>()
     {
-        qsbrContext = junction::DefaultQSBR.createContext();
     }
     hash_map(size_t cap)
-        : hash(std::make_unique<internal_table_type>(next_power_2(cap) << 1))
+        : concurrent_hash_map::junction_leapfrog_hm<Key, T, H, E>(cap)
     {
-        qsbrContext = junction::DefaultQSBR.createContext();
-    }
-    ~hash_map() { junction::DefaultQSBR.destroyContext(qsbrContext); }
-
-    hash_map(const hash_map&) = delete;
-    hash_map& operator=(const hash_map&) = delete;
-
-    hash_map(hash_map&& rhs) = default;
-    // hash_map& operator=(hash_map&& rhs) = default;
-    hash_map& operator=(hash_map&& other)
-    {
-        if (this != &other) {
-            this->hash = std::move(other.hash);
-        }
-        return *this;
-    }
-
-    iterator find(const key_type& k)
-    {
-        // std::lock_guard<std::mutex> lock(g_i_mutex);
-        mapped_type r = hash->get(k + 1);
-
-        if (r != ValueTraits<T>::NullValue)
-            return iterator(k, r - 1);
-        else
-            return end();
-    }
-
-    insert_return_type insert(const key_type& k, const mapped_type& d)
-    {
-        // std::lock_guard<std::mutex> lock(g_i_mutex);
-        auto mutator = hash->insertOrFind(k + 1);
-        auto inserted = mutator.getValue() == ValueTraits<T>::NullValue;
-
-        if (inserted)
-            mutator.assignValue(d + 1);
-
-        return insert_return_type(iterator(k, d), inserted);
-    }
-
-    insert_return_type insert(const value_type& d)
-    {
-        return insert(d.first, d.second);
-    }
-
-    bool update(iterator& it, T& expected, T desired)
-    {
-        // std::lock_guard<std::mutex> lock(g_i_mutex);
-        return hash->exchange(it->first + 1, desired + 1) == (expected + 1);
-    }
-
-    void quiescent(void) { junction::DefaultQSBR.update(qsbrContext); }
-    iterator end() { return iterator(-1); }
-    void reserve(size_t hint) {}
-    template <class F>
-    void foreach (const F& f) const
-    {
-        for (typename internal_table_type::Iterator it(*hash); it.isValid();
-             it.next()) {
-            f(value_type(it.getKey() - 1, it.getValue() - 1));
-        }
-    }
-};
-#else
-template <class Key, class T, class H, class E>
-class hash_map : public std::unordered_map<Key, T, H, E>
-{
-public:
-    using Parent = std::unordered_map<Key, T, H, E>;
-    using iterator = typename Parent::iterator;
-
-    Key key(iterator it) const { return it->first; }
-    T value(iterator it) const { return it->second; }
-
-    bool update(iterator it, T& expected, T desired)
-    {
-        it->second = desired;
-        return true;
-    }
-
-    template <class F>
-    void foreach (const F& f) const
-    {
-        for (auto& x : (*this))
-            f(x);
     }
 };
 #endif
