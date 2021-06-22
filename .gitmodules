@@ -1,5 +1,5 @@
 [submodule "src/pybind11"]
-	path = giotto_ph/pybind11
+	path = giotto_ph/ext/pybind11
 	url = https://github.com/pybind/pybind11
 [submodule "giotto_ph/ext/junction"]
 	path = giotto_ph/ext/junction

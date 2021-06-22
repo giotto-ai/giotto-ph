@@ -1,15 +1,15 @@
 cmake_minimum_required(VERSION 3.9)
 project(gtda_bindings LANGUAGES CXX)
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/giotto_ph/pybind11)
-set(BASE_LIB_DIR "giotto_ph")
-
-set(BINDINGS_DIR "${BASE_LIB_DIR}/bindings")
-set(EXT_DIR "${BASE_LIB_DIR}/ext")
+set(BASE_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/giotto_ph)
+set(BINDINGS_DIR ${BASE_LIB_DIR}/bindings)
+set(EXT_DIR ${BASE_LIB_DIR}/ext)
 
 # Base folder containing C++ Backend
-set(CPP_SRC_DIR "${BASE_LIB_DIR}/src")
-set(CPP_INC_DIR "${BASE_LIB_DIR}/inc")
+set(CPP_SRC_DIR ${BASE_LIB_DIR}/src)
+set(CPP_INC_DIR ${BASE_LIB_DIR}/inc)
+
+add_subdirectory(${EXT_DIR}/pybind11)
 
 # The following option is require to enable on all targets -fPIC
 # Or similar for all compilers
