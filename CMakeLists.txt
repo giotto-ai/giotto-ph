@@ -15,7 +15,11 @@ add_subdirectory(${EXT_DIR}/pybind11)
 # Or similar for all compilers
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set (CMAKE_CXX_STANDARD 14)
+# See details of this requirements
+# https://crascit.com/2015/03/28/enabling-cxx11-in-cmake/
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(TURF_PREFER_CPP11 TRUE CACHE BOOL "Prefer C++11 atomics, threads, etc. over native implementations")
 set(JUNCTION_WITH_SAMPLES FALSE CACHE BOOL "Include all Junction samples in generated build system")
