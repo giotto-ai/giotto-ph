@@ -866,7 +866,9 @@ public:
                     std::move(entry_hash_map(columns_to_reduce.size()));
             });
 
-            para_sort::sort(
+            para_sort::sort<
+                decltype(columns_to_reduce.begin()),
+                greater_diameter_or_smaller_index<diameter_index_t>>(
                 columns_to_reduce.begin(), columns_to_reduce.end(),
                 greater_diameter_or_smaller_index<diameter_index_t>(),
                 num_threads - 1, &p);
@@ -898,12 +900,13 @@ public:
         }
 
         edges = get_edges();
-        para_sort::sort(edges.rbegin(), edges.rend(),
-                        greater_diameter_or_smaller_index<diameter_index_t>(),
-                        num_threads
+        para_sort::sort<decltype(edges.rbegin()),
+                        greater_diameter_or_smaller_index<diameter_index_t>>(
+            edges.rbegin(), edges.rend(),
+            greater_diameter_or_smaller_index<diameter_index_t>(), num_threads
 #if defined(USE_THREAD_POOL)
-                        ,
-                        &p);
+            ,
+            &p);
 #endif
         std::vector<index_t> vertices_of_edge(2);
         columns_to_reduce.resize(edges.size());
