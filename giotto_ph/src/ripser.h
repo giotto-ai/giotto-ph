@@ -41,7 +41,6 @@
 // #define USE_TRIVIAL_CONCURRENT_HASHMAP
 #define USE_JUNCTION
 #define USE_THREAD_POOL
-#define CUSTOM_PARALLEL_SORT
 #define SORT_BARCODES
 
 #include <algorithm>
@@ -68,6 +67,7 @@
 #include <common/ctpl_stl.h>
 #endif
 
+#include <common/para_sort.hpp>
 
 #if defined(USE_JUNCTION)
 #include <common/concurrent_hash_map.hpp>
@@ -253,110 +253,6 @@ void set_coefficient(diameter_entry_t& p, const coefficient_t c)
 {
     set_coefficient(get_entry(p), c);
 }
-
-#if defined(CUSTOM_PARALLEL_SORT)
-template <typename Iter, typename Comp>
-void mergesort_mt3(Iter begin, Iter end,
-                   Comp comp = std::less<diameter_entry_t>(),
-                   unsigned int N = std::thread::hardware_concurrency() / 2
-#if defined(USE_THREAD_POOL)
-                   ,
-                   ctpl::thread_pool* p = nullptr)
-#else
-)
-#endif
-{
-    auto len = std::distance(begin, end);
-    if (len <= 1024 || N < 2) {
-        std::sort(begin, end, comp);
-        return;
-    }
-
-    const size_t increment = len / N;
-
-#if defined(USE_THREAD_POOL)
-    std::vector<std::future<void>> futures;
-    futures.reserve(N - 1);
-#else
-    std::vector<std::thread> threads;
-    threads.reserve(N - 1);
-#endif
-
-    /* Sorting */
-    for (size_t i = 1; i < N; ++i) {
-        auto from = begin + i * increment;
-        auto to = (i < (N - 1)) ? begin + (i + 1) * increment : end;
-
-        futures.emplace_back(
-#if defined(USE_THREAD_POOL)
-            p->push([&, from, to](int idx) { std::sort(from, to, comp); }));
-#else
-        threads.emplace_back([&, from, to]() {
-            std::sort(from, to, comp); });
-#endif
-    }
-
-    std::sort(begin, begin + increment, comp);
-#if defined(USE_THREAD_POOL)
-    for (auto& fut : futures)
-        fut.get();
-#else
-    for (auto& th : threads)
-        th.join();
-#endif
-
-    /* Merging */
-    size_t nb_chunks = N;
-    size_t chunk_size = increment;
-    size_t mid_off = chunk_size;
-
-    while (nb_chunks > 2) {
-        const bool is_even = (nb_chunks & 1) == 0;
-        mid_off += chunk_size;
-        chunk_size *= 2;
-        nb_chunks /= 2;
-#if defined(USE_THREAD_POOL)
-        futures.clear();
-#else
-        threads.clear();
-#endif
-
-        if (nb_chunks > 1) {
-            for (size_t j = 1; j < nb_chunks; ++j) {
-                bool is_last = j == (nb_chunks - 1);
-                auto from = begin + chunk_size * j;
-                auto mid = from + chunk_size / 2;
-                auto to = (is_last && is_even) ? end : from + chunk_size;
-
-#if defined(USE_THREAD_POOL)
-                futures.emplace_back(p->push([&, from, mid, to](int idx) {
-                    std::inplace_merge(from, mid, to, comp);
-                }));
-#else
-                threads.emplace_back([&, from, mid, to]() {
-                    std::inplace_merge(from, mid, to, comp);
-                });
-#endif
-            }
-        }
-
-        std::inplace_merge(begin, begin + chunk_size / 2, begin + chunk_size,
-                           comp);
-
-#if defined(USE_THREAD_POOL)
-        for (auto& fut : futures)
-            fut.get();
-#else
-        for (auto& th : threads)
-            th.join();
-#endif
-        nb_chunks += is_even ? 0 : 1;
-    }
-
-    std::inplace_merge(begin, begin + mid_off, end, comp);
-}
-
-#endif
 
 template <typename Entry>
 struct greater_diameter_or_smaller_index {
@@ -770,8 +666,7 @@ public:
                                     const index_t _dim, const ripser& _parent)
             : idx_below(get_index(_simplex)), idx_above(0), j(_parent.n - 1),
               k(_dim), simplex(_simplex), modulus(_parent.modulus),
-              binomial_coeff(&_parent.binomial_coeff),
-              parent(&_parent)
+              binomial_coeff(&_parent.binomial_coeff), parent(&_parent)
         {
         }
 
@@ -971,16 +866,18 @@ public:
                     std::move(entry_hash_map(columns_to_reduce.size()));
             });
 
-            mergesort_mt3(columns_to_reduce.begin(), columns_to_reduce.end(),
-                          greater_diameter_or_smaller_index<diameter_index_t>(),
-                          num_threads - 1, &p);
+            para_sort::sort(
+                columns_to_reduce.begin(), columns_to_reduce.end(),
+                greater_diameter_or_smaller_index<diameter_index_t>(),
+                num_threads - 1, &p);
 
             fut.get();
         }
 #else
         std::thread thread_(
-            mergesort_mt3<decltype(columns_to_reduce.begin()),
-                          greater_diameter_or_smaller_index<diameter_index_t>>,
+            para_sort::sort<
+                decltype(columns_to_reduce.begin()),
+                greater_diameter_or_smaller_index<diameter_index_t>>,
             columns_to_reduce.begin(), columns_to_reduce.end(),
             greater_diameter_or_smaller_index<diameter_index_t>(), num_threads);
         pivot_column_index =
@@ -1001,12 +898,12 @@ public:
         }
 
         edges = get_edges();
-        mergesort_mt3(edges.rbegin(), edges.rend(),
-                      greater_diameter_or_smaller_index<diameter_index_t>(),
-                      num_threads
+        para_sort::sort(edges.rbegin(), edges.rend(),
+                        greater_diameter_or_smaller_index<diameter_index_t>(),
+                        num_threads
 #if defined(USE_THREAD_POOL)
-                      ,
-                      &p);
+                        ,
+                        &p);
 #endif
         std::vector<index_t> vertices_of_edge(2);
         columns_to_reduce.resize(edges.size());
