@@ -19,6 +19,7 @@ SOFTWARE.
 """
 
 import gc
+from types import FunctionType
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
@@ -167,6 +168,68 @@ def _check_weights(weights, n_points):
                          "Negative weights passed.")
 
     return weights
+
+
+def _compute_weights(dm, weights, weight_params, n_points,
+                     sparse_kwargs={}):
+    """TODO: Add documentation"""
+
+    # If one sparse argument is provided, then we compute weights
+    # for sparse
+    is_sparse = len(sparse_kwargs) != 0
+
+    if (is_sparse and (dm < 0).nnz) or (not is_sparse and (dm < 0).any()):
+        raise ValueError("Distance matrix has negative entries. "
+                         "Weighted Rips filtration unavailable.")
+
+    if is_sparse:
+        row = sparse_kwargs['row']
+        col = sparse_kwargs['col']
+        data = sparse_kwargs['data']
+
+    weight_params = {} if weight_params is None else weight_params
+    weights_p = weight_params.get("p", 1)
+
+    if isinstance(weights, str) and (weights == "DTM"):
+        n_neighbors = weight_params.get("n_neighbors", 3)
+        weights_r = weight_params.get("r", 2)
+
+        if is_sparse:
+
+            # Restrict to off-diagonal entries for weights computation since
+            # diagonal ones are given by `weights`. Explicitly set the diagonal
+            # to 0 -- this is also important for DTM since otherwise
+            # kneighbors_graph with include_self=False skips the first true
+            # neighbor.
+            off_diag = row != col
+            row, col, data = (np.hstack([row[off_diag], np.arange(n_points)]),
+                              np.hstack([col[off_diag], np.arange(n_points)]),
+                              np.hstack([data[off_diag], np.zeros(n_points)]))
+            # CSR matrix must be symmetric for kneighbors_graph to give
+            # correct results
+            dm = csr_matrix((np.hstack([data, data[:-n_points]]),
+                             (np.hstack([row, col[:-n_points]]),
+                              np.hstack([col, row[:-n_points]]))))
+        else:
+            if not np.array_equal(dm, dm.T):
+                dm = np.triu(dm, k=1)
+                dm += dm.T
+
+        weights = _compute_dtm_weights(dm, n_neighbors, weights_r)
+    elif isinstance(weights, str):
+        raise ValueError("'{}' passed for `weights` but the "
+                         "only allowed string is 'DTM'".format(weights))
+    else:
+        weights = _check_weights(weights, n_points)
+
+    if is_sparse:
+        data = _weight_filtration_sparse(row, col, data, weights,
+                                         weights_p)
+        return row, col, data
+    else:
+        dm = _weight_filtration_dense(dm, weights, weights_p)
+        np.fill_diagonal(dm, weights)
+        return dm
 
 
 def _ideal_thresh(dm, thresh):
@@ -339,65 +402,22 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         row, col, data = _resolve_symmetry_conflicts(dm.tocoo())  # Upper diag
 
         if weights is not None:
-            if (dm < 0).nnz:
-                raise ValueError("Distance matrix has negative entries. "
-                                 "Weighted Rips filtration unavailable.")
-
-            weight_params = {} if weight_params is None else weight_params
-            weights_p = weight_params.get("p", 1)
-
-            # Restrict to off-diagonal entries for weights computation since
-            # diagonal ones are given by `weights`. Explicitly set the diagonal
-            # to 0 -- this is also important for DTM since otherwise
-            # kneighbors_graph with include_self=False skips the first true
-            # neighbor.
-            off_diag = row != col
-            row, col, data = (np.hstack([row[off_diag], np.arange(n_points)]),
-                              np.hstack([col[off_diag], np.arange(n_points)]),
-                              np.hstack([data[off_diag], np.zeros(n_points)]))
-
-            if isinstance(weights, str) and (weights == "DTM"):
-                n_neighbors = weight_params.get("n_neighbors", 3)
-                weights_r = weight_params.get("r", 2)
-
-                # CSR matrix must be symmetric for kneighbors_graph to give
-                # correct results
-                dm = csr_matrix((np.hstack([data, data[:-n_points]]),
-                                 (np.hstack([row, col[:-n_points]]),
-                                  np.hstack([col, row[:-n_points]]))))
-                weights = _compute_dtm_weights(dm, n_neighbors, weights_r)
-            else:
-                weights = _check_weights(weights, n_points)
-
-            data = _weight_filtration_sparse(row, col, data, weights,
-                                             weights_p)
+            sparse_kwargs = {
+                'row': row,
+                'col': col,
+                'data': data
+            }
+            row, col, data = _compute_weights(dm, weights, weight_params,
+                                              n_points,
+                                              sparse_kwargs=sparse_kwargs)
 
         if collapse_edges:
             row, col, data = _collapse_coo(row, col, data, thresh)
 
     else:
         if weights is not None:
-            if (dm < 0).any():
-                raise ValueError("Distance matrix has negative entries. "
-                                 "Weighted Rips filtration unavailable.")
+            dm = _compute_weights(dm, weights, weight_params, n_points)
 
-            weight_params = {} if weight_params is None else weight_params
-            weights_p = weight_params.get("p", 1)
-
-            if isinstance(weights, str) and (weights == "DTM"):
-                n_neighbors = weight_params.get("n_neighbors", 3)
-                weights_r = weight_params.get("r", 2)
-
-                if not np.array_equal(dm, dm.T):
-                    dm = np.triu(dm, k=1)
-                    dm += dm.T
-
-                weights = _compute_dtm_weights(dm, n_neighbors, weights_r)
-            else:
-                weights = _check_weights(weights, n_points)
-
-            dm = _weight_filtration_dense(dm, weights, weights_p)
-            np.fill_diagonal(dm, weights)
         if not (dm.diagonal() != 0).any():
             # Compute ideal threshold only when a distance matrix is passed
             # as input without specifying any threshold
