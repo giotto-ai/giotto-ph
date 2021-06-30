@@ -37,7 +37,7 @@ namespace para_sort
 template <typename Iter, typename Comp>
 void sort(
     Iter begin, Iter end,
-    Comp comp = std::less<decltype(std::iterator_traits<Iter>::value_type)>(),
+    Comp comp,
     unsigned int N = std::thread::hardware_concurrency() / 2
 #if defined(USE_THREAD_POOL)
     ,
