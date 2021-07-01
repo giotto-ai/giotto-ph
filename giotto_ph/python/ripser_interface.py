@@ -19,11 +19,10 @@ SOFTWARE.
 """
 
 import gc
-from types import FunctionType
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
-from scipy.sparse import issparse, csr_matrix
+from scipy.sparse import issparse, csr_matrix, coo_matrix
 from scipy.spatial.distance import squareform
 from sklearn.exceptions import EfficiencyWarning
 from sklearn.metrics.pairwise import pairwise_distances
@@ -367,6 +366,13 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
     modified for performance from the `ripser.py
     <https://github.com/scikit-tda/ripser.py>`_ package.
 
+    Ripser supports two memory representations, dense and sparse. The sparse
+    representation is used in the following cases:
+        - Input is sparse of type scipy.sparse
+        - Collapser is enable
+        - The user provide a threshold
+    The dense representation will be used in the following cases:
+        - Input is a point-cloud or a distance matrix
     `GUDHI <https://github.com/GUDHI/gudhi-devel>`_ is used as a C++ backend
     for the edge collapse algorithm described in [2]_.
 
@@ -418,6 +424,7 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         if weights is not None:
             dm = _compute_weights(dm, weights, weight_params, n_points)
 
+        compute_enclosing_radius = False
         if not (dm.diagonal() != 0).any():
             # Compute ideal threshold only when a distance matrix is passed
             # as input without specifying any threshold
@@ -426,6 +433,7 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             # calling collapser if computed
             if thresh == np.inf:
                 thresh = _ideal_thresh(dm, thresh)
+                compute_enclosing_radius = True
 
         if (dm.diagonal() != 0).any():
             # Convert to sparse format, because currently that's the only
@@ -438,6 +446,11 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             row, col, data = gtda_collapser.\
                 flag_complex_collapse_edges_dense(dm.astype(np.float32),
                                                   thresh)
+        elif not compute_enclosing_radius:
+            # If the user specifies a threshold, we use a sparse
+            # representation like Ripser does
+            dm[dm > thresh] = 0.0
+            row, col, data = _resolve_symmetry_conflicts(coo_matrix(dm))
         else:
             use_sparse_computer = False
 

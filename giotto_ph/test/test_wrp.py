@@ -48,7 +48,7 @@ def test_wrp_notimplemented_p():
                                        (X_dist_sparse, "precomputed")])
 @pytest.mark.parametrize("weight_params", [{"p": 1}, {"p": 2}, {"p": np.inf}])
 @pytest.mark.parametrize("collapse_edges", [True, False])
-@pytest.mark.parametrize("thresh", [np.inf, 0.80131882])
+@pytest.mark.parametrize("thresh", [np.inf, 0.81])
 def test_wrp_same_as_vrp_when_zero_weights(X, metric, weight_params,
                                            collapse_edges, thresh):
     def weights(x): return np.zeros(x.shape[0])
