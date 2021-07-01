@@ -1,7 +1,7 @@
 /******************************************************************************
  * Author:           Julián Burella Pérez
- * Description:      ripser's rips persistence interfacing with pybind11
- * License:          TBD
+ * Description:      Parallel Ripser Vietoris-Rips interfacing with pybind11
+ * License:          AGPL3
  *****************************************************************************/
 
 #include <ripser.h>

@@ -1,6 +1,7 @@
 """
 MIT License
 Copyright (c) 2018 Christopher Tralie and Nathaniel Saul
+Copyright (c) 2021 Julian Burella Pérez and Umberto Lupo
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
@@ -262,7 +263,7 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
            collapse_edges=False, n_threads=1):
     """Compute persistence diagrams for X data array using Ripser [1]_.
 
-    If X is not a distance matrix, it will be converted to a distance matrix
+    If X is a point cloud, it will be converted to a distance matrix
     using the chosen metric.
 
     Parameters
@@ -380,7 +381,7 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
     References
     ----------
     .. [1] U. Bauer, "Ripser: efficient computation of Vietoris–Rips
-           persistence barcodes", 2019; `arXiv:1908.02518
+           persistence barcodes", 2021; `arXiv:1908.02518
            <https://arxiv.org/abs/1908.02518>`_.
 
     .. [2] J.-D. Boissonnat and S. Pritam, "Edge Collapse and Persistence of

@@ -23,6 +23,6 @@ Thanks to our Contributors
 
 This release contains contributions from many people:
 
-Julian Burella Pérez and Sydney Hauke.
+Julian Burella Pérez, Sydney Hauke and Umberto Lupo.
 
 We are also grateful to all who filed issues or helped resolve them, asked and answered questions, and were part of inspiring discussions.

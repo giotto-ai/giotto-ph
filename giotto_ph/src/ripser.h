@@ -4,7 +4,9 @@
 
  MIT License
 
- Copyright (c) 2015–2019 Ulrich Bauer
+ Copyright (c) 2015–2021 Ulrich Bauer
+ Copyright (c) 2020 Dmitriy Morozov and Arnur Nigmetov
+ Copyright (c) 2021 Julián Burella Pérez and Sydney Hauke
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
