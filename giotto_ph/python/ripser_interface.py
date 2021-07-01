@@ -346,7 +346,8 @@ def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
 
     n_threads : int, optional, default: ``1``
         Maximum number of threads available to use during persistent
-        homology computation
+        homology computation. When passing ``-1``, it will try to use the
+        maximal number of threads available on the host machine.
 
     Returns
     -------

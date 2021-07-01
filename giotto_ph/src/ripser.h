@@ -550,10 +550,10 @@ class ripser
     const value_t threshold;
     const float ratio;
     const coefficient_t modulus;
-    const unsigned num_threads;
     const binomial_coeff_table binomial_coeff;
     const std::vector<coefficient_t> multiplicative_inverse;
-    ctpl::thread_pool p;
+    int num_threads;
+    std::unique_ptr<ctpl::thread_pool> p;
 
     struct entry_hash {
         std::size_t operator()(const entry_t& e) const
@@ -588,14 +588,23 @@ public:
     mutable std::vector<std::vector<value_t>> births_and_deaths_by_dim;
 
     ripser(DistanceMatrix&& _dist, index_t _dim_max, value_t _threshold,
-           float _ratio, coefficient_t _modulus, unsigned _num_threads)
+           float _ratio, coefficient_t _modulus, int _num_threads)
         : dist(std::move(_dist)), n(dist.size()), dim_max(_dim_max),
           threshold(_threshold), ratio(_ratio), modulus(_modulus),
-          num_threads((!_num_threads ? 1 : _num_threads)),
-          binomial_coeff(n, dim_max + 2),
-          multiplicative_inverse(multiplicative_inverse_vector(_modulus)),
-          p(num_threads)
+          num_threads(_num_threads), binomial_coeff(n, dim_max + 2),
+          multiplicative_inverse(multiplicative_inverse_vector(_modulus))
     {
+        /* Uses all concurrent threads supported */
+        if (num_threads == -1)
+            num_threads = std::thread::hardware_concurrency();
+
+        /* if user input 0 or if hardware_concurrency returns 0
+         * use at least 1 thread
+         */
+        if (!num_threads)
+            num_threads = 1;
+
+        p = std::make_unique<ctpl::thread_pool>(num_threads);
     }
 
     void copy_results(ripserResults& res)
@@ -789,7 +798,7 @@ public:
         std::vector<std::future<void>> futures;
         futures.reserve(n_thr);
         for (unsigned i = 0; i < n_thr; ++i)
-            futures.emplace_back(p.push([&, i](int t_idx) {
+            futures.emplace_back(p->push([&, i](int t_idx) {
 #else
         std::vector<std::thread> threads;
         threads.reserve(n_thr);
@@ -861,7 +870,7 @@ public:
 #if defined(USE_THREAD_POOL)
         /* Pre-allocate in parallel the hash map for next dimension */
         if (columns_to_reduce.size()) {
-            auto fut = p.push([&](int idx) {
+            auto fut = p->push([&](int idx) {
                 pivot_column_index =
                     std::move(entry_hash_map(columns_to_reduce.size()));
             });
@@ -869,7 +878,7 @@ public:
             para_sort::sort(
                 columns_to_reduce.begin(), columns_to_reduce.end(),
                 greater_diameter_or_smaller_index<diameter_index_t>(),
-                num_threads - 1, &p);
+                num_threads - 1, p.get());
 
             fut.get();
         }
@@ -900,7 +909,7 @@ public:
                         num_threads
 #if defined(USE_THREAD_POOL)
                         ,
-                        &p);
+                        p.get());
 #endif
         std::vector<index_t> vertices_of_edge(2);
         columns_to_reduce.resize(edges.size());
@@ -1082,7 +1091,7 @@ public:
         std::vector<std::future<void>> futures;
         futures.reserve(n_thr);
         for (unsigned i = 0; i < n_thr; ++i)
-            futures.emplace_back(p.push([&](int t_idx) {
+            futures.emplace_back(p->push([&](int t_idx) {
 #else
         std::vector<std::thread> threads;
         threads.reserve(n_thr);
