@@ -4,7 +4,9 @@
 
  MIT License
 
- Copyright (c) 2015–2019 Ulrich Bauer
+ Copyright (c) 2015–2021 Ulrich Bauer
+ Copyright (c) 2020 Dmitriy Morozov and Arnur Nigmetov
+ Copyright (c) 2021 Julián Burella Pérez and Sydney Hauke
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -41,7 +43,6 @@
 // #define USE_TRIVIAL_CONCURRENT_HASHMAP
 #define USE_JUNCTION
 #define USE_THREAD_POOL
-#define CUSTOM_PARALLEL_SORT
 #define SORT_BARCODES
 
 #include <algorithm>
@@ -68,6 +69,7 @@
 #include <common/ctpl_stl.h>
 #endif
 
+#include <common/para_sort.hpp>
 
 #if defined(USE_JUNCTION)
 #include <common/concurrent_hash_map.hpp>
@@ -253,110 +255,6 @@ void set_coefficient(diameter_entry_t& p, const coefficient_t c)
 {
     set_coefficient(get_entry(p), c);
 }
-
-#if defined(CUSTOM_PARALLEL_SORT)
-template <typename Iter, typename Comp>
-void mergesort_mt3(Iter begin, Iter end,
-                   Comp comp = std::less<diameter_entry_t>(),
-                   unsigned int N = std::thread::hardware_concurrency() / 2
-#if defined(USE_THREAD_POOL)
-                   ,
-                   ctpl::thread_pool* p = nullptr)
-#else
-)
-#endif
-{
-    auto len = std::distance(begin, end);
-    if (len <= 1024 || N < 2) {
-        std::sort(begin, end, comp);
-        return;
-    }
-
-    const size_t increment = len / N;
-
-#if defined(USE_THREAD_POOL)
-    std::vector<std::future<void>> futures;
-    futures.reserve(N - 1);
-#else
-    std::vector<std::thread> threads;
-    threads.reserve(N - 1);
-#endif
-
-    /* Sorting */
-    for (size_t i = 1; i < N; ++i) {
-        auto from = begin + i * increment;
-        auto to = (i < (N - 1)) ? begin + (i + 1) * increment : end;
-
-        futures.emplace_back(
-#if defined(USE_THREAD_POOL)
-            p->push([&, from, to](int idx) { std::sort(from, to, comp); }));
-#else
-        threads.emplace_back([&, from, to]() {
-            std::sort(from, to, comp); });
-#endif
-    }
-
-    std::sort(begin, begin + increment, comp);
-#if defined(USE_THREAD_POOL)
-    for (auto& fut : futures)
-        fut.get();
-#else
-    for (auto& th : threads)
-        th.join();
-#endif
-
-    /* Merging */
-    size_t nb_chunks = N;
-    size_t chunk_size = increment;
-    size_t mid_off = chunk_size;
-
-    while (nb_chunks > 2) {
-        const bool is_even = (nb_chunks & 1) == 0;
-        mid_off += chunk_size;
-        chunk_size *= 2;
-        nb_chunks /= 2;
-#if defined(USE_THREAD_POOL)
-        futures.clear();
-#else
-        threads.clear();
-#endif
-
-        if (nb_chunks > 1) {
-            for (size_t j = 1; j < nb_chunks; ++j) {
-                bool is_last = j == (nb_chunks - 1);
-                auto from = begin + chunk_size * j;
-                auto mid = from + chunk_size / 2;
-                auto to = (is_last && is_even) ? end : from + chunk_size;
-
-#if defined(USE_THREAD_POOL)
-                futures.emplace_back(p->push([&, from, mid, to](int idx) {
-                    std::inplace_merge(from, mid, to, comp);
-                }));
-#else
-                threads.emplace_back([&, from, mid, to]() {
-                    std::inplace_merge(from, mid, to, comp);
-                });
-#endif
-            }
-        }
-
-        std::inplace_merge(begin, begin + chunk_size / 2, begin + chunk_size,
-                           comp);
-
-#if defined(USE_THREAD_POOL)
-        for (auto& fut : futures)
-            fut.get();
-#else
-        for (auto& th : threads)
-            th.join();
-#endif
-        nb_chunks += is_even ? 0 : 1;
-    }
-
-    std::inplace_merge(begin, begin + mid_off, end, comp);
-}
-
-#endif
 
 template <typename Entry>
 struct greater_diameter_or_smaller_index {
@@ -654,10 +552,10 @@ class ripser
     const value_t threshold;
     const float ratio;
     const coefficient_t modulus;
-    const unsigned num_threads;
     const binomial_coeff_table binomial_coeff;
     const std::vector<coefficient_t> multiplicative_inverse;
-    ctpl::thread_pool p;
+    int num_threads;
+    std::unique_ptr<ctpl::thread_pool> p;
 
     struct entry_hash {
         std::size_t operator()(const entry_t& e) const
@@ -692,14 +590,23 @@ public:
     mutable std::vector<std::vector<value_t>> births_and_deaths_by_dim;
 
     ripser(DistanceMatrix&& _dist, index_t _dim_max, value_t _threshold,
-           float _ratio, coefficient_t _modulus, unsigned _num_threads)
+           float _ratio, coefficient_t _modulus, int _num_threads)
         : dist(std::move(_dist)), n(dist.size()), dim_max(_dim_max),
           threshold(_threshold), ratio(_ratio), modulus(_modulus),
-          num_threads((!_num_threads ? 1 : _num_threads)),
-          binomial_coeff(n, dim_max + 2),
-          multiplicative_inverse(multiplicative_inverse_vector(_modulus)),
-          p(num_threads)
+          num_threads(_num_threads), binomial_coeff(n, dim_max + 2),
+          multiplicative_inverse(multiplicative_inverse_vector(_modulus))
     {
+        /* Uses all concurrent threads supported */
+        if (num_threads == -1)
+            num_threads = std::thread::hardware_concurrency();
+
+        /* if user input 0 or if hardware_concurrency returns 0
+         * use at least 1 thread
+         */
+        if (!num_threads)
+            num_threads = 1;
+
+        p = std::make_unique<ctpl::thread_pool>(num_threads);
     }
 
     void copy_results(ripserResults& res)
@@ -770,8 +677,7 @@ public:
                                     const index_t _dim, const ripser& _parent)
             : idx_below(get_index(_simplex)), idx_above(0), j(_parent.n - 1),
               k(_dim), simplex(_simplex), modulus(_parent.modulus),
-              binomial_coeff(&_parent.binomial_coeff),
-              parent(&_parent)
+              binomial_coeff(&_parent.binomial_coeff), parent(&_parent)
         {
         }
 
@@ -894,7 +800,7 @@ public:
         std::vector<std::future<void>> futures;
         futures.reserve(n_thr);
         for (unsigned i = 0; i < n_thr; ++i)
-            futures.emplace_back(p.push([&, i](int t_idx) {
+            futures.emplace_back(p->push([&, i](int t_idx) {
 #else
         std::vector<std::thread> threads;
         threads.reserve(n_thr);
@@ -966,22 +872,21 @@ public:
 #if defined(USE_THREAD_POOL)
         /* Pre-allocate in parallel the hash map for next dimension */
         if (columns_to_reduce.size()) {
-            auto fut = p.push([&](int idx) {
+            auto fut = p->push([&](int idx) {
                 pivot_column_index =
                     std::move(entry_hash_map(columns_to_reduce.size()));
             });
 
-            mergesort_mt3(columns_to_reduce.begin(), columns_to_reduce.end(),
-                          greater_diameter_or_smaller_index<diameter_index_t>(),
-                          num_threads - 1, &p);
+            para_sort::sort(
+                columns_to_reduce.begin(), columns_to_reduce.end(),
+                greater_diameter_or_smaller_index<diameter_index_t>(),
+                num_threads - 1, p.get());
 
             fut.get();
         }
 #else
         std::thread thread_(
-            mergesort_mt3<decltype(columns_to_reduce.begin()),
-                          greater_diameter_or_smaller_index<diameter_index_t>>,
-            columns_to_reduce.begin(), columns_to_reduce.end(),
+            para_sort::sort, columns_to_reduce.begin(), columns_to_reduce.end(),
             greater_diameter_or_smaller_index<diameter_index_t>(), num_threads);
         pivot_column_index =
             std::move(entry_hash_map(columns_to_reduce.size()));
@@ -1001,12 +906,12 @@ public:
         }
 
         edges = get_edges();
-        mergesort_mt3(edges.rbegin(), edges.rend(),
-                      greater_diameter_or_smaller_index<diameter_index_t>(),
-                      num_threads
+        para_sort::sort(edges.rbegin(), edges.rend(),
+                        greater_diameter_or_smaller_index<diameter_index_t>(),
+                        num_threads
 #if defined(USE_THREAD_POOL)
-                      ,
-                      &p);
+                        ,
+                        p.get());
 #endif
         std::vector<index_t> vertices_of_edge(2);
         columns_to_reduce.resize(edges.size());
@@ -1188,7 +1093,7 @@ public:
         std::vector<std::future<void>> futures;
         futures.reserve(n_thr);
         for (unsigned i = 0; i < n_thr; ++i)
-            futures.emplace_back(p.push([&](int t_idx) {
+            futures.emplace_back(p->push([&](int t_idx) {
 #else
         std::vector<std::thread> threads;
         threads.reserve(n_thr);

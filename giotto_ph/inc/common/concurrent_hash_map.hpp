@@ -55,6 +55,13 @@ template <typename T>
 struct ValueTraits {
     using IntType = T;
 
+    /* NOTE
+     * A non null value was tried with success but
+     * performance where impacted between 3-6 %, there is
+     * not a clear explanation for this behavior but we suppose
+     * it is related to some optimization with 0 values
+     * in the processor
+     */
     static constexpr IntType NullValue = 0;
     static constexpr IntType Redirect = -1;
 };
@@ -68,6 +75,17 @@ constexpr T ValueTraits<T>::Redirect;
 template <class Key, class T, class H, class E>
 class junction_leapfrog_hm
 {
+   /* NOTE
+    * This hash map is an interface to Junction::ConcurrentMap_Leapfrog 
+    * implementation of a lock-free hash map. It currently has some 
+    * limitations as follow:
+    * - Does not support 0 key/value, to fix this, allow values inserted
+    *   in the hash map are increased by 1. And when retrieved values
+    *   are decreased by one. User are not impacted it is just for
+    *   future developers of the library
+    * - The maximal number of values supported is 2^64 - 2, we need to
+    *   substract NullValue and Redirect value.
+    */
 private:
     using junc_dflt_type = junction::DefaultKeyTraits<Key>;
     using internal_table_type =
