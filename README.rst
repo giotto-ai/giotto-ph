@@ -23,7 +23,7 @@ If you need a different distribution license, please contact the `L2F team`_.
 Documentation
 =============
 
-.. Add link documentation:  <18-01-21, julián> 
+Please visit https://giotto-ai.github.io/giotto-ph and navigate to the version you are interested in.
 
 Installation
 ============
