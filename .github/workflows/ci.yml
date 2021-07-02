@@ -1,12 +1,13 @@
 name: Build package on different Os and Python versions
 
-on : [push, pull_request]
+on : [pull_request]
 
 jobs:
 
   build_package:
     name: Build ${{ github.event.repository.name }} on ${{ matrix.os }} for Python-${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -91,5 +92,5 @@ jobs:
 
       - name: Run test
         run: |
-          python -m pip install pytest 
+          python -m pip install pytest hypothesis
           python -m pytest

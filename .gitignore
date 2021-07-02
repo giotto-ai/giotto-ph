@@ -7,3 +7,12 @@
 /*.egg-info
 *.so
 build
+.hypothesis/
+
+# Notebook checkpoints
+/examples/.*
+
+# macOS files
+*.DS_store
+
+

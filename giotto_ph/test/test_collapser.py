@@ -52,7 +52,6 @@ def test_coo_expected_output():
     coo_ = flag_complex_collapse_edges_coo(
         tX[0], tX[1], tX[2])
     coo = coo_matrix((coo_[2], (coo_[0], coo_[1])))
-    print(coo)
     assert np.equal(coo.row, X_expected_row).all()
     assert np.equal(coo.col, X_expected_col).all()
     assert np.equal(coo.data, X_expected_data).all()
