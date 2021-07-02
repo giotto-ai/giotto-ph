@@ -37,5 +37,6 @@ jobs:
         git reset --mixed github_pages
         git add --all
         git add -f docs/build
+        git add -f giotto_ph/modules
         git commit -m "push sphinx build"
         git push origin github_pages
