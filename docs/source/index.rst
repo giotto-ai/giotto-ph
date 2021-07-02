@@ -17,8 +17,16 @@ Indices and tables
 
 .. autofunction:: giotto_ph.python.ripser
 
-.. automodule:: giotto_ph.python
-   :members:
+.. autofunction:: giotto_ph.python._resolve_symmetry_conflicts
+
+.. autofunction:: giotto_ph.python._collapse_coo
+
+.. autofunction:: giotto_ph.python._weight_filtration
+
+.. autofunction:: giotto_ph.python._compute_weights
+
+.. autofunction:: giotto_ph.python._ideal_thresh
+
 
 References
 ----------
