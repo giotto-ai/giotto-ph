@@ -28,6 +28,7 @@ jobs:
         git fetch
         git checkout github_pages
         git checkout main
+        python -m pip install -e .
         cd docs
         make html
     - name: push to gh-pages
