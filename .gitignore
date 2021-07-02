@@ -8,3 +8,7 @@
 *.so
 build
 .hypothesis/
+
+# macOS files
+*.DS_store
+
