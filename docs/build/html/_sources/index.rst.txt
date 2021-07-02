@@ -15,8 +15,7 @@ Welcome to giotto-ph's documentation!
 Indices and tables
 ==================
 
-.. automodule:: giotto_ph.python
-   :members:
+.. autofunction:: giotto_ph.python.ripser
 
 References
 ----------
