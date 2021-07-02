@@ -17,6 +17,9 @@ Indices and tables
 
 .. autofunction:: giotto_ph.python.ripser
 
+.. automodule:: giotto_ph.python
+   :members:
+
 References
 ----------
 
