@@ -11,3 +11,8 @@ build
 
 # Notebook checkpoints
 /examples/.*
+
+# macOS files
+*.DS_store
+
+
