@@ -2,8 +2,13 @@
 giotto-ph
 =========
 
-``giotto-ph`` is a high performance implementation of Vietoris-Rips persistence. and is distributed under the GNU AGPLv3 license. 
-It is part of the `Giotto <https://github.com/giotto-ai>`_ family of open-source projects.
+``giotto-ph`` is a high-performance implementation of Vietoris–Rips (VR) persistence, and is distributed under the GNU AGPLv3 license.
+It consists of an improved reimplementation of `Morozov and Nigmetov's "lock-free Ripser" <https://dl.acm.org/doi/10.1145/3350755.3400244>`_,
+integrated with an improved reimplementation of `GUDHI's Edge Collapse (EC) algorithm <https://hal.inria.fr/hal-02395227>`_ and with support
+for weighted VR filtrations. See also https://github.com/Ripser/ripser/pull/31, https://github.com/grey-narn/oineus (lock-free Ripser), and http://gudhi.gforge.inria.fr/doc/latest/group__edge__collapse.html (GUDHI's EC implementation).
+
+``giotto-ph`` is part of the `Giotto <https://github.com/giotto-ai>`_ family of open-source projects and designed for tight integration with
+the `giotto-tda <https://github.com/giotto-ai/giotto-tda>`_ and `pyflagser <https://github.com/giotto-ai/giotto-tda>`_ libraries.
 
 Project genesis
 ===============
@@ -59,9 +64,8 @@ for detailed instructions on how to build ``giotto-ph`` from sources across diff
 Contributing
 ============
 
-We welcome new contributors of all experience levels. The Giotto
-community goals are to be helpful, welcoming, and effective. To learn more about
-making a contribution to ``giotto-ph``, please consult `the relevant page
+We welcome new contributors of all experience levels. The Giotto community goals are to be helpful, welcoming,
+and effective. To learn more about making a contribution to ``giotto-ph``, please consult `the relevant page
 <https://giotto-ai.github.io/gtda-docs/latest/contributing/index.html>`_.
 
 Testing
