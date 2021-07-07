@@ -2,7 +2,7 @@
 giotto-ph
 =========
 
-``giotto-ph`` is a high performance implementation of Vietoris–Rips (VR) persistence, and is distributed under the GNU AGPLv3 license.
+``giotto-ph`` is a high-performance implementation of Vietoris–Rips (VR) persistence, and is distributed under the GNU AGPLv3 license.
 It consists of an improved reimplementation of `Morozov and Nigmetov's "lock-free Ripser" <https://dl.acm.org/doi/10.1145/3350755.3400244>`_,
 integrated with an improved reimplementation of `GUDHI's Edge Collapse (EC) algorithm <https://hal.inria.fr/hal-02395227>`_ and with support
 for weighted VR filtrations. See also https://github.com/Ripser/ripser/pull/31, https://github.com/grey-narn/oineus (lock-free Ripser), and http://gudhi.gforge.inria.fr/doc/latest/group__edge__collapse.html (GUDHI's EC implementation).
