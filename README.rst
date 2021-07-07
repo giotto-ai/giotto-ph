@@ -2,6 +2,11 @@
 giotto-ph
 =========
 
+.. |wheels| image:: https://github.com/giotto-ai/giotto-ph/actions/workflows/wheels.yml/badge.svg
+.. |ci| image:: https://github.com/giotto-ai/giotto-ph/actions/workflows/ci.yml/badge.svg
+.. |docs| image:: https://github.com/giotto-ai/giotto-ph/actions/workflows/deploy-github-pages.yml/badge.svg
+|wheels| |ci| |docs|
+
 ``giotto-ph`` is a high-performance implementation of Vietoris–Rips (VR) persistence, and is distributed under the GNU AGPLv3 license.
 It consists of an improved reimplementation of `Morozov and Nigmetov's "lock-free Ripser" <https://dl.acm.org/doi/10.1145/3350755.3400244>`_,
 integrated with an improved reimplementation of `GUDHI's Edge Collapse (EC) algorithm <https://hal.inria.fr/hal-02395227>`_ and with support
