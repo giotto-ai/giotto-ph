@@ -7,10 +7,12 @@ giotto-ph
 .. |docs| image:: https://github.com/giotto-ai/giotto-ph/actions/workflows/deploy-github-pages.yml/badge.svg
 |wheels| |ci| |docs|
 
-``giotto-ph`` is a high-performance implementation of Vietoris–Rips (VR) persistence, and is distributed under the GNU AGPLv3 license.
-It consists of an improved reimplementation of `Morozov and Nigmetov's "lock-free Ripser" <https://dl.acm.org/doi/10.1145/3350755.3400244>`_,
-integrated with an improved reimplementation of `GUDHI's Edge Collapse (EC) algorithm <https://hal.inria.fr/hal-02395227>`_ and with support
-for weighted VR filtrations. See also https://github.com/Ripser/ripser/pull/31, https://github.com/grey-narn/oineus (lock-free Ripser), and http://gudhi.gforge.inria.fr/doc/latest/group__edge__collapse.html (GUDHI's EC implementation).
+``giotto-ph`` is a high-performance implementation of Vietoris–Rips (VR) persistence on the CPU, and is distributed under the GNU AGPLv3 license.
+It consists of an improved reimplementation of `Morozov and Nigmetov's "lock-free Ripser" <https://dl.acm.org/doi/10.1145/3350755.3400244>`_
+and in addition makes use of a parallel implementation of the *apparent pairs* optimization used in `Ripser v1.2 <https://github.com/Ripser/ripser>`_.
+It also contains an improved reimplementation of `GUDHI's Edge Collapse (EC) algorithm <https://hal.inria.fr/hal-02395227>`_ and offers support
+for weighted VR filtrations. See also `Morozov's Ripser fork <https://github.com/mrzv/ripser/tree/lockfree>`_, Nigmetov's
+`Oineus library <https://github.com/grey-narn/oineus>`_, and `GUDHI's EC implementation <http://gudhi.gforge.inria.fr/doc/latest/group__edge__collapse.html>`_.
 
 ``giotto-ph`` is part of the `Giotto <https://github.com/giotto-ai>`_ family of open-source projects and designed for tight integration with
 the `giotto-tda <https://github.com/giotto-ai/giotto-tda>`_ and `pyflagser <https://github.com/giotto-ai/giotto-tda>`_ libraries.
