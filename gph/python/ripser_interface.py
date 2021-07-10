@@ -258,10 +258,10 @@ def _ideal_thresh(dm, thresh):
     return np.amin([enclosing_radius, thresh])
 
 
-def ripser(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
-           metric_params={}, weights=None, weight_params=None,
-           collapse_edges=False, n_threads=1):
     """Compute persistence diagrams for X data array using Ripser [1]_.
+def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
+                    metric_params={}, weights=None, weight_params=None,
+                    collapse_edges=False, n_threads=8):
 
     If X is a point cloud, it will be converted to a distance matrix
     using the chosen metric.

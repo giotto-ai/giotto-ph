@@ -5,7 +5,7 @@ from scipy.spatial.distance import squareform
 from scipy.spatial.distance import pdist
 from scipy.sparse import csr_matrix
 
-from gph.python import ripser
+from gph.python import ripser_parallel as ripser
 
 
 X_pc = np.array([[2., 2.47942554],

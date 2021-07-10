@@ -1,1 +1,1 @@
-from .ripser_interface import ripser
+from .ripser_interface import ripser_parallel
