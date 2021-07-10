@@ -708,7 +708,7 @@ public:
             j = parent->get_max_vertex(idx_below, k + 1, j);
 
             index_t face_index =
-[O                idx_above - (*binomial_coeff)(j, k + 1) + idx_below;
+                idx_above - (*binomial_coeff)(j, k + 1) + idx_below;
 
             value_t face_diameter =
                 parent->compute_diameter(face_index, dim - 1);
@@ -720,7 +720,7 @@ public:
             idx_above += (*binomial_coeff)(j, k);
 
             --k;
-[I
+
             return diameter_entry_t(face_diameter, face_index,
                                     face_coefficient);
         }
