@@ -15,10 +15,10 @@
 namespace py = pybind11;
 
 #if defined USE_COEFFICIENTS
-PYBIND11_MODULE(giotto_ph_ripser_coeff, m)
+PYBIND11_MODULE(gph_ripser_coeff, m)
 {
 #else
-PYBIND11_MODULE(giotto_ph_ripser, m)
+PYBIND11_MODULE(gph_ripser, m)
 {
 #endif
 

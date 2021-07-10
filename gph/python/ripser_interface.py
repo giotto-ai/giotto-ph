@@ -30,28 +30,27 @@ from sklearn.metrics.pairwise import pairwise_distances
 from sklearn.neighbors import kneighbors_graph
 from sklearn.utils.validation import column_or_1d
 
-from ..modules import giotto_ph_ripser, giotto_ph_ripser_coeff, gtda_collapser
+from ..modules import gph_ripser, gph_ripser_coeff, gph_collapser
 
 
 def _compute_ph_vr_dense(DParam, maxHomDim, thresh=-1, coeff=2, n_threads=1):
     if coeff == 2:
-        ret = giotto_ph_ripser.rips_dm(DParam, DParam.shape[0], coeff,
-                                       maxHomDim, thresh, n_threads)
+        ret = gph_ripser.rips_dm(DParam, DParam.shape[0], coeff,
+                                 maxHomDim, thresh, n_threads)
     else:
-        ret = giotto_ph_ripser_coeff.rips_dm(DParam, DParam.shape[0], coeff,
-                                             maxHomDim, thresh, n_threads)
+        ret = gph_ripser_coeff.rips_dm(DParam, DParam.shape[0], coeff,
+                                       maxHomDim, thresh, n_threads)
     return ret
 
 
 def _compute_ph_vr_sparse(I, J, V, N, maxHomDim, thresh=-1, coeff=2,
                           n_threads=1):
     if coeff == 2:
-        ret = giotto_ph_ripser.rips_dm_sparse(I, J, V, I.size, N, coeff,
-                                              maxHomDim, thresh, n_threads)
+        ret = gph_ripser.rips_dm_sparse(I, J, V, I.size, N, coeff,
+                                        maxHomDim, thresh, n_threads)
     else:
-        ret = giotto_ph_ripser_coeff.rips_dm_sparse(I, J, V, I.size, N, coeff,
-                                                    maxHomDim, thresh,
-                                                    n_threads)
+        ret = gph_ripser_coeff.rips_dm_sparse(I, J, V, I.size, N, coeff,
+                                              maxHomDim, thresh, n_threads)
     return ret
 
 
@@ -97,7 +96,7 @@ def _collapse_coo(row, col, data, thresh):
     data."""
     diag = row == col
     row_diag, col_diag, data_diag = row[diag], col[diag], data[diag]
-    row, col, data = gtda_collapser. \
+    row, col, data = gph_collapser. \
         flag_complex_collapse_edges_coo(row, col, data.astype(np.float32),
                                         thresh)
     return (np.hstack([row_diag, row]),
@@ -343,7 +342,7 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
 
     collapse_edges : bool, optional, default: ``False``
         Whether to use the edge collapse algorithm as described in [2]_ prior
-        to calling ``ripser``.
+        to calling ``ripser_parallel``.
 
     n_threads : int, optional, default: ``1``
         Maximum number of threads available to use during persistent
@@ -445,7 +444,7 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             if collapse_edges:
                 row, col, data = _collapse_coo(row, col, data, thresh)
         elif collapse_edges:
-            row, col, data = gtda_collapser.\
+            row, col, data = gph_collapser.\
                 flag_complex_collapse_edges_dense(dm.astype(np.float32),
                                                   thresh)
         elif not compute_enclosing_radius:

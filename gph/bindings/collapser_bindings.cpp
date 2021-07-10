@@ -53,7 +53,7 @@ static COO_data gen_coo_matrix(Filtered_edge_list& collapsed_edges) {
   return COO_data(row, col, data);
 }
 
-PYBIND11_MODULE(gtda_collapser, m) {
+PYBIND11_MODULE(gph_collapser, m) {
   using namespace pybind11::literals;
 
   m.doc() = "Collapser bindings for GUDHI implementation";
