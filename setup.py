@@ -13,7 +13,7 @@ from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
 
 
-PACKAGE_DIR = "giotto_ph"
+PACKAGE_DIR = "gph"
 
 version_file = os.path.join(PACKAGE_DIR, "_version.py")
 with open(version_file) as f:

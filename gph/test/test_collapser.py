@@ -5,7 +5,7 @@ https://github.com/GUDHI/gudhi-devel/blob/master/src/Collapse/example/edge_colla
 """
 
 import numpy as np
-from giotto_ph.modules.gtda_collapser import \
+from gph.modules.gtda_collapser import \
     flag_complex_collapse_edges_dense, \
     flag_complex_collapse_edges_coo
 from scipy.sparse import coo_matrix, csr_matrix

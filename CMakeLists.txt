@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.9)
 project(gtda_bindings LANGUAGES CXX)
 
-set(BASE_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/giotto_ph)
+set(BASE_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/gph)
 set(BINDINGS_DIR ${BASE_LIB_DIR}/bindings)
 set(EXT_DIR ${BASE_LIB_DIR}/ext)
 
