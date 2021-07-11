@@ -1,9 +1,9 @@
 [submodule "src/pybind11"]
-	path = giotto_ph/ext/pybind11
+	path = gph/ext/pybind11
 	url = https://github.com/pybind/pybind11
 [submodule "giotto_ph/ext/junction"]
-	path = giotto_ph/ext/junction
+	path = gph/ext/junction
 	url = https://github.com/preshing/junction
 [submodule "giotto_ph/ext/turf"]
-	path = giotto_ph/ext/turf
+	path = gph/ext/turf
 	url = https://github.com/preshing/turf

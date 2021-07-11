@@ -50,7 +50,7 @@ jobs:
           if [ "$RUNNER_OS" == "Linux" ]; then
             sudo apt -y install ccache
           elif [ "$RUNNER_OS" == "macOS" ]; then
-            brew install --HEAD ccache
+            brew install ccache
           fi
         shell: bash
 
