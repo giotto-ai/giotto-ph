@@ -10,6 +10,8 @@ Welcome to giotto-ph's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   installation
+
 
 
 Indices and tables
