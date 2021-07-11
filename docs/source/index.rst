@@ -10,12 +10,14 @@ Welcome to giotto-ph's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   installation
+
 
 
 Indices and tables
 ==================
 
-.. autofunction:: gph.python.ripser
+.. autofunction:: gph.python.ripser_parallel
 
 
 References
