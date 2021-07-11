@@ -2,8 +2,20 @@
 giotto-ph
 =========
 
-``giotto-ph`` is a high performance implementation of Vietoris-Rips persistence. and is distributed under the GNU AGPLv3 license. 
-It is part of the `Giotto <https://github.com/giotto-ai>`_ family of open-source projects.
+.. |wheels| image:: https://github.com/giotto-ai/giotto-ph/actions/workflows/wheels.yml/badge.svg
+.. |ci| image:: https://github.com/giotto-ai/giotto-ph/actions/workflows/ci.yml/badge.svg
+.. |docs| image:: https://github.com/giotto-ai/giotto-ph/actions/workflows/deploy-github-pages.yml/badge.svg
+|wheels| |ci| |docs|
+
+``giotto-ph`` is a high-performance implementation of Vietoris–Rips (VR) persistence on the CPU, and is distributed under the GNU AGPLv3 license.
+It consists of an improved reimplementation of `Morozov and Nigmetov's "lock-free Ripser" <https://dl.acm.org/doi/10.1145/3350755.3400244>`_
+and in addition makes use of a parallel implementation of the *apparent pairs* optimization used in `Ripser v1.2 <https://github.com/Ripser/ripser>`_.
+It also contains an improved reimplementation of `GUDHI's Edge Collapse (EC) algorithm <https://hal.inria.fr/hal-02395227>`_ and offers support
+for weighted VR filtrations. See also `Morozov's Ripser fork <https://github.com/mrzv/ripser/tree/lockfree>`_, Nigmetov's
+`Oineus library <https://github.com/grey-narn/oineus>`_, and `GUDHI's EC implementation <http://gudhi.gforge.inria.fr/doc/latest/group__edge__collapse.html>`_.
+
+``giotto-ph`` is part of the `Giotto <https://github.com/giotto-ai>`_ family of open-source projects and designed for tight integration with
+the `giotto-tda <https://github.com/giotto-ai/giotto-tda>`_ and `pyflagser <https://github.com/giotto-ai/giotto-tda>`_ libraries.
 
 Project genesis
 ===============
@@ -59,9 +71,8 @@ for detailed instructions on how to build ``giotto-ph`` from sources across diff
 Contributing
 ============
 
-We welcome new contributors of all experience levels. The Giotto
-community goals are to be helpful, welcoming, and effective. To learn more about
-making a contribution to ``giotto-ph``, please consult `the relevant page
+We welcome new contributors of all experience levels. The Giotto community goals are to be helpful, welcoming,
+and effective. To learn more about making a contribution to ``giotto-ph``, please consult `the relevant page
 <https://giotto-ai.github.io/gtda-docs/latest/contributing/index.html>`_.
 
 Testing
