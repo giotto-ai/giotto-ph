@@ -63,7 +63,7 @@ upgrading ``pip`` to a recent version as the above may fail on very old versions
 Developer installation
 ----------------------
 
-Please consult the `dedicated page <https://giotto-ai.github.io/gtda-docs/latest/installation.html#developer-installation>`_
+Please consult the `dedicated page <https://giotto-ai.github.io/giotto-ph/build/html/installation.html#developer-installation>`_
 for detailed instructions on how to build ``giotto-ph`` from sources across different platforms.
 
 .. _contributing-section:
@@ -78,7 +78,7 @@ and effective. To learn more about making a contribution to ``giotto-ph``, pleas
 Testing
 -------
 
-After installation, you can launch the test suite from outside the
+After installation, you can launch the test suite from inside the
 source directory   ::
 
     pytest
