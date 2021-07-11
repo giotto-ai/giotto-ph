@@ -259,7 +259,7 @@ def _ideal_thresh(dm, thresh):
 
 def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                     metric_params={}, weights=None, weight_params=None,
-                    collapse_edges=False, n_threads=8):
+                    collapse_edges=False, n_threads=1):
     """Compute persistence diagrams for X data array using Ripser [1]_.
 
     If X is a point cloud, it will be converted to a distance matrix
