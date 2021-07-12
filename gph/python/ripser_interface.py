@@ -273,7 +273,7 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
 
     maxdim : int, optional, default: ``1``
         Maximum homology dimension computed. Will compute all dimensions lower
-        than and equal to this value. For 1, H_0 and H_1 will be computed.
+        than or equal to this value. For 1, both H_0 and H_1 will be computed.
 
     thresh : float, optional, default: ``numpy.inf``
         Maximum distances considered when constructing filtration. If
@@ -304,7 +304,7 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         vertex weights in the modified adjacency matrix. ``"DTM"`` denotes the
         empirical distance-to-measure function defined, following [3]_, by
 
-        .. math:: w(x) = 2\\left\\(\\frac{1}{n+1} \\sum_{k=1}^n
+        .. math:: w(x) = 2\\left(\\frac{1}{n+1} \\sum_{k=1}^n
            \\mathrm{dist}(x, x_k)^r \\right)^{1/r}.
 
         Here, :math:`\\mathrm{dist}` is the distance metric used, :math:`x_k`
@@ -320,7 +320,7 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
 
         .. math:: w_{ij} = \\begin{cases} \\max\\{ w_i, w_j \\}
            &\\text{if } 2\\mathrm{dist}_{ij} \\leq
-           |w_i^p - w_j^p|^{\\frac{1}{p}} \\
+           |w_i^p - w_j^p|^{\\frac{1}{p}} \\\\
            t &\\text{otherwise} \\end{cases}
 
         where :math:`t` is the only positive root of
