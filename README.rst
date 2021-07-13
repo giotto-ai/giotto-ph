@@ -1,5 +1,3 @@
-|wheels|_ |ci|_ |docs|_
-
 .. |wheels| image:: https://github.com/giotto-ai/giotto-ph/actions/workflows/wheels.yml/badge.svg
 .. _wheels:
 
@@ -8,6 +6,8 @@
 
 .. |docs| image:: https://github.com/giotto-ai/giotto-ph/actions/workflows/deploy-github-pages.yml/badge.svg
 .. _docs:
+
+|wheels|_ |ci|_ |docs|_
 
 =========
 giotto-ph
