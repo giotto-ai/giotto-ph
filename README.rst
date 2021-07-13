@@ -107,7 +107,7 @@ You can use the following BibTeX entry:
 
 .. code:: RST
 
-    @misc{tauzin2020giottotda,
+    @misc{burella2021giottoph,
           title={giotto-ph: A Python Library for High-Performance Computation of Persistent Homology of Vietoris--Rips Filtrations},
           author={Julián Burella Pérez and Sydney Hauke and Umberto Lupo and Matteo Caorsi and Alberto Dassatti},
           year={2021},
