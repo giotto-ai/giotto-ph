@@ -26,6 +26,8 @@ DISTNAME = "giotto-ph"
 DESCRIPTION = "TODO"
 with codecs.open("README.rst", encoding="utf-8-sig") as f:
     LONG_DESCRIPTION = f.read()
+if platform.system() == "Windows":
+    LONG_DESCRIPTION = "giotto-ph at https://github.com/giotto-ai/giotto-ph"
 LONG_DESCRIPTION_TYPE = "text/x-rst"
 MAINTAINER = "TODO"
 MAINTAINER_EMAIL = "maintainers@giotto.ai"
