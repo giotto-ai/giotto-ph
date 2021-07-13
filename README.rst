@@ -1,3 +1,4 @@
+
 .. |wheels| image:: https://github.com/giotto-ai/giotto-ph/actions/workflows/wheels.yml/badge.svg
 .. _wheels:
 
@@ -93,6 +94,27 @@ Important links
 ===============
 
 - Issue tracker: https://github.com/giotto-ai/giotto-ph/issues
+
+
+Citing giotto-ph
+=================
+
+If you use ``giotto-ph`` in a scientific publication, we would appreciate citations to the following paper:
+
+   `giotto-ph: A Python Library for High-Performance Computation of Persistent Homology of Vietoris--Rips Filtrations <https://arxiv.org/abs/2107.05412>`_, Burella Pérez *et al*, arXiv:2107.05412, 2021.
+
+You can use the following BibTeX entry:
+
+.. code:: RST
+
+    @misc{tauzin2020giottotda,
+          title={giotto-ph: A Python Library for High-Performance Computation of Persistent Homology of Vietoris--Rips Filtrations},
+          author={Julián Burella Pérez and Sydney Hauke and Umberto Lupo and Matteo Caorsi and Alberto Dassatti},
+          year={2021},
+          eprint={2107.05412},
+          archivePrefix={arXiv},
+          primaryClass={cs.CG}
+    }
 
 
 Community
