@@ -33,8 +33,8 @@ MAINTAINER = "Julián Burella Pérez"
 MAINTAINER_EMAIL = "maintainers@giotto.ai"
 URL = "https://github.com/giotto-ai/giotto-ph"
 LICENSE = "GNU AGPLv3"
-DOWNLOAD_URL = "https://github.com/giotto-ai/giotto-ph/tarball/v0.1.0"
 VERSION = __version__  # noqa
+DOWNLOAD_URL = "https://github.com/giotto-ai/giotto-ph/tarball/v" + VERSION
 CLASSIFIERS = ["Intended Audience :: Science/Research",
                "Intended Audience :: Developers",
                "License :: OSI Approved",
