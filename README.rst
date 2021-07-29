@@ -130,7 +130,7 @@ Testing
 After installation, you can launch the test suite from inside the
 source directory   ::
 
-    pytest
+    pytest gph
 
 Important links
 ===============
