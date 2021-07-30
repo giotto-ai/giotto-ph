@@ -39,8 +39,8 @@ License
 ``giotto-ph`` is distributed under the AGPLv3 `license <https://github.com/giotto-ai/giotto-tda/blob/master/LICENSE>`_.
 If you need a different distribution license, please contact the `L2F team`_.
 
-Basic usage
-===========
+Basic usage in Python
+=====================
 
 Basic imports:   ::
     
