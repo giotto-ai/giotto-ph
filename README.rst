@@ -39,10 +39,64 @@ License
 ``giotto-ph`` is distributed under the AGPLv3 `license <https://github.com/giotto-ai/giotto-tda/blob/master/LICENSE>`_.
 If you need a different distribution license, please contact the `L2F team`_.
 
-Documentation
-=============
+Basic usage in Python
+=====================
 
-Please visit https://giotto-ai.github.io/giotto-ph and navigate to the version you are interested in.
+Basic imports:
+
+.. code-block:: python
+    
+    import numpy as np
+    from gph.python import ripser_parallel
+
+Persistence diagram of a random point cloud of 100 points in 3D Euclidean space, up to homology dimension 2, using all available threads:
+
+.. code-block:: python
+
+    pc = np.random.random((100, 3))
+    dgm = ripser_parallel(pc, maxdim=2, n_threads=-1)
+
+Push the computation to higher homology dimensions and/or larger point clouds using edge collapses:
+
+.. code-block:: python
+
+    dgm_higher = ripser_parallel(pc, maxdim=5, collapse_edges=True, n_threads=-1)
+
+You can also work with distance matrices by passing ``metric="precomputed"``:
+
+.. code-block:: python
+
+    from scipy.spatial.distance import pdist, squareform
+    
+    # A distance matrix
+    dm = squareform(pdist(pc))
+    dgm = ripser_parallel(pc, metric="precomputed", maxdim=2, n_threads=-1)
+
+More generally, you can work with dense or sparse adjacency matrices of weighted graphs. Here is a dense square matrix interpreted as the adjacency matrix of a fully connected weighted graph with 100 vertices:
+
+.. code-block:: python
+
+    # Entries can be negative. The only constraint is that, for every i and j, dm[i, j] ≥ max(dm[i, i], dm[j, j])
+    # With dense input, the lower diagonal is ignored
+    adj_dense = np.random.random((100, 100))
+    np.fill_diagonal(adj_dense, 0)
+    dgm = ripser_parallel(adj_dense, metric="precomputed", maxdim=2, n_threads=-1)
+
+And here is a sparse adjacency matrix:
+
+.. code-block:: python
+
+    # See API reference for treatment of entries below the diagonal
+    from scipy.sparse import random
+    adj_sparse = random(100, 100, density=0.1)
+    dgm = ripser_parallel(adj_sparse, metric="precomputed", maxdim=2, n_threads=-1)
+    
+
+Documentation and Tutorials
+===========================
+
+Jupyter notebook tutorials can be found in the `examples folder <https://github.com/giotto-ai/giotto-ph/blob/main/examples>`_.
+The API reference can be found at https://giotto-ai.github.io/giotto-ph.
 
 Installation
 ============
@@ -88,7 +142,7 @@ Testing
 After installation, you can launch the test suite from inside the
 source directory   ::
 
-    pytest
+    pytest gph
 
 Important links
 ===============
