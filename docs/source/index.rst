@@ -11,18 +11,10 @@ Welcome to giotto-ph's documentation!
    :caption: Contents:
 
    installation
-
-
-
-Indices and tables
-==================
-
-.. autofunction:: gph.python.ripser_parallel
-
+   modules/index
 
 References
 ----------
 
 * :ref:`genindex`
 * :ref:`modindex`
-* :ref:`search`
