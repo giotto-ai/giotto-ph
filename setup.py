@@ -23,16 +23,18 @@ with open("requirements.txt") as f:
     requirements = f.read().splitlines()
 
 DISTNAME = "giotto-ph"
-DESCRIPTION = "TODO"
+DESCRIPTION = "High performance tool for Persistent Homology computations."
 with codecs.open("README.rst", encoding="utf-8-sig") as f:
     LONG_DESCRIPTION = f.read()
+if platform.system() == "Windows":
+    LONG_DESCRIPTION = "giotto-ph at https://github.com/giotto-ai/giotto-ph"
 LONG_DESCRIPTION_TYPE = "text/x-rst"
-MAINTAINER = "TODO"
+MAINTAINER = "Julián Burella Pérez"
 MAINTAINER_EMAIL = "maintainers@giotto.ai"
 URL = "https://github.com/giotto-ai/giotto-ph"
 LICENSE = "GNU AGPLv3"
-DOWNLOAD_URL = "TODO"
 VERSION = __version__  # noqa
+DOWNLOAD_URL = "https://github.com/giotto-ai/giotto-ph/tarball/v" + VERSION
 CLASSIFIERS = ["Intended Audience :: Science/Research",
                "Intended Audience :: Developers",
                "License :: OSI Approved",
