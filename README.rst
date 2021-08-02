@@ -159,7 +159,7 @@ If you use ``giotto-ph`` in a scientific publication, we would appreciate citati
 
 You can use the following BibTeX entry:
 
-.. code:: RST
+.. code:: bibtex
 
     @misc{burella2021giottoph,
           title={giotto-ph: A Python Library for High-Performance Computation of Persistent Homology of Vietoris--Rips Filtrations},
