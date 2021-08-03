@@ -39,6 +39,16 @@ License
 ``giotto-ph`` is distributed under the AGPLv3 `license <https://github.com/giotto-ai/giotto-tda/blob/master/LICENSE>`_.
 If you need a different distribution license, please contact the `L2F team`_.
 
+Parallel persistent homology backend
+====================================
+
+Computing persistence barcodes of large datasets and in high homology degrees is challenging even on modern hardware. ``giotto-ph``'s persistent homology backend
+is able to distribute the key stages of the computation (namely, search for apparent pairs and coboundary matrix reduction) across an arbitrary number of available CPU threads.
+The scaling is generally quite favourable as shown in the following figure (for more details, see our paper linked below):
+
+.. image:: https://raw.githubusercontent.com/giotto-ai/giotto-ph/readme_speedup_figure/docs/images/multithreading_speedup.svg
+   :width: 500
+
 Basic usage in Python
 =====================
 
@@ -111,7 +121,6 @@ Use the ``weights`` and ``weight_params`` parameters to constructed a weighted R
 
     dgm_dtm = ripser_parallel(pc, weights="DTM", n_threads=-1)
 
-    
 
 Documentation and Tutorials
 ===========================
