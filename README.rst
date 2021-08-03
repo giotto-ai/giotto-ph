@@ -100,10 +100,12 @@ Push the computation to higher homology dimensions and larger point clouds/dista
 
     dgm_higher = ripser_parallel(pc, maxdim=5, collapse_edges=True, n_threads=-1)
 
+(Note: not all datasets and configurations will benefit from edge collapses. For more details, see our paper below.)
+
 Weighted Rips Filtrations
 -------------------------
 
-Use the ``weights`` parameter to constructed a weighted Rips filtration as defined in `this paper <https://doi.org/10.1007/978-3-030-43408-3_2>`_. You can either pass a custom 1D array of vertex weights, or the string ``"DTM"`` (together with ``weight_params``) for distance-to-measure reweighting:
+Use the ``weights`` and ``weight_params`` parameters to constructed a weighted Rips filtration as defined in `this paper <https://doi.org/10.1007/978-3-030-43408-3_2>`_. ``weights`` can either be a custom 1D array of vertex weights, or the string ``"DTM"`` for distance-to-measure reweighting:
 
 .. code-block:: python
 
