@@ -49,6 +49,9 @@ Basic imports:
     import numpy as np
     from gph.python import ripser_parallel
 
+Point clouds
+------------
+
 Persistence diagram of a random point cloud of 100 points in 3D Euclidean space, up to homology dimension 2, using all available threads:
 
 .. code-block:: python
@@ -56,11 +59,8 @@ Persistence diagram of a random point cloud of 100 points in 3D Euclidean space,
     pc = np.random.random((100, 3))
     dgm = ripser_parallel(pc, maxdim=2, n_threads=-1)
 
-Push the computation to higher homology dimensions and/or larger point clouds using edge collapses:
-
-.. code-block:: python
-
-    dgm_higher = ripser_parallel(pc, maxdim=5, collapse_edges=True, n_threads=-1)
+Distance matrices and graphs
+----------------------------
 
 You can also work with distance matrices by passing ``metric="precomputed"``:
 
@@ -90,6 +90,27 @@ And here is a sparse adjacency matrix:
     from scipy.sparse import random
     adj_sparse = random(100, 100, density=0.1)
     dgm = ripser_parallel(adj_sparse, metric="precomputed", maxdim=2, n_threads=-1)
+
+Edge Collapser
+--------------
+
+Push the computation to higher homology dimensions and larger point clouds/distance matrices/adjacency matrices using edge collapses:
+
+.. code-block:: python
+
+    dgm_higher = ripser_parallel(pc, maxdim=5, collapse_edges=True, n_threads=-1)
+
+(Note: not all datasets and configurations will benefit from edge collapses. For more details, see our paper below.)
+
+Weighted Rips Filtrations
+-------------------------
+
+Use the ``weights`` and ``weight_params`` parameters to constructed a weighted Rips filtration as defined in `this paper <https://doi.org/10.1007/978-3-030-43408-3_2>`_. ``weights`` can either be a custom 1D array of vertex weights, or the string ``"DTM"`` for distance-to-measure reweighting:
+
+.. code-block:: python
+
+    dgm_dtm = ripser_parallel(pc, weights="DTM", n_threads=-1)
+
     
 
 Documentation and Tutorials
@@ -155,7 +176,7 @@ Citing giotto-ph
 
 If you use ``giotto-ph`` in a scientific publication, we would appreciate citations to the following paper:
 
-   `giotto-ph: A Python Library for High-Performance Computation of Persistent Homology of Vietoris--Rips Filtrations <https://arxiv.org/abs/2107.05412>`_, Burella Pérez *et al*, arXiv:2107.05412, 2021.
+   `giotto-ph: A Python Library for High-Performance Computation of Persistent Homology of Vietoris–Rips Filtrations <https://arxiv.org/abs/2107.05412>`_, Burella Pérez *et al*, arXiv:2107.05412, 2021.
 
 You can use the following BibTeX entry:
 
