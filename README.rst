@@ -50,7 +50,7 @@ is able to distribute the key stages of the computation (namely, search for appa
 
 On challenging datasets, the scaling is quite favourable as shown in the following figure (for more details, see our paper linked below):
 
-.. image:: docs/images/multithreading_speedup.svg
+.. image:: https://raw.githubusercontent.com/giotto-ai/giotto-ph/main/docs/images/multithreading_speedup.svg
    :width: 500px
    :align: center
 
