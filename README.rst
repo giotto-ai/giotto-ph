@@ -47,11 +47,12 @@ Parallel persistent homology backend
 
 Computing persistence barcodes of large datasets and in high homology degrees is challenging even on modern hardware. ``giotto-ph``'s persistent homology backend
 is able to distribute the key stages of the computation (namely, search for apparent pairs and coboundary matrix reduction) across an arbitrary number of available CPU threads.
-On challenging dataset, the scaling is quite favourable as shown in the following figure (for more details, see our paper linked below):
+
+On challenging datasets, the scaling is quite favourable as shown in the following figure (for more details, see our paper linked below):
 
 .. raw:: html
 
-   <img src="https://raw.githubusercontent.com/giotto-ai/giotto-ph/readme_speedup_figure/docs/images/multithreading_speedup.svg" align="center" width="500px" alt="Scaling of giotto-ph's multithreaded backend">
+   <img src="docs/images/multithreading_speedup.svg" align="center" width="500px" alt="Scaling of giotto-ph's multithreaded backend">
 
 
 Basic usage in Python
