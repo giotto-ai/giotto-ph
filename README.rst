@@ -50,10 +50,10 @@ is able to distribute the key stages of the computation (namely, search for appa
 
 On challenging datasets, the scaling is quite favourable as shown in the following figure (for more details, see our paper linked below):
 
-.. raw:: html
-   <h1 align="center">
-   <a><img src="docs/images/multithreading_speedup.svg" width="500px" alt="Scaling of giotto-ph's multithreaded backend"></a>
-   </h1>
+.. image:: docs/images/multithreading_speedup.svg
+   :width: 500px
+   :align: center
+   :alt: "Scaling of giotto-ph's multithreaded backend"
 
 
 Basic usage in Python
