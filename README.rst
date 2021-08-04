@@ -24,12 +24,14 @@ for weighted VR filtrations. See also `Morozov's Ripser fork <https://github.com
 ``giotto-ph`` is part of the `Giotto <https://github.com/giotto-ai>`_ family of open-source projects and designed for tight integration with
 the `giotto-tda <https://github.com/giotto-ai/giotto-tda>`_ and `pyflagser <https://github.com/giotto-ai/giotto-tda>`_ libraries.
 
+
 Project genesis
 ===============
 
 ``giotto-ph`` is the result of a collaborative effort between `L2F SA <https://www.l2f.ch/>`_,
 the `Laboratory for Topology and Neuroscience <https://www.epfl.ch/labs/hessbellwald-lab/>`_ at EPFL,
 and the `Institute of Reconfigurable & Embedded Digital Systems (REDS) <https://heig-vd.ch/en/research/reds>`_ of HEIG-VD.
+
 
 License
 =======
@@ -38,6 +40,20 @@ License
 
 ``giotto-ph`` is distributed under the AGPLv3 `license <https://github.com/giotto-ai/giotto-tda/blob/master/LICENSE>`_.
 If you need a different distribution license, please contact the `L2F team`_.
+
+
+Parallel persistent homology backend
+====================================
+
+Computing persistence barcodes of large datasets and in high homology degrees is challenging even on modern hardware. ``giotto-ph``'s persistent homology backend
+is able to distribute the key stages of the computation (namely, search for apparent pairs and coboundary matrix reduction) across an arbitrary number of available CPU threads.
+
+On challenging datasets, the scaling is quite favourable as shown in the following figure (for more details, see our paper linked below):
+
+.. image:: https://raw.githubusercontent.com/giotto-ai/giotto-ph/main/docs/images/multithreading_speedup.svg
+   :width: 500px
+   :align: center
+
 
 Basic usage in Python
 =====================
@@ -111,13 +127,13 @@ Use the ``weights`` and ``weight_params`` parameters to constructed a weighted R
 
     dgm_dtm = ripser_parallel(pc, weights="DTM", n_threads=-1)
 
-    
 
 Documentation and Tutorials
 ===========================
 
 Jupyter notebook tutorials can be found in the `examples folder <https://github.com/giotto-ai/giotto-ph/blob/main/examples>`_.
 The API reference can be found at https://giotto-ai.github.io/giotto-ph.
+
 
 Installation
 ============
@@ -150,6 +166,7 @@ for detailed instructions on how to build ``giotto-ph`` from sources across diff
 
 .. _contributing-section:
 
+
 Contributing
 ============
 
@@ -164,6 +181,7 @@ After installation, you can launch the test suite from inside the
 source directory   ::
 
     pytest gph
+
 
 Important links
 ===============
