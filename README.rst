@@ -53,7 +53,6 @@ On challenging datasets, the scaling is quite favourable as shown in the followi
 .. image:: docs/images/multithreading_speedup.svg
    :width: 500px
    :align: center
-   :alt: "Scaling of giotto-ph's multithreaded backend"
 
 
 Basic usage in Python
