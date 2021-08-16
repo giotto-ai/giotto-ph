@@ -476,3 +476,35 @@ def test_infinite_deaths_always_essential():
 
     # With this example no finite generators in dimension 1 shall be found
     assert len(gens_fin_dim1) == 0
+
+
+def test_cocycles_in_persistance_pair():
+    """Test for a simple cocycle in a persistence pair
+       The data and the results are taken from cocycles notebook of
+       ripser.py package"""
+    X = np.array([[0.05546534, -1.03551662],
+                  [-0.97905569,  0.02129887],
+                  [-0.66797382, -0.99523678],
+                  [-0.95970867, -0.0622854],
+                  [-0.61541581, -1.02874641],
+                  [0.32049913,  0.96618272],
+                  [0.49975854,  1.02644011],
+                  [1.10357502,  0.36892592],
+                  [0.79793975, -0.50982899],
+                  [-0.15508265,  1.0381044],
+                  [0.96130068, -0.04503272],
+                  [1.11553304,  0.36782575]])
+    expected = np.array([[], [np.array([[9, 1, 1],
+                                        [9, 3, 1],
+                                        [5, 1, 1],
+                                        [5, 3, 1],
+                                        [6, 1, 1],
+                                        [8, 3, 1]])
+                              ]], dtype=object
+                        )
+    cocycles = ripser(X, coeff=17, return_cocycles=True)['cocycles']
+
+    assert np.array_equal(expected.shape, cocycles.shape)
+
+    for dim in range(2):
+        assert np.array_equal(expected[dim], cocycles[dim])
