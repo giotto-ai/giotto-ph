@@ -91,10 +91,13 @@ typedef float value_t;
 typedef int64_t index_t;
 typedef uint16_t coefficient_t;
 
-using barcodes_t = std::vector<value_t>;
-
 const size_t num_coefficient_bits = 8;
 constexpr value_t inf_value = std::numeric_limits<value_t>::infinity();
+
+using barcodes_t = std::vector<value_t>;
+using cocycle_t = std::vector<int>;
+using cocycles_t = std::vector<cocycle_t>;
+
 
 // 1L on windows is ALWAYS 32 bits, when on unix systems is pointer size
 static const index_t max_simplex_index =
@@ -144,6 +147,11 @@ public:
         return B[k][n];
     }
 };
+
+coefficient_t normalize(const coefficient_t n, const coefficient_t modulus)
+{
+    return n > modulus / 2 ? n - modulus : n;
+}
 
 std::vector<coefficient_t> multiplicative_inverse_vector(const coefficient_t m)
 {
@@ -615,6 +623,21 @@ typedef struct {
     /* The second variable stores the flag persistence generators */
     flagPersGen flag_persistence_generators;
 
+    /*
+      The third variable is a vector of representative cocycles for each
+      dimension. For now, only cocycles above dimension 0 are added, so
+      dimension 0 is an empty list For the others, cocycles_by_dim[d] holds an
+      array of representative cocycles for dimension d which is parallel with
+      the array of births/deaths for dimension d. Each element of the array is
+      itself an array of unrolled information about the cocycle For dimension 1,
+      for example, the zeroeth element of the array contains [ccl0_simplex0_idx0
+      ccl0_simplex0_idx1 ccl0_simplex0_val, ccl0_simplex1_idx0
+      ccl0_simplex1_idx1 ccl0_simplex1_val, ... ccl0_simplexk_idx0
+      ccl0_simplexk_idx1 ccl0_simplexk_val] for a cocycle representing the first
+      persistence point, which has k simplices with nonzero values in the
+      representative cocycle
+    */
+    std::vector<cocycles_t> cocycles_by_dim;
 } ripserResults;
 
 template <typename DistanceMatrix>
@@ -631,6 +654,9 @@ class ripser
     // If this flag is off, don't extract the flag persistence
     // pairings and essential simplices
     const bool return_flag_persistence_generators;
+    // If this flag is off, don't extract the representative cocycles to save
+    // time
+    const bool return_cocycles;
 
     struct entry_hash {
         std::size_t operator()(const entry_t& e) const
@@ -665,16 +691,19 @@ private:
 public:
     mutable std::vector<barcodes_t> births_and_deaths_by_dim;
     mutable flagPersGen flag_persistence_generators;
+    mutable std::vector<cocycles_t> cocycles_by_dim;
 
     ripser(DistanceMatrix&& _dist, index_t _dim_max, value_t _threshold,
            coefficient_t _modulus, int _num_threads,
-           bool return_flag_persistence_generators_)
+           bool return_flag_persistence_generators_, const bool return_cocycles_
+           )
         : dist(std::move(_dist)), n(dist.size()), dim_max(_dim_max),
           threshold(_threshold), modulus(_modulus), num_threads(_num_threads),
           binomial_coeff(n, dim_max + 2),
           multiplicative_inverse(multiplicative_inverse_vector(_modulus)),
           return_flag_persistence_generators(
-              return_flag_persistence_generators_)
+              return_flag_persistence_generators_), 
+          return_cocycles(return_cocycles_)
     {
         /* Uses all concurrent threads supported */
         if (num_threads == -1)
@@ -696,6 +725,7 @@ public:
     {
         res.births_and_deaths_by_dim = births_and_deaths_by_dim;
         res.flag_persistence_generators = flag_persistence_generators;
+        res.cocycles_by_dim = cocycles_by_dim;
     }
 
     index_t get_max_vertex(const index_t idx, const index_t k,
@@ -1257,7 +1287,7 @@ public:
 #endif
 
     void retire_column(const index_t& idx_col,
-                       WorkingColumn& working_reduction_column, Matrix& mat,
+                       WorkingColumn working_reduction_column, Matrix& mat,
                        const std::vector<diameter_index_t>& columns_to_reduce,
                        const index_t dim, const index_t& pivot_index,
                        mrzv::MemoryManager<MatrixColumn>& mem_manager)
@@ -1317,6 +1347,28 @@ public:
         return edge;
     }
 
+    inline void compute_cocycles(WorkingColumn cocycle, index_t dim,
+                                 cocycle_t& cocycles)
+    {
+        thread_local diameter_entry_t cocycle_e;
+        thread_local std::vector<index_t> cocycle_simplex;
+        thread_local cocycle_t thiscocycle;
+
+        thiscocycle.clear();
+        while (get_index(cocycle_e = get_pivot(cocycle)) != -1) {
+            cocycle_simplex.clear();
+            get_simplex_vertices(get_index(cocycle_e), dim, n,
+                                 std::back_inserter(cocycle_simplex));
+            for (size_t k = 0; k < cocycle_simplex.size(); k++) {
+                thiscocycle.push_back((int) cocycle_simplex[k]);
+            }
+            thiscocycle.push_back(
+                normalize(get_coefficient(cocycle_e), modulus));
+            cocycle.pop();
+        }
+        cocycles = thiscocycle;
+    }
+
     void compute_pairs(const std::vector<diameter_index_t>& columns_to_reduce,
                        entry_hash_map& pivot_column_index, const index_t dim)
     {
@@ -1324,7 +1376,8 @@ public:
 
         // extra vector is a work-around inability to store floats in the
         // hash_map
-        std::atomic<size_t> idx_finite_bar{0}, idx_essential{0};
+        std::atomic<size_t> idx_finite_bar{0}, idx_essential{0},
+            idx_cocycles{0};
         entry_hash_map pivot_to_death_idx(columns_to_reduce.size());
         pivot_to_death_idx.reserve(columns_to_reduce.size());
 
@@ -1334,6 +1387,7 @@ public:
         flagPersGen::essential_higher_t essential_generator(
             columns_to_reduce.size());
         flagPersGen::finite_higher_t finite_generator(columns_to_reduce.size());
+        cocycles_t cocycles(columns_to_reduce.size());
 
         foreach (columns_to_reduce, [&](index_t index_column_to_reduce,
                                         bool first,
@@ -1502,6 +1556,14 @@ public:
                             }
                         }
 
+                        if (return_cocycles) {
+                            // Representative cocycle
+                            size_t idx_ = idx_cocycles++;
+                            working_reduction_column.push(column_to_reduce);
+                            compute_cocycles(working_reduction_column, dim,
+                                    cocycles[idx_]);
+                        }
+
                         break;
                     }
                 } else {
@@ -1536,6 +1598,14 @@ public:
 
                         essential_generator[idx_] = {birth_edge.first,
                                                      birth_edge.second};
+                    }
+
+                    if (return_cocycles) {
+                        // Representative cocycle
+                        size_t idx_ = idx_cocycles++;
+                        working_reduction_column.push(column_to_reduce);
+                        compute_cocycles(working_reduction_column, dim,
+                                         cocycles[idx_]);
                     }
                 }
             }
@@ -1629,6 +1699,17 @@ public:
                     essential_generator[i]);
             }
         }
+
+        if (return_cocycles) {
+#if defined(SORT_BARCODES)
+            for (const auto ordered_idx : indexes)
+                cocycles_by_dim[dim].push_back(
+                        cocycles[ordered_location[ordered_idx]]);
+#else
+            for (const auto ordered_idx : ordered_location)
+                cocycles_by_dim[dim].push_back(cocycles[ordered_idx]);
+#endif
+        }
     }
 
     std::vector<diameter_index_t> get_edges();
@@ -1641,6 +1722,7 @@ public:
         births_and_deaths_by_dim.resize(dim_max + 1);
         flag_persistence_generators.finite_higher.resize(dim_max);
         flag_persistence_generators.essential_higher.resize(dim_max);
+        cocycles_by_dim.resize(dim_max + 1);
 
         compute_dim_0_pairs(simplices, columns_to_reduce);
         /* pre allocate Container for each dimension */
