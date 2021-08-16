@@ -314,7 +314,8 @@ def _is_prime_and_larger_than_2(x, N):
 def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                     metric_params={}, nearest_neighbors_params={},
                     weights=None, weight_params=None, collapse_edges=False,
-                    n_threads=1, return_generators=False):
+                    n_threads=1, return_generators=False,
+                    return_cocycles=False):
     """Compute persistence diagrams from an input dense array or sparse matrix.
 
     If `X` represents a point cloud, a distance matrix will be internally
@@ -444,6 +445,10 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         in the persistence barcode. If ``True``, this information is stored in
         the return dictionary under the key `gens`. Cannot be ``True`` if
         `collapse_edges` is also ``True``.
+
+    do_cocycles: bool, optional, default False
+        Computed cocycles will be available in the `cocycles` value
+        of the return dictionary.
 
     Returns
     -------
@@ -613,14 +618,16 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             thresh,
             coeff,
             n_threads,
-            return_generators
+            return_generators,
+            return_cocycles
             )
     else:
         # Only consider upper diagonal
         diagonal = np.diagonal(dm).astype(np.float32)
         DParam = squareform(dm, checks=False).astype(np.float32)
-        res = _compute_ph_vr_dense(DParam, diagonal, maxdim, thresh,
-                                   coeff, n_threads, return_generators)
+        res = _compute_ph_vr_dense(DParam, diagonal, maxdim, thresh, coeff,
+                                   n_threads, return_generators,
+                                   return_cocycles)
 
     # Unwrap persistence diagrams
     # Barcodes must match the inner type of C++ core filtration value.
@@ -648,5 +655,19 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             for x in res.flag_persistence_generators_by_dim.essential_higher
             ]
         ret['gens'] = (finite_0, finite_higher, essential_0, essential_higher)
+
+    # Unwrap cocycles
+    if return_cocycles:
+        cocycles = []
+        for dim in range(len(res.cocycles_by_dim)):
+            cocycles.append([])
+            for j in range(len(res.cocycles_by_dim[dim])):
+                ccl = res.cocycles_by_dim[dim][j]
+                n = int(len(ccl) / (dim + 2))
+                ccl = np.reshape(np.array(ccl, dtype=np.int64), [n, dim + 2])
+                ccl[:, -1] = np.mod(ccl[:, -1], coeff)
+                cocycles[dim].append(ccl)
+
+        ret["cocycles"] = cocycles
 
     return ret
