@@ -446,7 +446,7 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         the return dictionary under the key `gens`. Cannot be ``True`` if
         `collapse_edges` is also ``True``.
 
-    do_cocycles: bool, optional, default: ``False``
+    return_cocycles: bool, optional, default: ``False``
         Computed cocycles will be available in the `cocycles` value
         of the return dictionary.
 
