@@ -89,6 +89,8 @@ typedef float value_t;
 typedef int64_t index_t;
 typedef uint16_t coefficient_t;
 
+using barcodes_t = std::vector<value_t>;
+
 static const size_t num_coefficient_bits = 8;
 
 // 1L on windows is ALWAYS 32 bits, when on unix systems is pointer size
@@ -529,6 +531,19 @@ index_t get_max(index_t top, index_t count, const Predicate pred)
     return top;
 }
 
+class flagPersGen {
+    public :
+        using finite_0_t = std::vector<std::tuple<index_t, index_t, index_t>>;
+        using finite_higher_t = std::vector<std::vector<std::tuple<index_t, index_t, index_t, index_t>>>;
+        using essential_0_t = std::vector<index_t>;
+        using essential_higher_t = std::vector<std::vector<std::tuple<index_t, index_t>>>;
+
+        //finite_0_t finite_0;
+        finite_higher_t finite_higher;
+        //essential_0_t essential_0;
+        essential_higher_t essential_higher;
+}
+
 /* This is the data structure from which the results of running ripser can be
  * returned */
 typedef struct {
@@ -538,10 +553,13 @@ typedef struct {
        for k points in the 0D persistence diagram
        and likewise for d-dimensional persistence in births_and_deaths_by_dim[d]
     */
-    std::vector<std::vector<value_t>> births_and_deaths_by_dim;
-    /* The second variable is the number of edges that were added during the
-     * computation*/
+    std::vector<barcodes_t> births_and_deaths_by_dim;
+    /* The second variable stores the flag persistence generators */
+    flagPersGen flag_persistence_generators;
+    /* The third variable is the number of edges that were added during the
+     * computation */
     int num_edges;
+
 } ripserResults;
 
 template <typename DistanceMatrix>
@@ -556,6 +574,9 @@ class ripser
     const std::vector<coefficient_t> multiplicative_inverse;
     int num_threads;
     std::unique_ptr<ctpl::thread_pool> p;
+    // If this flag is off, don't extract the flag persistence
+    // pairings and essential simplices
+    const bool return_flag_persistence_generators;
 
     struct entry_hash {
         std::size_t operator()(const entry_t& e) const
@@ -587,14 +608,17 @@ private:
     }
 
 public:
-    mutable std::vector<std::vector<value_t>> births_and_deaths_by_dim;
+    mutable std::vector<barcodes_t> births_and_deaths_by_dim;
+    mutable flagPersGen flag_persistence_generators;
 
     ripser(DistanceMatrix&& _dist, index_t _dim_max, value_t _threshold,
-           float _ratio, coefficient_t _modulus, int _num_threads)
+           float _ratio, coefficient_t _modulus, int _num_threads,
+           bool return_flag_persistence_generators_)
         : dist(std::move(_dist)), n(dist.size()), dim_max(_dim_max),
           threshold(_threshold), ratio(_ratio), modulus(_modulus),
           num_threads(_num_threads), binomial_coeff(n, dim_max + 2),
-          multiplicative_inverse(multiplicative_inverse_vector(_modulus))
+          multiplicative_inverse(multiplicative_inverse_vector(_modulus)),
+          return_flag_persistence_generators(return_flag_persistence_generators_)
     {
         /* Uses all concurrent threads supported */
         if (num_threads == -1)
@@ -610,8 +634,12 @@ public:
     }
 
     void copy_results(ripserResults& res)
+    /* This function will assign to res the results of the persistent homology
+    computation. It is here to facilitate binding with Python
+     */
     {
         res.births_and_deaths_by_dim = births_and_deaths_by_dim;
+        res.flag_persistence_generators = flag_persistence_generators;
     }
 
     index_t get_max_vertex(const index_t idx, const index_t k,
@@ -1171,12 +1199,13 @@ public:
         // extra vector is a work-around inability to store floats in the
         // hash_map
         std::atomic<size_t> last_diameter_index{0}, idx_essential{0};
+            idx_flag_generators{0};
         entry_hash_map deaths;
         deaths.reserve(columns_to_reduce.size());
 
         std::vector<value_t> diameters(columns_to_reduce.size());
-        std::vector<value_t> essential_pair;
-        essential_pair.resize(columns_to_reduce.size());
+        std::vector<value_t> essential_pair(columns_to_reduce.size())
+        flagPersGen flag_persistence_generators
 
         foreach (columns_to_reduce, [&](index_t index_column_to_reduce,
                                         bool first,
@@ -1298,16 +1327,128 @@ public:
                                            // the new pair; could elide and
                                            // extra atomic load
 
-                        /* Pairs should be extracted if insertation was
+                        /* Pairs should be extracted if insertion was
                          * first one ! */
                         size_t location = last_diameter_index++;
                         diameters[location] = get_diameter(pivot);
                         deaths.insert({get_index(get_entry(pivot)), location});
+
+                        if (return_flag_persistence_generators) {
+                            // Inessential flag persistence generators in dim > 0
+                            size_t idx_ = idx_flag_generators++;
+                            std::vector<index_t> vertices_birth;
+                            std::vector<index_t> vertices_death;
+                            vertices_birth.resize(dim + 1);
+                            vertices_death.resize(dim + 2);
+
+                            index_t birth_idx =
+                                get_index(get_entry(columns_to_reduce));
+                            index_t death_idx = get_index(get_entry(pivot));
+
+                            get_simplex_vertices(birth_idx, dim, n, vertices_birth.rbegin());
+                            get_simplex_vertices(death_idx, dim + 1, n, vertices_death.rbegin());
+
+                            value_t diam = -std::numeric_limits<value_t>::infinity();
+                            std::pair<index_t, index_t> birth_edge;
+                            for (index_t i = 0; i < vertices_birth.size(); ++i) {
+                                for (index_t j = 0; j < i; ++j) {
+                                    auto curr_diam = dist(vertices_birth[i], vertices_birth[j]);
+                                    if (curr_diam >= diam) {
+                                        if (curr_diam != diam) {
+                                            birth_edge = {vertices_birth[i], vertices_birth[j]};
+                                            diam = curr_diam;
+                                        } else {
+                                        auto c2_cand = {vertices_birth[i], vertices_birth[j]};
+                                            index_t c1_v1 = std::max(birth_edge);
+                                            index_t c2_v1 = std::max(c2_cand);
+
+                                            if (c1_v1 >= c2_v1) {
+                                                if (c1_v1 == c2_v1 && std::min(birth_edge) > std::min(c2_cand)) {
+                                                    birth_edge = c2_cand;
+                                                } else {
+                                                    birth_edge = c2_cand;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            value_t diam = -std::numeric_limits<value_t>::infinity();
+                            std::pair<index_t, index_t> death_edge;
+                            for (index_t i = 0; i < vertices_death.size(); ++i) {
+                                for (index_t j = 0; j < i; ++j) {
+                                    auto curr_diam = dist(vertices_death[i], vertices_death[j]);
+                                    if (curr_diam >= diam) {
+                                        if (curr_diam != diam) {
+                                            birth_edge = {vertices_death[i], vertices_death[j]};
+                                            diam = curr_diam;
+                                        } else {
+                                        auto c2_cand = {vertices_death[i], vertices_death[j]};
+                                            index_t c1_v1 = std::max(death_edge);
+                                            index_t c2_v1 = std::max(c2_cand);
+
+                                            if (c1_v1 >= c2_v1) {
+                                                if (c1_v1 == c2_v1 && std::min(death_edge) > std::min(c2_cand)) {
+                                                    death_edge = c2_cand;
+                                                } else {
+                                                    death_edge = c2_cand;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            flag_persistence_generators.finite_higher[dim].push_back({birth_edge.first, birth_edge.second, death_edge.first, death_edge.second})
+                        }
+
                         break;
                     }
                 } else {
                     essential_pair[idx_essential++] =
                         get_diameter(column_to_reduce);
+
+                    if (return_flag_persistence_generators) {
+                        // Essential flag persistence generators in dim > 0
+                        size_t idx_ = idx_flag_generators++;
+                        std::vector<index_t> vertices_birth;
+                        vertices_birth.resize(dim + 1);
+
+                        index_t birth_idx =
+                            get_index(get_entry(columns_to_reduce));
+
+                        get_simplex_vertices(birth_idx, dim, n, vertices_birth.rbegin());
+
+                        value_t diam = -std::numeric_limits<value_t>::infinity();
+                        std::pair<index_t, index_t> birth_edge;
+                        for (index_t i = 0; i < vertices_birth.size(); ++i) {
+                            for (index_t j = 0; j < i; ++j) {
+                                auto curr_diam = dist(vertices_birth[i], vertices_birth[j]);
+                                if (curr_diam >= diam) {
+                                    if (curr_diam != diam) {
+                                        birth_edge = {vertices_birth[i], vertices_birth[j]};
+                                        diam = curr_diam;
+                                    } else {
+                                    auto c2_cand = {vertices_birth[i], vertices_birth[j]};
+                                        index_t c1_v1 = std::max(birth_edge);
+                                        index_t c2_v1 = std::max(c2_cand);
+
+                                        if (c1_v1 >= c2_v1) {
+                                            if (c1_v1 == c2_v1 && std::min(birth_edge) > std::min(c2_cand)) {
+                                                birth_edge = c2_cand;
+                                            } else {
+                                                birth_edge = c2_cand;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        flag_persistence_generators.finite_higher[dim].push_back(birth_edge)
+
+                    }
+
                     // TODO: these will need special attention, if output
                     // happens after the reduction, not during
                     break;
@@ -1375,6 +1516,8 @@ public:
 
         /* pre allocate Container for each dimension */
         births_and_deaths_by_dim.resize(dim_max + 1);
+        flag_persistence_generators.finite_higher.resize(dim_max)
+        flag_persistence_generators.essential_higher.resize(dim_max)
 
         compute_dim_0_pairs(simplices, columns_to_reduce);
         /* pre allocate Container for each dimension */
