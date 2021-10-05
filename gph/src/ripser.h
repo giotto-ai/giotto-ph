@@ -1370,9 +1370,13 @@ public:
                          * first one ! */
                         size_t location = last_diameter_index++;
                         diameters[location] = get_diameter(pivot);
-                        deaths.insert({get_index(get_entry(pivot)), location});
+                        auto first_ins = deaths.insert({get_index(get_entry(pivot)),
+                                location}).second;
 
-                        if (return_flag_persistence_generators) {
+                        /* Only insert when it is the first time this barcode is
+                         * encountered
+                         */
+                        if (return_flag_persistence_generators && first_ins) {
                             // Inessential flag persistence generators in dim > 0
                             std::vector<index_t> vertices_birth(dim + 1);
                             std::vector<index_t> vertices_death(dim + 2);
@@ -1473,6 +1477,13 @@ public:
 
         if (return_flag_persistence_generators) {
             for (size_t i = 0; i < last_diameter_index; ++i) {
+                /* prevent adding representative simplices with same birth and death
+                 * vertices
+                 */
+                if ((std::get<0>(finite_representative[i]) !=
+                            std::get<2>(finite_representative[i])) ||
+                        (std::get<1>(finite_representative[i]) !=
+                            std::get<3>(finite_representative[i])))
                 flag_persistence_generators.finite_higher[dim].push_back(finite_representative[i]);
             }
 
