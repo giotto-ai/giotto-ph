@@ -43,7 +43,7 @@
 // #define USE_TRIVIAL_CONCURRENT_HASHMAP
 #define USE_JUNCTION
 #define USE_THREAD_POOL
-// #define SORT_BARCODES
+#define SORT_BARCODES
 
 #include <algorithm>
 #include <atomic>
@@ -1446,6 +1446,7 @@ public:
         /* persistence pairs */
 #if defined(SORT_BARCODES)
         std::vector<std::pair<value_t, value_t>> persistence_pair;
+        std::vector<size_t> indexes;
 #endif
 
         std::vector<size_t> ordered_location;
@@ -1473,7 +1474,19 @@ public:
                 }
             });
 #if defined(SORT_BARCODES)
+        /* `indexes` allows to keep track of the permutation performed when sorting
+         * barcodes.
+         * See https://stackoverflow.com/a/17554343
+         */
         if (persistence_pair.size()) {
+            if (return_flag_persistence_generators) {
+                indexes.resize(ordered_location.size());
+                std::iota(indexes.begin(), indexes.end(), 0);
+                std::sort(indexes.begin(), indexes.end(),
+                        [&](const auto& lhs, const auto& rhs) {
+                            return persistence_pair[lhs] > persistence_pair[rhs];
+                        });
+            }
             std::sort(persistence_pair.begin(), persistence_pair.end(),
                       std::greater<>());
             for (auto& pair : persistence_pair) {
@@ -1499,9 +1512,18 @@ public:
         }
 
         if (return_flag_persistence_generators) {
+            /* We store in dim-1, because *_higher does not include
+             * dim 0
+             */
+#if defined(SORT_BARCODES)
+            for (const auto ordered_idx : indexes)
+                flag_persistence_generators.finite_higher[dim - 1].push_back(
+                        finite_representative[ordered_location[ordered_idx]]);
+#else
             for (const auto ordered_idx : ordered_location)
                 flag_persistence_generators.finite_higher[dim - 1].push_back(
                         finite_representative[ordered_idx]);
+#endif
 
             for (size_t i = 0; i < idx_essential; ++i) {
                 flag_persistence_generators.essential_higher[dim - 1].push_back(
