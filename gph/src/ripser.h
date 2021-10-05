@@ -535,6 +535,7 @@ class flagPersGen {
     public :
         using finite_0_t = std::vector<std::tuple<index_t, index_t, index_t>>;
         using finite_higher_t = std::vector<std::vector<std::tuple<index_t, index_t, index_t, index_t>>>;
+
         using essential_0_t = std::vector<index_t>;
         using essential_higher_t = std::vector<std::vector<std::tuple<index_t, index_t>>>;
 
@@ -542,7 +543,7 @@ class flagPersGen {
         finite_higher_t finite_higher;
         //essential_0_t essential_0;
         essential_higher_t essential_higher;
-}
+};
 
 /* This is the data structure from which the results of running ripser can be
  * returned */
@@ -1191,6 +1192,41 @@ public:
                                           idx_col, 1, dim)) == pivot_index);
     }
 
+    using edge_t = std::pair<index_t, index_t>;
+
+    edge_t get_youngest_edge_simplex(std::vector<index_t> vertices_simplex) {
+
+        value_t diam = -std::numeric_limits<value_t>::infinity();
+        edge_t edge;
+
+        for (index_t i = 0; i < vertices_simplex.size(); ++i) {
+            for (index_t j = 0; j < i; ++j) {
+                auto curr_diam = dist(vertices_simplex[i], vertices_simplex[j]);
+                if (curr_diam >= diam) {
+                    if (curr_diam != diam) {
+                        edge = {vertices_simplex[i], vertices_simplex[j]};
+                        diam = curr_diam;
+                    } else {
+                        auto c2_cand = edge_t{vertices_simplex[i], vertices_simplex[j]};
+                        index_t c1_v1 = std::max(edge.first, edge.second);
+                        index_t c2_v1 = std::max(c2_cand.first, c2_cand.second);
+
+                        if (c1_v1 >= c2_v1) {
+                            if (c1_v1 == c2_v1 && std::min(edge.first, edge.second) > 
+                                    std::min(c2_cand.first, c2_cand.second)) {
+                                edge = c2_cand;
+                            } else {
+                                edge = c2_cand;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return edge;
+    }
+
     void compute_pairs(const std::vector<diameter_index_t>& columns_to_reduce,
                        entry_hash_map& pivot_column_index, const index_t dim)
     {
@@ -1198,14 +1234,14 @@ public:
 
         // extra vector is a work-around inability to store floats in the
         // hash_map
-        std::atomic<size_t> last_diameter_index{0}, idx_essential{0};
+        std::atomic<size_t> last_diameter_index{0}, idx_essential{0},
             idx_flag_generators{0};
         entry_hash_map deaths;
         deaths.reserve(columns_to_reduce.size());
 
         std::vector<value_t> diameters(columns_to_reduce.size());
-        std::vector<value_t> essential_pair(columns_to_reduce.size())
-        flagPersGen flag_persistence_generators
+        std::vector<value_t> essential_pair(columns_to_reduce.size());
+        flagPersGen flag_persistence_generators;
 
         foreach (columns_to_reduce, [&](index_t index_column_to_reduce,
                                         bool first,
@@ -1342,65 +1378,17 @@ public:
                             vertices_death.resize(dim + 2);
 
                             index_t birth_idx =
-                                get_index(get_entry(columns_to_reduce));
+                                get_index(get_entry(column_to_reduce));
                             index_t death_idx = get_index(get_entry(pivot));
 
                             get_simplex_vertices(birth_idx, dim, n, vertices_birth.rbegin());
                             get_simplex_vertices(death_idx, dim + 1, n, vertices_death.rbegin());
 
-                            value_t diam = -std::numeric_limits<value_t>::infinity();
-                            std::pair<index_t, index_t> birth_edge;
-                            for (index_t i = 0; i < vertices_birth.size(); ++i) {
-                                for (index_t j = 0; j < i; ++j) {
-                                    auto curr_diam = dist(vertices_birth[i], vertices_birth[j]);
-                                    if (curr_diam >= diam) {
-                                        if (curr_diam != diam) {
-                                            birth_edge = {vertices_birth[i], vertices_birth[j]};
-                                            diam = curr_diam;
-                                        } else {
-                                        auto c2_cand = {vertices_birth[i], vertices_birth[j]};
-                                            index_t c1_v1 = std::max(birth_edge);
-                                            index_t c2_v1 = std::max(c2_cand);
+                            edge_t birth_edge = get_youngest_edge_simplex(vertices_birth);
+                            edge_t death_edge = get_youngest_edge_simplex(vertices_death);
 
-                                            if (c1_v1 >= c2_v1) {
-                                                if (c1_v1 == c2_v1 && std::min(birth_edge) > std::min(c2_cand)) {
-                                                    birth_edge = c2_cand;
-                                                } else {
-                                                    birth_edge = c2_cand;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            value_t diam = -std::numeric_limits<value_t>::infinity();
-                            std::pair<index_t, index_t> death_edge;
-                            for (index_t i = 0; i < vertices_death.size(); ++i) {
-                                for (index_t j = 0; j < i; ++j) {
-                                    auto curr_diam = dist(vertices_death[i], vertices_death[j]);
-                                    if (curr_diam >= diam) {
-                                        if (curr_diam != diam) {
-                                            birth_edge = {vertices_death[i], vertices_death[j]};
-                                            diam = curr_diam;
-                                        } else {
-                                        auto c2_cand = {vertices_death[i], vertices_death[j]};
-                                            index_t c1_v1 = std::max(death_edge);
-                                            index_t c2_v1 = std::max(c2_cand);
-
-                                            if (c1_v1 >= c2_v1) {
-                                                if (c1_v1 == c2_v1 && std::min(death_edge) > std::min(c2_cand)) {
-                                                    death_edge = c2_cand;
-                                                } else {
-                                                    death_edge = c2_cand;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            flag_persistence_generators.finite_higher[dim].push_back({birth_edge.first, birth_edge.second, death_edge.first, death_edge.second})
+                            flag_persistence_generators.finite_higher[dim].push_back({birth_edge.first, birth_edge.second, 
+                                    death_edge.first, death_edge.second});
                         }
 
                         break;
@@ -1416,36 +1404,12 @@ public:
                         vertices_birth.resize(dim + 1);
 
                         index_t birth_idx =
-                            get_index(get_entry(columns_to_reduce));
+                            get_index(get_entry(column_to_reduce));
 
                         get_simplex_vertices(birth_idx, dim, n, vertices_birth.rbegin());
-
-                        value_t diam = -std::numeric_limits<value_t>::infinity();
-                        std::pair<index_t, index_t> birth_edge;
-                        for (index_t i = 0; i < vertices_birth.size(); ++i) {
-                            for (index_t j = 0; j < i; ++j) {
-                                auto curr_diam = dist(vertices_birth[i], vertices_birth[j]);
-                                if (curr_diam >= diam) {
-                                    if (curr_diam != diam) {
-                                        birth_edge = {vertices_birth[i], vertices_birth[j]};
-                                        diam = curr_diam;
-                                    } else {
-                                    auto c2_cand = {vertices_birth[i], vertices_birth[j]};
-                                        index_t c1_v1 = std::max(birth_edge);
-                                        index_t c2_v1 = std::max(c2_cand);
-
-                                        if (c1_v1 >= c2_v1) {
-                                            if (c1_v1 == c2_v1 && std::min(birth_edge) > std::min(c2_cand)) {
-                                                birth_edge = c2_cand;
-                                            } else {
-                                                birth_edge = c2_cand;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        flag_persistence_generators.finite_higher[dim].push_back(birth_edge)
+                        edge_t birth_edge = get_youngest_edge_simplex(vertices_birth);
+                        /* FIXME What values to use for the death edge */
+                        flag_persistence_generators.finite_higher[dim].push_back({birth_edge.first, birth_edge.second, -1, -1});
 
                     }
 
@@ -1516,8 +1480,8 @@ public:
 
         /* pre allocate Container for each dimension */
         births_and_deaths_by_dim.resize(dim_max + 1);
-        flag_persistence_generators.finite_higher.resize(dim_max)
-        flag_persistence_generators.essential_higher.resize(dim_max)
+        flag_persistence_generators.finite_higher.resize(dim_max);
+        flag_persistence_generators.essential_higher.resize(dim_max);
 
         compute_dim_0_pairs(simplices, columns_to_reduce);
         /* pre allocate Container for each dimension */

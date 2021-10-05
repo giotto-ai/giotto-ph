@@ -57,7 +57,8 @@ PYBIND11_MODULE(gph_ripser, m)
             ripserResults res;
             ripser<compressed_lower_distance_matrix> r(std::move(dist), dim_max,
                                                        threshold, ratio,
-                                                       modulus, num_threads);
+                                                       modulus, num_threads,
+                                                       true);
             r.compute_barcodes();
             r.copy_results(res);
             res.num_edges = num_edges;
@@ -80,7 +81,7 @@ PYBIND11_MODULE(gph_ripser, m)
             // Setup distance matrix and figure out threshold
             ripser<sparse_distance_matrix> r(
                 sparse_distance_matrix(I_, J_, V_, NEdges, N, threshold),
-                dim_max, threshold, ratio, modulus, num_threads);
+                dim_max, threshold, ratio, modulus, num_threads, true);
             r.compute_barcodes();
             // Report the number of edges that were added
             int num_edges = 0;
