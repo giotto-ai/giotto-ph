@@ -31,24 +31,29 @@ from sklearn.utils.validation import column_or_1d
 from ..modules import gph_ripser, gph_ripser_coeff, gph_collapser
 
 
-def _compute_ph_vr_dense(DParam, maxHomDim, thresh=-1, coeff=2, n_threads=1):
+def _compute_ph_vr_dense(DParam, maxHomDim, thresh=-1, coeff=2, n_threads=1,
+                         ret_representative_simplices=False):
     if coeff == 2:
         ret = gph_ripser.rips_dm(DParam, DParam.shape[0], coeff,
-                                 maxHomDim, thresh, n_threads)
+                                 maxHomDim, thresh, n_threads,
+                                 ret_representative_simplices)
     else:
         ret = gph_ripser_coeff.rips_dm(DParam, DParam.shape[0], coeff,
-                                       maxHomDim, thresh, n_threads)
+                                       maxHomDim, thresh, n_threads,
+                                       ret_representative_simplices)
     return ret
 
 
 def _compute_ph_vr_sparse(I, J, V, N, maxHomDim, thresh=-1, coeff=2,
-                          n_threads=1):
+                          n_threads=1, ret_representative_simplices=False):
     if coeff == 2:
         ret = gph_ripser.rips_dm_sparse(I, J, V, I.size, N, coeff,
-                                        maxHomDim, thresh, n_threads)
+                                        maxHomDim, thresh, n_threads,
+                                        ret_representative_simplices)
     else:
         ret = gph_ripser_coeff.rips_dm_sparse(I, J, V, I.size, N, coeff,
-                                              maxHomDim, thresh, n_threads)
+                                              maxHomDim, thresh, n_threads,
+                                              ret_representative_simplices)
     return ret
 
 
@@ -249,7 +254,8 @@ def _ideal_thresh(dm, thresh):
 
 def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                     metric_params={}, weights=None, weight_params=None,
-                    collapse_edges=False, n_threads=1):
+                    collapse_edges=False, n_threads=1,
+                    ret_representative_simplices=False):
     """Compute persistence diagrams for X data array using Ripser [1]_.
 
     If X is a point cloud, it will be converted to a distance matrix
@@ -338,6 +344,9 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         Maximum number of threads available to use during persistent
         homology computation. When passing ``-1``, it will try to use the
         maximal number of threads available on the host machine.
+
+    ret_representative_simplices: bool, optional, default: ``False``
+        TODO.
 
     Returns
     -------
@@ -454,14 +463,16 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             maxdim,
             thresh,
             coeff,
-            n_threads)
+            n_threads,
+            ret_representative_simplices)
     else:
         # Only consider strict upper diagonal
         DParam = squareform(dm, checks=False).astype(np.float32)
         # Run garbage collector to free up memory taken by `dm`
         del dm
         gc.collect()
-        res = _compute_ph_vr_dense(DParam, maxdim, thresh, coeff, n_threads)
+        res = _compute_ph_vr_dense(DParam, maxdim, thresh, coeff, n_threads,
+                                   ret_representative_simplices)
 
     # Unwrap persistence diagrams
     dgms = res.births_and_deaths_by_dim
@@ -470,5 +481,9 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         dgms[dim] = np.reshape(np.array(dgms[dim]), [N, 2])
 
     ret = {"dgms": dgms}
+
+    if ret_representative_simplices:
+        ret['rpsm'] = [res.flag_persistence_generators_by_dim.finite_higher,
+                       res.flag_persistence_generators_by_dim.essential_higher]
 
     return ret
