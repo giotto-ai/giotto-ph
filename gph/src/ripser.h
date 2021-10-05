@@ -534,15 +534,17 @@ index_t get_max(index_t top, index_t count, const Predicate pred)
 class flagPersGen {
     public :
         using finite_0_t = std::vector<std::tuple<index_t, index_t, index_t>>;
-        using finite_higher_t = std::vector<std::vector<std::tuple<index_t, index_t, index_t, index_t>>>;
+        using finite_higher_t = std::vector<std::tuple<index_t, index_t, index_t, index_t>>;
+        using finite_higher_by_dim_t = std::vector<finite_higher_t>;
 
         using essential_0_t = std::vector<index_t>;
-        using essential_higher_t = std::vector<std::vector<std::tuple<index_t, index_t>>>;
+        using essential_higher_t = std::vector<std::tuple<index_t, index_t>>;
+        using essential_higher_by_dim_t = std::vector<essential_higher_t>;
 
         //finite_0_t finite_0;
-        finite_higher_t finite_higher;
+        finite_higher_by_dim_t finite_higher;
         //essential_0_t essential_0;
-        essential_higher_t essential_higher;
+        essential_higher_by_dim_t essential_higher;
 };
 
 /* This is the data structure from which the results of running ripser can be
@@ -1234,14 +1236,15 @@ public:
 
         // extra vector is a work-around inability to store floats in the
         // hash_map
-        std::atomic<size_t> last_diameter_index{0}, idx_essential{0},
-            idx_flag_generators{0};
+        std::atomic<size_t> last_diameter_index{0}, idx_essential{0};
         entry_hash_map deaths;
         deaths.reserve(columns_to_reduce.size());
 
+        /* Pre-allocate containers for parallel computation */
         std::vector<value_t> diameters(columns_to_reduce.size());
         std::vector<value_t> essential_pair(columns_to_reduce.size());
-        flagPersGen flag_persistence_generators;
+        flagPersGen::essential_higher_t essential_representative(columns_to_reduce.size());
+        flagPersGen::finite_higher_t finite_representative(columns_to_reduce.size());
 
         foreach (columns_to_reduce, [&](index_t index_column_to_reduce,
                                         bool first,
@@ -1371,11 +1374,8 @@ public:
 
                         if (return_flag_persistence_generators) {
                             // Inessential flag persistence generators in dim > 0
-                            size_t idx_ = idx_flag_generators++;
-                            std::vector<index_t> vertices_birth;
-                            std::vector<index_t> vertices_death;
-                            vertices_birth.resize(dim + 1);
-                            vertices_death.resize(dim + 2);
+                            std::vector<index_t> vertices_birth(dim + 1);
+                            std::vector<index_t> vertices_death(dim + 2);
 
                             index_t birth_idx =
                                 get_index(get_entry(column_to_reduce));
@@ -1387,29 +1387,29 @@ public:
                             edge_t birth_edge = get_youngest_edge_simplex(vertices_birth);
                             edge_t death_edge = get_youngest_edge_simplex(vertices_death);
 
-                            flag_persistence_generators.finite_higher[dim].push_back({birth_edge.first, birth_edge.second, 
-                                    death_edge.first, death_edge.second});
+                            finite_representative[location] = {birth_edge.first, birth_edge.second,
+                                death_edge.first, death_edge.second};
                         }
 
                         break;
                     }
                 } else {
-                    essential_pair[idx_essential++] =
+                    auto idx_ = idx_essential++;
+                    essential_pair[idx_] =
                         get_diameter(column_to_reduce);
 
                     if (return_flag_persistence_generators) {
                         // Essential flag persistence generators in dim > 0
-                        size_t idx_ = idx_flag_generators++;
-                        std::vector<index_t> vertices_birth;
-                        vertices_birth.resize(dim + 1);
+                        std::vector<index_t> vertices_birth(dim + 1);
 
                         index_t birth_idx =
                             get_index(get_entry(column_to_reduce));
 
                         get_simplex_vertices(birth_idx, dim, n, vertices_birth.rbegin());
+
                         edge_t birth_edge = get_youngest_edge_simplex(vertices_birth);
-                        /* FIXME What values to use for the death edge */
-                        flag_persistence_generators.finite_higher[dim].push_back({birth_edge.first, birth_edge.second, -1, -1});
+
+                        essential_representative[idx_] = {birth_edge.first, birth_edge.second};
 
                     }
 
@@ -1468,6 +1468,16 @@ public:
                     births_and_deaths_by_dim[dim].push_back(
                         std::numeric_limits<value_t>::infinity());
                 }
+            }
+        }
+
+        if (return_flag_persistence_generators) {
+            for (size_t i = 0; i < last_diameter_index; ++i) {
+                flag_persistence_generators.finite_higher[dim].push_back(finite_representative[i]);
+            }
+
+            for (size_t i = 0; i < idx_essential; ++i) {
+                flag_persistence_generators.essential_higher[dim].push_back(essential_representative[i]);
             }
         }
     }
