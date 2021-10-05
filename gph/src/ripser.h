@@ -1432,6 +1432,7 @@ public:
         std::vector<std::pair<value_t, value_t>> persistence_pair;
 #endif
 
+        std::vector<size_t> ordered_location;
         pivot_column_index.foreach (
             [&](const typename entry_hash_map::value_type& x) {
                 auto it = deaths.find(x.first);
@@ -1441,6 +1442,12 @@ public:
                 value_t birth =
                     get_diameter(columns_to_reduce[get_index(x.second)]);
                 if (death > birth * ratio) {
+                    /* We push the order of the representative simplices
+                     * by when they are inserted as barcodes. This can be done
+                     * because get_index(it->second) is equivalent to `location`
+                     * in the core algorithm
+                     */
+                    ordered_location.push_back(get_index(it->second));
 #if defined(SORT_BARCODES)
                     persistence_pair.push_back({birth, death});
 #else
@@ -1476,16 +1483,8 @@ public:
         }
 
         if (return_flag_persistence_generators) {
-            for (size_t i = 0; i < last_diameter_index; ++i) {
-                /* prevent adding representative simplices with same birth and death
-                 * vertices
-                 */
-                if ((std::get<0>(finite_representative[i]) !=
-                            std::get<2>(finite_representative[i])) ||
-                        (std::get<1>(finite_representative[i]) !=
-                            std::get<3>(finite_representative[i])))
-                flag_persistence_generators.finite_higher[dim].push_back(finite_representative[i]);
-            }
+            for (const auto ordered_idx : ordered_location)
+                flag_persistence_generators.finite_higher[dim].push_back(finite_representative[ordered_idx]);
 
             for (size_t i = 0; i < idx_essential; ++i) {
                 flag_persistence_generators.essential_higher[dim].push_back(essential_representative[i]);
