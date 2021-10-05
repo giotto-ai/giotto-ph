@@ -1500,11 +1500,11 @@ public:
 
         if (return_flag_persistence_generators) {
             for (const auto ordered_idx : ordered_location)
-                flag_persistence_generators.finite_higher[dim].push_back(
-                    finite_representative[ordered_idx]);
+                flag_persistence_generators.finite_higher[dim - 1].push_back(
+                        finite_representative[ordered_idx]);
 
             for (size_t i = 0; i < idx_essential; ++i) {
-                flag_persistence_generators.essential_higher[dim].push_back(
+                flag_persistence_generators.essential_higher[dim - 1].push_back(
                     essential_representative[i]);
             }
         }
@@ -1518,8 +1518,8 @@ public:
 
         /* pre allocate Container for each dimension */
         births_and_deaths_by_dim.resize(dim_max + 1);
-        flag_persistence_generators.finite_higher.resize(dim_max + 1);
-        flag_persistence_generators.essential_higher.resize(dim_max + 1);
+        flag_persistence_generators.finite_higher.resize(dim_max);
+        flag_persistence_generators.essential_higher.resize(dim_max);
 
         compute_dim_0_pairs(simplices, columns_to_reduce);
         /* pre allocate Container for each dimension */
