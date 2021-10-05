@@ -531,20 +531,22 @@ index_t get_max(index_t top, index_t count, const Predicate pred)
     return top;
 }
 
-class flagPersGen {
-    public :
-        using finite_0_t = std::vector<std::tuple<index_t, index_t, index_t>>;
-        using finite_higher_t = std::vector<std::tuple<index_t, index_t, index_t, index_t>>;
-        using finite_higher_by_dim_t = std::vector<finite_higher_t>;
+class flagPersGen
+{
+public:
+    using finite_0_t = std::vector<std::tuple<index_t, index_t, index_t>>;
+    using finite_higher_t =
+        std::vector<std::tuple<index_t, index_t, index_t, index_t>>;
+    using finite_higher_by_dim_t = std::vector<finite_higher_t>;
 
-        using essential_0_t = std::vector<index_t>;
-        using essential_higher_t = std::vector<std::tuple<index_t, index_t>>;
-        using essential_higher_by_dim_t = std::vector<essential_higher_t>;
+    using essential_0_t = std::vector<index_t>;
+    using essential_higher_t = std::vector<std::tuple<index_t, index_t>>;
+    using essential_higher_by_dim_t = std::vector<essential_higher_t>;
 
-        //finite_0_t finite_0;
-        finite_higher_by_dim_t finite_higher;
-        //essential_0_t essential_0;
-        essential_higher_by_dim_t essential_higher;
+    // finite_0_t finite_0;
+    finite_higher_by_dim_t finite_higher;
+    // essential_0_t essential_0;
+    essential_higher_by_dim_t essential_higher;
 };
 
 /* This is the data structure from which the results of running ripser can be
@@ -621,7 +623,8 @@ public:
           threshold(_threshold), ratio(_ratio), modulus(_modulus),
           num_threads(_num_threads), binomial_coeff(n, dim_max + 2),
           multiplicative_inverse(multiplicative_inverse_vector(_modulus)),
-          return_flag_persistence_generators(return_flag_persistence_generators_)
+          return_flag_persistence_generators(
+              return_flag_persistence_generators_)
     {
         /* Uses all concurrent threads supported */
         if (num_threads == -1)
@@ -1196,8 +1199,8 @@ public:
 
     using edge_t = std::pair<index_t, index_t>;
 
-    edge_t get_youngest_edge_simplex(std::vector<index_t> vertices_simplex) {
-
+    edge_t get_youngest_edge_simplex(std::vector<index_t> vertices_simplex)
+    {
         value_t diam = -std::numeric_limits<value_t>::infinity();
         edge_t edge;
 
@@ -1209,12 +1212,14 @@ public:
                         edge = {vertices_simplex[i], vertices_simplex[j]};
                         diam = curr_diam;
                     } else {
-                        auto c2_cand = edge_t{vertices_simplex[i], vertices_simplex[j]};
+                        auto c2_cand =
+                            edge_t{vertices_simplex[i], vertices_simplex[j]};
                         index_t c1_v1 = std::max(edge.first, edge.second);
                         index_t c2_v1 = std::max(c2_cand.first, c2_cand.second);
 
                         if (c1_v1 >= c2_v1) {
-                            if (c1_v1 == c2_v1 && std::min(edge.first, edge.second) > 
+                            if (c1_v1 == c2_v1 &&
+                                std::min(edge.first, edge.second) >
                                     std::min(c2_cand.first, c2_cand.second)) {
                                 edge = c2_cand;
                             } else {
@@ -1243,8 +1248,10 @@ public:
         /* Pre-allocate containers for parallel computation */
         std::vector<value_t> diameters(columns_to_reduce.size());
         std::vector<value_t> essential_pair(columns_to_reduce.size());
-        flagPersGen::essential_higher_t essential_representative(columns_to_reduce.size());
-        flagPersGen::finite_higher_t finite_representative(columns_to_reduce.size());
+        flagPersGen::essential_higher_t essential_representative(
+            columns_to_reduce.size());
+        flagPersGen::finite_higher_t finite_representative(
+            columns_to_reduce.size());
 
         foreach (columns_to_reduce, [&](index_t index_column_to_reduce,
                                         bool first,
@@ -1370,14 +1377,17 @@ public:
                          * first one ! */
                         size_t location = last_diameter_index++;
                         diameters[location] = get_diameter(pivot);
-                        auto first_ins = deaths.insert({get_index(get_entry(pivot)),
-                                location}).second;
+                        auto first_ins =
+                            deaths
+                                .insert({get_index(get_entry(pivot)), location})
+                                .second;
 
                         /* Only insert when it is the first time this barcode is
                          * encountered
                          */
                         if (return_flag_persistence_generators && first_ins) {
-                            // Inessential flag persistence generators in dim > 0
+                            // Inessential flag persistence generators in dim >
+                            // 0
                             std::vector<index_t> vertices_birth(dim + 1);
                             std::vector<index_t> vertices_death(dim + 2);
 
@@ -1385,13 +1395,18 @@ public:
                                 get_index(get_entry(column_to_reduce));
                             index_t death_idx = get_index(get_entry(pivot));
 
-                            get_simplex_vertices(birth_idx, dim, n, vertices_birth.rbegin());
-                            get_simplex_vertices(death_idx, dim + 1, n, vertices_death.rbegin());
+                            get_simplex_vertices(birth_idx, dim, n,
+                                                 vertices_birth.rbegin());
+                            get_simplex_vertices(death_idx, dim + 1, n,
+                                                 vertices_death.rbegin());
 
-                            edge_t birth_edge = get_youngest_edge_simplex(vertices_birth);
-                            edge_t death_edge = get_youngest_edge_simplex(vertices_death);
+                            edge_t birth_edge =
+                                get_youngest_edge_simplex(vertices_birth);
+                            edge_t death_edge =
+                                get_youngest_edge_simplex(vertices_death);
 
-                            finite_representative[location] = {birth_edge.first, birth_edge.second,
+                            finite_representative[location] = {
+                                birth_edge.first, birth_edge.second,
                                 death_edge.first, death_edge.second};
                         }
 
@@ -1399,8 +1414,7 @@ public:
                     }
                 } else {
                     auto idx_ = idx_essential++;
-                    essential_pair[idx_] =
-                        get_diameter(column_to_reduce);
+                    essential_pair[idx_] = get_diameter(column_to_reduce);
 
                     if (return_flag_persistence_generators) {
                         // Essential flag persistence generators in dim > 0
@@ -1409,12 +1423,14 @@ public:
                         index_t birth_idx =
                             get_index(get_entry(column_to_reduce));
 
-                        get_simplex_vertices(birth_idx, dim, n, vertices_birth.rbegin());
+                        get_simplex_vertices(birth_idx, dim, n,
+                                             vertices_birth.rbegin());
 
-                        edge_t birth_edge = get_youngest_edge_simplex(vertices_birth);
+                        edge_t birth_edge =
+                            get_youngest_edge_simplex(vertices_birth);
 
-                        essential_representative[idx_] = {birth_edge.first, birth_edge.second};
-
+                        essential_representative[idx_] = {birth_edge.first,
+                                                          birth_edge.second};
                     }
 
                     // TODO: these will need special attention, if output
@@ -1484,10 +1500,12 @@ public:
 
         if (return_flag_persistence_generators) {
             for (const auto ordered_idx : ordered_location)
-                flag_persistence_generators.finite_higher[dim].push_back(finite_representative[ordered_idx]);
+                flag_persistence_generators.finite_higher[dim].push_back(
+                    finite_representative[ordered_idx]);
 
             for (size_t i = 0; i < idx_essential; ++i) {
-                flag_persistence_generators.essential_higher[dim].push_back(essential_representative[i]);
+                flag_persistence_generators.essential_higher[dim].push_back(
+                    essential_representative[i]);
             }
         }
     }
