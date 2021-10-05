@@ -1490,8 +1490,8 @@ public:
 
         /* pre allocate Container for each dimension */
         births_and_deaths_by_dim.resize(dim_max + 1);
-        flag_persistence_generators.finite_higher.resize(dim_max);
-        flag_persistence_generators.essential_higher.resize(dim_max);
+        flag_persistence_generators.finite_higher.resize(dim_max + 1);
+        flag_persistence_generators.essential_higher.resize(dim_max + 1);
 
         compute_dim_0_pairs(simplices, columns_to_reduce);
         /* pre allocate Container for each dimension */
