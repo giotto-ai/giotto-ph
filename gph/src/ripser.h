@@ -43,7 +43,7 @@
 // #define USE_TRIVIAL_CONCURRENT_HASHMAP
 #define USE_JUNCTION
 #define USE_THREAD_POOL
-#define SORT_BARCODES
+// #define SORT_BARCODES
 
 #include <algorithm>
 #include <atomic>
