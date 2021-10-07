@@ -543,9 +543,9 @@ public:
     using essential_higher_t = std::vector<std::tuple<index_t, index_t>>;
     using essential_higher_by_dim_t = std::vector<essential_higher_t>;
 
-    // finite_0_t finite_0;
+    finite_0_t finite_0;
     finite_higher_by_dim_t finite_higher;
-    // essential_0_t essential_0;
+    essential_0_t essential_0;
     essential_higher_by_dim_t essential_higher;
 };
 
@@ -952,8 +952,9 @@ public:
         size_t i = 0;
         for (auto e : edges) {
             get_simplex_vertices(get_index(e), 1, n, vertices_of_edge.rbegin());
-            index_t u = dset.find(vertices_of_edge[0]),
-                    v = dset.find(vertices_of_edge[1]);
+            index_t v1 = vertices_of_edge[0];
+            index_t v2 = vertices_of_edge[1];
+            index_t u = dset.find(v1), v = dset.find(v2);
 
             if (u != v) {
                 if (get_diameter(e) != 0) {
@@ -965,6 +966,12 @@ public:
                     if (death > birth) {
                         births_and_deaths_by_dim[0].push_back(birth);
                         births_and_deaths_by_dim[0].push_back(death);
+
+                        if (return_flag_persistence_generators) {
+                            flag_persistence_generators.finite_0.push_back(
+                                {std::min(v1, v2), std::max(v1, v2),
+                                 std::min(v1, v2)});
+                        }
                     }
                 }
                 dset.link(u, v);
@@ -979,6 +986,9 @@ public:
                 births_and_deaths_by_dim[0].push_back(dset.get_birth(i));
                 births_and_deaths_by_dim[0].push_back(
                     std::numeric_limits<value_t>::infinity());
+                if (return_flag_persistence_generators) {
+                    flag_persistence_generators.essential_0.push_back(i);
+                }
             }
     }
 
