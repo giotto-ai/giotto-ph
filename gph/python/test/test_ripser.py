@@ -5,6 +5,7 @@ from hypothesis.extra.numpy import arrays
 from hypothesis.strategies import floats, integers, composite
 from numpy.testing import assert_almost_equal
 from scipy.sparse import coo_matrix
+from scipy.spatial.distance import pdist, squareform
 
 from gph import ripser_parallel as ripser
 
@@ -189,3 +190,45 @@ def test_multithread_consistent(dm):
         for i in range(1, len(res)):
             res[i][dim] = np.sort(res[i][dim], axis=0)
             assert_almost_equal(res[0][dim], res[i][dim])
+
+
+def test_rpsm_edge_in_dm_and_sorted():
+    """This test verifies that the representative simplicies, the index of the
+    vertices matches the corresponding edge in the distance matrix and that
+    the rpsm are aligned with the correponding barcodes"""
+    X = squareform(pdist(np.random.random((100, 3))))
+
+    ret = ripser(X, metric='precomputed', maxdim=3, thresh=np.inf,
+                 collapse_edges=False, ret_representative_simplices=True)
+
+    barcodes = ret['dgms']
+    rpsm = ret['rpsm']
+
+    for dim, bar_in_dim in enumerate(barcodes):
+        idx_essential = 0
+        idx_finite = 0
+        for barcode in bar_in_dim:
+            if dim == 0 and barcode[1] != np.inf:
+                # Verifies rpsm in dim 0, discards essential ones
+                rpsm_of_barcode = rpsm[0][idx_finite]
+                assert np.isclose(barcode[1],
+                                  X[rpsm_of_barcode[1]][rpsm_of_barcode[2]])
+                idx_finite = idx_finite + 1
+            if dim > 0:
+                # Verifies rpsm in dim > 0, expects first all non essential
+                # barcodes and then the finite ones
+                if barcode[1] != np.inf:
+                    rpsm_of_barcode = rpsm[1][dim-1][idx_finite]
+                    assert np.isclose(barcode[0],
+                                      X[rpsm_of_barcode[0]][rpsm_of_barcode[1]]
+                                      )
+                    assert np.isclose(barcode[1],
+                                      X[rpsm_of_barcode[2]][rpsm_of_barcode[3]]
+                                      )
+                    idx_finite = idx_finite + 1
+                else:
+                    rpsm_of_barcode = rpsm[3][dim-1][idx_essential]
+                    assert np.isclose(barcode[0],
+                                      X[rpsm_of_barcode[0]][rpsm_of_barcode[1]]
+                                      )
+                    idx_essential = idx_essential + 1
