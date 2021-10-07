@@ -26,7 +26,9 @@ PYBIND11_MODULE(gph_ripser, m)
     m.doc() = "Ripser python interface";
 
     py::class_<flagPersGen>(m, "flagPersGen", py::module_local())
+        .def_readwrite("finite_0", &flagPersGen::finite_0)
         .def_readwrite("finite_higher", &flagPersGen::finite_higher)
+        .def_readwrite("essential_0", &flagPersGen::essential_0)
         .def_readwrite("essential_higher", &flagPersGen::essential_higher);
     // Because `ripser` could have two different modules after compilation
     // It's necessary to add `py::module_local()` to prevent following issue:

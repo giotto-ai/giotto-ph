@@ -483,7 +483,19 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
     ret = {"dgms": dgms}
 
     if ret_representative_simplices:
-        ret['rpsm'] = [res.flag_persistence_generators_by_dim.finite_higher,
-                       res.flag_persistence_generators_by_dim.essential_higher]
+        finite_0 = np.array(
+            res.flag_persistence_generators_by_dim.finite_0)
+
+        finite_higher = np.array([np.array(x)
+                                  for x in
+                                  res.flag_persistence_generators_by_dim.
+                                  finite_higher])
+        essential_0 = \
+            np.array(res.flag_persistence_generators_by_dim.essential_0)
+        essential_higher = np.array([np.array(x)
+                                     for x in
+                                     res.flag_persistence_generators_by_dim.
+                                     essential_higher])
+        ret['rpsm'] = [finite_0, finite_higher, essential_0, essential_higher]
 
     return ret
