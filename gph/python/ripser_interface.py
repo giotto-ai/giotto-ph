@@ -235,7 +235,7 @@ def _compute_weights(dm, weights, weight_params, n_points,
 
 
 def _ideal_thresh(dm, thresh):
-    """This fonction computes enclosing radius. Enclosing radius
+    """This function computes enclosing radius. Enclosing radius
     indicates that all distances above this threshold will produce
     trivial homology
 
@@ -483,19 +483,19 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
     ret = {"dgms": dgms}
 
     if ret_representative_simplices:
-        finite_0 = np.array(
-            res.flag_persistence_generators_by_dim.finite_0)
-
-        finite_higher = np.array([np.array(x)
-                                  for x in
-                                  res.flag_persistence_generators_by_dim.
-                                  finite_higher])
+        finite_0 = np.array(res.flag_persistence_generators_by_dim.finite_0,
+                            dtype=np.int32).reshape(-1, 3)
+        finite_higher = [
+            np.array(x, dtype=np.int32).reshape(-1, 4)
+            for x in res.flag_persistence_generators_by_dim.finite_higher
+            ]
         essential_0 = \
-            np.array(res.flag_persistence_generators_by_dim.essential_0)
-        essential_higher = np.array([np.array(x)
-                                     for x in
-                                     res.flag_persistence_generators_by_dim.
-                                     essential_higher])
-        ret['rpsm'] = [finite_0, finite_higher, essential_0, essential_higher]
+            np.array(res.flag_persistence_generators_by_dim.essential_0,
+                     dtype=np.int32)
+        essential_higher = [
+            np.array(x, dtype=np.int32).reshape(-1, 2)
+            for x in res.flag_persistence_generators_by_dim.essential_higher
+            ]
+        ret['rpsm'] = (finite_0, finite_higher, essential_0, essential_higher)
 
     return ret
