@@ -241,18 +241,10 @@ def _ideal_thresh(dm, thresh):
     if dm.shape[0] != dm.shape[1]:
         return thresh
 
-    # Compute an array containing the maximal value by column
-    if dm.shape[1] != 1:
-        max_by_array = np.apply_along_axis(np.amax, axis=1, arr=dm)
-    else:
-        dm_ = dm.T[0]
-        max_by_array = []
-        for i in range(dm.shape[0]):
-            max_by_array.append(np.amax(dm_[i:]))
+    # Compute enclosing radius
+    enclosing_radius = np.min(np.max(dm, axis=1))
 
-    enclosing_radius = np.amin(max_by_array)
-
-    return np.amin([enclosing_radius, thresh])
+    return min([enclosing_radius, thresh])
 
 
 def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
