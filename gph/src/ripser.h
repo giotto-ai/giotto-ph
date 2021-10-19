@@ -970,7 +970,7 @@ public:
 
                         if (return_flag_persistence_generators) {
                             flag_persistence_generators.finite_0.push_back(
-                                {std::min(v1, v2), std::max(v1, v2),
+                                {std::max(v1, v2), std::max(v1, v2),
                                  std::min(v1, v2)});
                         }
                     }
