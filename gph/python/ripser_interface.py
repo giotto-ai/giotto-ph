@@ -396,6 +396,10 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
 
     """
 
+    if collapse_edges and ret_representative_simplices:
+        raise NotImplementedError("Collapse edges and representative simplicies\
+                                   currently are not supported together.")
+
     if metric == 'precomputed':
         dm = X
     else:

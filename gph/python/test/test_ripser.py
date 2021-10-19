@@ -232,3 +232,13 @@ def test_rpsm_edge_in_dm_and_sorted():
                                       X[rpsm_of_barcode[0]][rpsm_of_barcode[1]]
                                       )
                     idx_essential = idx_essential + 1
+
+
+def test_rpsm_with_collapser():
+    """This test ensures that you cannot use collapser and
+    retrieve representative simplicies. This is a temporary behavior."""
+    X = squareform(pdist(np.random.random((100, 3))))
+
+    with pytest.raises(NotImplementedError):
+        ripser(X, metric='precomputed', collapse_edges=True,
+               ret_representative_simplices=True)
