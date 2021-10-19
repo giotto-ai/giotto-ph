@@ -604,6 +604,7 @@ class ripser
         diameter_entry_t, std::vector<diameter_entry_t>,
         greater_diameter_or_smaller_index<diameter_entry_t>>;
     using mat_simplicies_t = std::vector<std::vector<diameter_index_t>>;
+    using edge_t = std::pair<index_t, index_t>;
 
 private:
     const bool is_not_present(entry_hash_map& hm,
@@ -1207,9 +1208,8 @@ public:
                                           idx_col, 1, dim)) == pivot_index);
     }
 
-    using edge_t = std::pair<index_t, index_t>;
-
-    edge_t get_youngest_edge_simplex(std::vector<index_t> vertices_simplex)
+    edge_t
+    get_youngest_edge_simplex(const std::vector<index_t>& vertices_simplex)
     {
         value_t diam = -std::numeric_limits<value_t>::infinity();
         edge_t edge;
@@ -1219,14 +1219,16 @@ public:
                 index_t v1 = vertices_simplex[i];
                 index_t v2 = vertices_simplex[j];
 
-                auto new_diam = dist(v1, v2);
+                value_t new_diam = dist(v1, v2);
                 edge_t new_cand = {v1, v2};
 
                 if (new_diam >= diam) {
                     /* swap current candidate if
                      * The new diameter is bigger than the current cadidate
                      * diameter. Or if they have equal diameter, look for
-                     * vertices of each candidate
+                     * vertices of each candidate use the same sorting order
+                     * as used for the filtration (by reverse colexicographic
+                     * vertex order).
                      */
                     if (new_diam > diam) {
                         edge = new_cand;
