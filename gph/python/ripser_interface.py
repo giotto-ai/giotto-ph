@@ -346,7 +346,10 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         maximal number of threads available on the host machine.
 
     ret_representative_simplices: bool, optional, default: ``False``
-        TODO.
+        Computed representative simplicies will be available in the `rpsm`
+        value of the return dictionary. This feature cannot be used with the
+        `collapse_edges` feature. An exception will be thrown if both features
+        are enable.
 
     Returns
     -------
@@ -357,6 +360,31 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             than maxdim. Each diagram is an ndarray of size (n_pairs, 2)
             with the first column representing the birth time and the
             second column representing the death time of each pair.
+        'rpsm': list (size 4) of ndarray of different shapes
+
+            > [[(ndarray (n, 3))],
+             [(ndarray (size maxdim-1) of (m, 4))],
+             [(ndarray (k,))],
+             [(ndarray (size maxdim-1) of (l, 2))]]
+
+            The shape of each array will depend on the dimension and if
+            it is an essential or a finite representative simplicies.
+
+            index 0:
+                finite representative simplicies of dimension 0, one birth
+                vertex and two vertices for death.
+            index 1:
+                finite representative simplicies for remaining dimensions,
+                with one array by dimension with 2 pair of vertices (edge)
+                for birth and death.
+            index 2:
+                essential representative simplicies of dimension 0, with
+                one vertex.
+            index 3:
+                essential representative simplicies for remaining
+                dimensions with one array by dimension and using 2 vertices
+                for birth.
+
     }
 
     Notes
