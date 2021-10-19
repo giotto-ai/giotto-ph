@@ -1216,25 +1216,33 @@ public:
 
         for (index_t i = 0; i < vertices_simplex.size(); ++i) {
             for (index_t j = 0; j < i; ++j) {
-                auto curr_diam = dist(vertices_simplex[i], vertices_simplex[j]);
-                if (curr_diam >= diam) {
-                    if (curr_diam != diam) {
-                        edge = {vertices_simplex[i], vertices_simplex[j]};
-                        diam = curr_diam;
-                    } else {
-                        auto c2_cand =
-                            edge_t{vertices_simplex[i], vertices_simplex[j]};
-                        index_t c1_v1 = std::max(edge.first, edge.second);
-                        index_t c2_v1 = std::max(c2_cand.first, c2_cand.second);
+                index_t v1 = vertices_simplex[i];
+                index_t v2 = vertices_simplex[j];
 
-                        if (c1_v1 >= c2_v1) {
-                            if (c1_v1 == c2_v1 &&
-                                std::min(edge.first, edge.second) >
-                                    std::min(c2_cand.first, c2_cand.second)) {
-                                edge = c2_cand;
-                            } else {
-                                edge = c2_cand;
-                            }
+                auto new_diam = dist(v1, v2);
+                edge_t new_cand = {v1, v2};
+
+                if (new_diam >= diam) {
+                    /* swap current candidate if
+                     * The new diameter is bigger than the current cadidate
+                     * diameter. Or if they have equal diameter, look for
+                     * vertices of each candidate
+                     */
+                    if (new_diam > diam) {
+                        edge = new_cand;
+                        diam = new_diam;
+                    } else {
+                        // cc : Current cadidate
+                        // nc : New cadidate
+                        index_t cc_v1 = std::max(edge.first, edge.second);
+                        index_t nc_v1 =
+                            std::max(new_cand.first, new_cand.second);
+
+                        if ((cc_v1 > nc_v1) ||
+                            (cc_v1 == nc_v1 &&
+                             std::min(edge.first, edge.second) >
+                                 std::min(new_cand.first, new_cand.second))) {
+                            edge = new_cand;
                         }
                     }
                 }
@@ -1484,18 +1492,18 @@ public:
                 }
             });
 #if defined(SORT_BARCODES)
-        /* `indexes` allows to keep track of the permutation performed when sorting
-         * barcodes.
-         * See https://stackoverflow.com/a/17554343
+        /* `indexes` allows to keep track of the permutation performed when
+         * sorting barcodes. See https://stackoverflow.com/a/17554343
          */
         if (persistence_pair.size()) {
             if (return_flag_persistence_generators) {
                 indexes.resize(ordered_location.size());
                 std::iota(indexes.begin(), indexes.end(), 0);
                 std::sort(indexes.begin(), indexes.end(),
-                        [&](const auto& lhs, const auto& rhs) {
-                            return persistence_pair[lhs] > persistence_pair[rhs];
-                        });
+                          [&](const auto& lhs, const auto& rhs) {
+                              return persistence_pair[lhs] >
+                                     persistence_pair[rhs];
+                          });
             }
             std::sort(persistence_pair.begin(), persistence_pair.end(),
                       std::greater<>());
@@ -1528,11 +1536,11 @@ public:
 #if defined(SORT_BARCODES)
             for (const auto ordered_idx : indexes)
                 flag_persistence_generators.finite_higher[dim - 1].push_back(
-                        finite_representative[ordered_location[ordered_idx]]);
+                    finite_representative[ordered_location[ordered_idx]]);
 #else
             for (const auto ordered_idx : ordered_location)
                 flag_persistence_generators.finite_higher[dim - 1].push_back(
-                        finite_representative[ordered_idx]);
+                    finite_representative[ordered_idx]);
 #endif
 
             for (size_t i = 0; i < idx_essential; ++i) {
