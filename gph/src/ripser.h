@@ -6,7 +6,7 @@
 
  Copyright (c) 2015–2021 Ulrich Bauer
  Copyright (c) 2020 Dmitriy Morozov and Arnur Nigmetov
- Copyright (c) 2021 Julián Burella Pérez and Sydney Hauke
+ Copyright (c) 2021 Julián Burella Pérez, Sydney Hauke and Umberto Lupo
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -970,7 +970,7 @@ public:
 
                         if (return_flag_persistence_generators) {
                             flag_persistence_generators.finite_0.push_back(
-                                {std::max(v1, v2), std::max(v1, v2),
+                                {std::max(u, v), std::max(v1, v2),
                                  std::min(v1, v2)});
                         }
                     }
