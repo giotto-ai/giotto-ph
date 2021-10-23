@@ -440,6 +440,7 @@ public:
 
     void set_birth(index_t i, value_t val) { birth[i] = val; }
     value_t get_birth(index_t i) { return birth[i]; }
+    value_t get_rank(index_t i) { return rank[i]; }
 
     index_t find(index_t x)
     {
@@ -463,12 +464,12 @@ public:
         y = find(y);
         if (x == y)
             return;
-        if (rank[x] > rank[y]) {
-            parent[y] = x;
-            birth[x] = std::min(birth[x], birth[y]);  // Elder rule
-        } else {
+        if (rank[x] < rank[y]) {
             parent[x] = y;
             birth[y] = std::min(birth[x], birth[y]);  // Elder rule
+        } else {
+            parent[y] = x;
+            birth[x] = std::min(birth[x], birth[y]);  // Elder rule
             if (rank[x] == rank[y])
                 ++rank[y];
         }
@@ -961,8 +962,27 @@ public:
                 if (get_diameter(e) != 0) {
                     // Elder rule; youngest class (max birth time of u and v)
                     // dies first
-                    value_t birth =
-                        std::max(dset.get_birth(u), dset.get_birth(v));
+                    value_t birth_u = dset.get_birth(u);
+                    index_t rank_u = dset.get_rank(u);
+                    value_t birth_v = dset.get_birth(v);
+                    index_t rank_v = dset.get_rank(v);
+                    index_t birth_idx;
+                    value_t birth;
+                    if (birth_u > birth_v) {
+                        birth_idx = u;
+                        birth = birth_u;
+                    } else if (birth_u < birth_v) {
+                        birth_idx = v;
+                        birth = birth_v;                        
+                    } else {
+                        if (rank_u < rank_v) {
+                            birth_idx = u;
+                            birth = birth_u;
+                        } else {
+                            birth_idx = v;
+                            birth = birth_v;
+                        }
+                    }
                     value_t death = get_diameter(e);
                     if (death > birth) {
                         births_and_deaths_by_dim[0].push_back(birth);
@@ -970,7 +990,7 @@ public:
 
                         if (return_flag_persistence_generators) {
                             flag_persistence_generators.finite_0.push_back(
-                                {std::max(u, v), std::max(v1, v2),
+                                {birth_idx, std::max(v1, v2),
                                  std::min(v1, v2)});
                         }
                     }
