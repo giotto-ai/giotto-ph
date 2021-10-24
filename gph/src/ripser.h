@@ -5,6 +5,7 @@
  MIT License
 
  Copyright (c) 2015–2021 Ulrich Bauer
+ Copyright (c) 2018 Christopher Tralie
  Copyright (c) 2020 Dmitriy Morozov and Arnur Nigmetov
  Copyright (c) 2021 Julián Burella Pérez, Sydney Hauke and Umberto Lupo
 
