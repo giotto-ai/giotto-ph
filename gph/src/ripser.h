@@ -465,6 +465,8 @@ public:
         y = find(y);
         if (x == y)
             return;
+        /* Convention for the case of equal ranks is different from U. Bauer's
+         * Ripser to have outputs aligned with GUDHI's */
         if (rank[x] < rank[y]) {
             parent[x] = y;
             birth[y] = std::min(birth[x], birth[y]);  // Elder rule
