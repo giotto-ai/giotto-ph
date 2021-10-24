@@ -952,6 +952,8 @@ public:
         std::vector<index_t> vertices_of_edge(2);
         columns_to_reduce.resize(edges.size());
         size_t i = 0;
+        value_t birth;
+        index_t birth_idx;
         for (auto e : edges) {
             get_simplex_vertices(get_index(e), 1, n, vertices_of_edge.rbegin());
             index_t v1 = vertices_of_edge[0];
@@ -963,26 +965,17 @@ public:
                     // Elder rule; youngest class (max birth time of u and v)
                     // dies first
                     value_t birth_u = dset.get_birth(u);
-                    index_t rank_u = dset.get_rank(u);
                     value_t birth_v = dset.get_birth(v);
-                    index_t rank_v = dset.get_rank(v);
-                    index_t birth_idx;
-                    value_t birth;
-                    if (birth_u > birth_v) {
+
+                    if (birth_u > birth_v || ((birth_u == birth_v) &&
+                         (dset.get_rank(u) < dset.get_rank(v)))) {
                         birth_idx = u;
                         birth = birth_u;
-                    } else if (birth_u < birth_v) {
-                        birth_idx = v;
-                        birth = birth_v;                        
                     } else {
-                        if (rank_u < rank_v) {
-                            birth_idx = u;
-                            birth = birth_u;
-                        } else {
-                            birth_idx = v;
-                            birth = birth_v;
-                        }
+                        birth_idx = v;
+                        birth = birth_v;
                     }
+
                     value_t death = get_diameter(e);
                     if (death > birth) {
                         births_and_deaths_by_dim[0].push_back(birth);
