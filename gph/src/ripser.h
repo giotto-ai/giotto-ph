@@ -441,7 +441,6 @@ public:
 
     void set_birth(index_t i, value_t val) { birth[i] = val; }
     value_t get_birth(index_t i) { return birth[i]; }
-    value_t get_rank(index_t i) { return rank[i]; }
 
     index_t find(index_t x)
     {
@@ -459,23 +458,36 @@ public:
         return z;
     }
 
-    void link(index_t x, index_t y)
+    index_t link_and_get_birth_vertex(index_t x, index_t y)
     {
         x = find(x);
         y = find(y);
-        if (x == y)
-            return;
+ 
+        index_t birth_idx = _link_and_get_birth_vertex(x, y);
+     
+        return birth_idx;
+    }
+
+    index_t _link_and_get_birth_vertex(index_t x, index_t y)
+    {
+        index_t birth_idx = x;
         /* Convention for the case of equal ranks is different from U. Bauer's
          * Ripser to have outputs aligned with GUDHI's */
-        if (rank[x] < rank[y]) {
-            parent[x] = y;
-            birth[y] = std::min(birth[x], birth[y]);  // Elder rule
-        } else {
-            parent[y] = x;
-            birth[x] = std::min(birth[x], birth[y]);  // Elder rule
-            if (rank[x] == rank[y])
-                ++rank[y];
+        if (x != y) {
+            if (rank[x] < rank[y]) {
+                birth_idx = x;
+                parent[x] = y;
+                birth[y] = std::min(birth[x], birth[y]);  // Elder rule
+            } else {
+                birth_idx = y;
+                parent[y] = x;
+                birth[x] = std::min(birth[x], birth[y]);  // Elder rule
+                if (rank[x] == rank[y])
+                    ++rank[y];
+            }
         }
+
+        return birth_idx;
     }
 };
 
@@ -967,18 +979,8 @@ public:
                 if (get_diameter(e) != 0) {
                     // Elder rule; youngest class (max birth time of u and v)
                     // dies first
-                    value_t birth_u = dset.get_birth(u);
-                    value_t birth_v = dset.get_birth(v);
-
-                    if (birth_u > birth_v || ((birth_u == birth_v) &&
-                         (dset.get_rank(u) < dset.get_rank(v)))) {
-                        birth_idx = u;
-                        birth = birth_u;
-                    } else {
-                        birth_idx = v;
-                        birth = birth_v;
-                    }
-
+                    birth_idx = dset._link_and_get_birth_vertex(u, v);
+                    birth = dset.get_birth(birth_idx);
                     value_t death = get_diameter(e);
                     if (death > birth) {
                         births_and_deaths_by_dim[0].push_back(birth);
@@ -986,12 +988,11 @@ public:
 
                         if (return_flag_persistence_generators) {
                             flag_persistence_generators.finite_0.push_back(
-                                {birth_idx, std::max(v1, v2),
+                                {birth, std::max(v1, v2),
                                  std::min(v1, v2)});
                         }
                     }
                 }
-                dset.link(u, v);
             } else if (get_index(get_zero_apparent_cofacet(e, 1)) == -1)
                 columns_to_reduce[i++] = e;
         }
