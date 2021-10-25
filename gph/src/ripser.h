@@ -458,34 +458,29 @@ public:
         return z;
     }
 
-    diameter_index_t link_and_get_birth_vertex(index_t x, index_t y)
+    diameter_index_t link_roots_and_get_birth_vertex(index_t x, index_t y)
     {
-        x = find(x);
-        y = find(y);
- 
-        diameter_index_t ret = _link_and_get_birth_vertex(x, y);
-     
-        return ret;
-    }
-
-    diameter_index_t _link_and_get_birth_vertex(index_t x, index_t y)
-    {
+        /* In Kruskal's algorithm, in the `link` function, normally you should
+         * call first `find` on each vertex, but this is already done in
+         * `compute_dim_0` function before calling this function. Therefore, it
+         * is not necessary to call `find` twice for each vertex and we gain
+         * some computation time. */
         index_t birth_idx = x;
-        value_t latest_birth = birth[x];
+        value_t birth_latest = birth[x];
         /* Convention for the case of equal ranks is different from U. Bauer's
          * Ripser to have outputs aligned with GUDHI's */
         if (x != y) {
             if (rank[x] < rank[y]) {
                 if (birth[x] < birth[y]) {
                     birth_idx = y;
-                    latest_birth = birth[y];
+                    birth_latest = birth[y];
                     birth[y] = birth[x];  // Elder rule
                 }
                 parent[x] = y;
             } else {
                 if (birth[x] <= birth[y]) {
                     birth_idx = y;
-                    latest_birth = birth[y];
+                    birth_latest = birth[y];
                 } else {
                     birth[x] = birth[y];  // Elder rule
                 }
@@ -494,7 +489,7 @@ public:
                     ++rank[y];
             }
         }
-        return diameter_index_t{latest_birth, birth_idx};
+        return diameter_index_t{birth_latest, birth_idx};
     }
 };
 
@@ -975,7 +970,7 @@ public:
         columns_to_reduce.resize(edges.size());
         size_t i = 0;
         value_t birth;
-        index_t birth_idx;
+        diameter_index_t birth_vertex;
         for (auto e : edges) {
             get_simplex_vertices(get_index(e), 1, n, vertices_of_edge.rbegin());
             index_t v1 = vertices_of_edge[0];
@@ -983,12 +978,14 @@ public:
             index_t u = dset.find(v1), v = dset.find(v2);
 
             if (u != v) {
+                // link must be always done and now because we retrieve
+                // birth vertex value and index, it must be computed before
+                // the if condition
+                birth_vertex = dset.link_roots_and_get_birth_vertex(u, v);
                 if (get_diameter(e) != 0) {
                     // Elder rule; youngest class (max birth time of u and v)
                     // dies first
-                    auto birth_pair = dset._link_and_get_birth_vertex(u, v);
-                    birth = birth_pair.first;
-                    birth_idx = birth_pair.second;
+                    birth = birth_vertex.first;
                     value_t death = get_diameter(e);
                     if (death > birth) {
                         births_and_deaths_by_dim[0].push_back(birth);
@@ -996,7 +993,7 @@ public:
 
                         if (return_flag_persistence_generators) {
                             flag_persistence_generators.finite_0.push_back(
-                                {birth_idx, std::max(v1, v2),
+                                {birth_vertex.second, std::max(v1, v2),
                                  std::min(v1, v2)});
                         }
                     }
