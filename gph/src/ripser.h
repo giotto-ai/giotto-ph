@@ -460,11 +460,11 @@ public:
 
     diameter_index_t link_roots_and_get_birth_vertex(index_t x, index_t y)
     {
-        /* In Kruskal's algorithm, in the `link` function, normally you should
-         * call first `find` on each vertex, but this is already done in
-         * `compute_dim_0` function before calling this function. Therefore, it
-         * is not necessary to call `find` twice for each vertex and we gain
-         * some computation time. */
+        /* In Kruskal's algorithm, in the `link` function, normally one should
+         * first call `find` on each node to get the respective root node.
+         * The full Kruskal algorithm is implemented in `compute_dim_0`
+         * and it is there that we ensure that we have root nodes before
+         * calling this function. */
         index_t birth_idx = x;
         value_t birth_latest = birth[x];
         /* Convention for the case of equal ranks is different from U. Bauer's
