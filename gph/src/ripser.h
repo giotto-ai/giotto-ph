@@ -486,8 +486,9 @@ public:
                 if (birth[x] <= birth[y]) {
                     birth_idx = y;
                     latest_birth = birth[y];
+                } else {
                     birth[x] = birth[y];  // Elder rule
-                };
+                }
                 parent[y] = x;
                 if (rank[x] == rank[y])
                     ++rank[y];
