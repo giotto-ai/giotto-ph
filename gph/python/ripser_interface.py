@@ -447,8 +447,8 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
 
     if use_sparse_computer:
         res = _compute_ph_vr_sparse(
-            np.asarray(row, dtype=np.int32, order="C"),
-            np.asarray(col, dtype=np.int32, order="C"),
+            np.asarray(row, dtype=np.int64, order="C"),
+            np.asarray(col, dtype=np.int64, order="C"),
             np.asarray(data, dtype=np.float32, order="C"),
             n_points,
             maxdim,
