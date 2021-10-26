@@ -242,3 +242,39 @@ def test_rpsm_with_collapser():
     with pytest.raises(NotImplementedError):
         ripser(X, metric='precomputed', collapse_edges=True,
                ret_representative_simplices=True)
+
+
+@settings(deadline=500)
+@given(dm=get_dense_distance_matrices())
+@pytest.mark.parametrize('format', ['dense', 'sparse'])
+def test_rpsm_non_0_diagonal_dim0(dm, format):
+    np.fill_diagonal(dm, np.random.uniform(low=0, high=1,
+                                           size=(dm.shape[0])))
+    if format == 'dense':
+        X = dm
+    else:
+        X = coo_matrix(dm).tocsr()
+
+    ret = ripser(X, metric='precomputed', ret_representative_simplices=True)
+
+    dgms_0 = ret['dgms'][0]
+    rpsm_fin_0 = ret['rpsm'][0]
+    rpsm_ess_0 = ret['rpsm'][2]
+
+    # Verifies that the birth indices for essential representatives are unique
+    assert len(np.unique(np.sort(rpsm_fin_0[:, 0]))) == len(rpsm_fin_0[:, 0])
+    assert len(np.unique(np.sort(rpsm_ess_0))) == len(rpsm_ess_0)
+    assert len([x for x in rpsm_fin_0[:, 0] if x in rpsm_ess_0]) == 0
+
+    for barcode, rp in zip(dgms_0, rpsm_fin_0):
+        # Verify birth of dim-0 finite representative
+        # The birth is located on the diagonal
+        assert np.isclose(barcode[0], X[rp[0], rp[0]])
+
+        # Verify death of dim-0 finite representative
+        assert np.isclose(barcode[1], X[rp[1], rp[2]])
+
+    for barcode, rp in zip(dgms_0[len(dgms_0):], rpsm_ess_0):
+        # Verify birth of dim-0 essential representative
+        # The birth is located on the diagonal
+        assert np.isclose(barcode[0], X[rp, rp])
