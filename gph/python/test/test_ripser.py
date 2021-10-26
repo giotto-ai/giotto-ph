@@ -261,10 +261,14 @@ def test_rpsm_non_0_diagonal_dim0(dm, format):
     rpsm_fin_0 = ret['rpsm'][0]
     rpsm_ess_0 = ret['rpsm'][2]
 
-    # Verifies that the birth indices for essential representatives are unique
+    # Verifies that the birth indices for essential and finite
+    # representatives are unique
     assert len(np.unique(np.sort(rpsm_fin_0[:, 0]))) == len(rpsm_fin_0[:, 0])
     assert len(np.unique(np.sort(rpsm_ess_0))) == len(rpsm_ess_0)
+    # Verifies that there are no duplicates between finite and essential
+    # And also the other way around
     assert len([x for x in rpsm_fin_0[:, 0] if x in rpsm_ess_0]) == 0
+    assert len([x for x in rpsm_ess_0 if x in rpsm_fin_0[:, 0]]) == 0
 
     for barcode, rp in zip(dgms_0, rpsm_fin_0):
         # Verify birth of dim-0 finite representative
