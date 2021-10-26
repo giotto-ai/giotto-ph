@@ -470,24 +470,23 @@ public:
         /* Convention for the case of equal ranks is different from U. Bauer's
          * Ripser to have outputs aligned with GUDHI's */
         if (x != y) {
-            if (rank[x] < rank[y]) {
-                if (birth[x] < birth[y]) {
-                    birth_idx = y;
-                    birth_latest = birth[y];
-                    birth[y] = birth[x];  // Elder rule
-                }
+            if (birth[x] < birth[y]) {
+                birth_idx = y;
+                birth_latest = birth[y];  // Elder rule
+                parent[y] = x;
+            } else if (birth[x] > birth[y]) {
                 parent[x] = y;
             } else {
-                if (birth[x] <= birth[y]) {
-                    birth_idx = y;
-                    birth_latest = birth[y];
+                if (rank[x] < rank[y]) {
+                    parent[x] = y;
                 } else {
-                    birth[x] = birth[y];  // Elder rule
+                    birth_idx = y;
+                    parent[y] = x;
                 }
-                parent[y] = x;
-                if (rank[x] == rank[y])
-                    ++rank[y];
             }
+
+            if (rank[x] == rank[y])
+                ++rank[y];
         }
         return diameter_index_t{birth_latest, birth_idx};
     }
