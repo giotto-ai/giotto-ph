@@ -44,7 +44,7 @@ PYBIND11_MODULE(gph_ripser, m)
     m.def(
         "rips_dm",
         [](py::array_t<value_t>& D, int N, int modulus, int dim_max,
-           float threshold, int num_threads, bool ret_representative_simplices) {
+           float threshold, int num_threads, bool return_generators) {
             // Setup distance matrix and figure out threshold
             auto D_ = static_cast<value_t*>(D.request().ptr);
             std::vector<value_t> distances(D_, D_ + N);
@@ -65,20 +65,20 @@ PYBIND11_MODULE(gph_ripser, m)
             ripser<compressed_lower_distance_matrix> r(std::move(dist), dim_max,
                                                        threshold, ratio,
                                                        modulus, num_threads,
-                                                       ret_representative_simplices);
+                                                       return_generators);
             r.compute_barcodes();
             r.copy_results(res);
             res.num_edges = num_edges;
             return res;
         },
         "D"_a, "N"_a, "modulus"_a, "dim_max"_a, "threshold"_a, "num_threads"_a,
-        "ret_representative_simplices"_a, "ripser distance matrix");
+        "return_generators"_a, "ripser distance matrix");
 
     m.def(
         "rips_dm_sparse",
         [](py::array_t<index_t>& I, py::array_t<index_t>& J,
            py::array_t<value_t>& V, int NEdges, int N, int modulus, int dim_max,
-           float threshold, int num_threads, bool ret_representative_simplices) {
+           float threshold, int num_threads, bool return_generators) {
             auto I_ = static_cast<index_t*>(I.request().ptr);
             auto J_ = static_cast<index_t*>(J.request().ptr);
             auto V_ = static_cast<value_t*>(V.request().ptr);
@@ -89,7 +89,7 @@ PYBIND11_MODULE(gph_ripser, m)
             ripser<sparse_distance_matrix> r(
                 sparse_distance_matrix(I_, J_, V_, NEdges, N, threshold),
                 dim_max, threshold, ratio, modulus, num_threads,
-                ret_representative_simplices);
+                return_generators);
             r.compute_barcodes();
             // Report the number of edges that were added
             int num_edges = 0;
@@ -104,6 +104,6 @@ PYBIND11_MODULE(gph_ripser, m)
             return res;
         },
         "I"_a, "J"_a, "V"_a, "NEdges"_a, "N"_a, "modulus"_a, "dim_max"_a,
-        "threshold"_a, "num_threads"_a, "ret_representative_simplices"_a,
+        "threshold"_a, "num_threads"_a, "return_generators"_a,
         "ripser sparse distance matrix");
 }
