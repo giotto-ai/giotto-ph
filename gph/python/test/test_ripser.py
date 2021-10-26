@@ -199,7 +199,7 @@ def test_gens_edge_in_dm_and_sorted():
     X = squareform(pdist(np.random.random((100, 3))))
 
     ret = ripser(X, metric='precomputed', maxdim=3, thresh=np.inf,
-                 collapse_edges=False, ret_representative_simplices=True)
+                 collapse_edges=False, return_generators=True)
 
     barcodes = ret['dgms']
     gens = ret['gens']
@@ -241,7 +241,7 @@ def test_gens_with_collapser():
 
     with pytest.raises(NotImplementedError):
         ripser(X, metric='precomputed', collapse_edges=True,
-               ret_representative_simplices=True)
+               return_generators=True)
 
 
 @settings(deadline=500)
@@ -255,7 +255,7 @@ def test_gens_non_0_diagonal_dim0(dm, format):
     else:
         X = coo_matrix(dm).tocsr()
 
-    ret = ripser(X, metric='precomputed', ret_representative_simplices=True)
+    ret = ripser(X, metric='precomputed', return_generators=True)
 
     dgms_0 = ret['dgms'][0]
     gens_fin_0 = ret['gens'][0]
