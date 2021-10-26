@@ -192,49 +192,49 @@ def test_multithread_consistent(dm):
             assert_almost_equal(res[0][dim], res[i][dim])
 
 
-def test_rpsm_edge_in_dm_and_sorted():
+def test_gens_edge_in_dm_and_sorted():
     """This test verifies that the representative simplicies, the index of the
     vertices matches the corresponding edge in the distance matrix and that
-    the rpsm are aligned with the correponding barcodes"""
+    the gens are aligned with the correponding barcodes"""
     X = squareform(pdist(np.random.random((100, 3))))
 
     ret = ripser(X, metric='precomputed', maxdim=3, thresh=np.inf,
                  collapse_edges=False, ret_representative_simplices=True)
 
     barcodes = ret['dgms']
-    rpsm = ret['rpsm']
+    gens = ret['gens']
 
     for dim, bar_in_dim in enumerate(barcodes):
         idx_essential = 0
         idx_finite = 0
         for barcode in bar_in_dim:
             if dim == 0 and barcode[1] != np.inf:
-                # Verifies rpsm in dim 0, discards essential ones
-                rpsm_of_barcode = rpsm[0][idx_finite]
+                # Verifies gens in dim 0, discards essential ones
+                gens_of_barcode = gens[0][idx_finite]
                 assert np.isclose(barcode[1],
-                                  X[rpsm_of_barcode[1]][rpsm_of_barcode[2]])
+                                  X[gens_of_barcode[1]][gens_of_barcode[2]])
                 idx_finite = idx_finite + 1
             if dim > 0:
-                # Verifies rpsm in dim > 0, expects first all non essential
+                # Verifies gens in dim > 0, expects first all non essential
                 # barcodes and then the finite ones
                 if barcode[1] != np.inf:
-                    rpsm_of_barcode = rpsm[1][dim-1][idx_finite]
+                    gens_of_barcode = gens[1][dim-1][idx_finite]
                     assert np.isclose(barcode[0],
-                                      X[rpsm_of_barcode[0]][rpsm_of_barcode[1]]
+                                      X[gens_of_barcode[0]][gens_of_barcode[1]]
                                       )
                     assert np.isclose(barcode[1],
-                                      X[rpsm_of_barcode[2]][rpsm_of_barcode[3]]
+                                      X[gens_of_barcode[2]][gens_of_barcode[3]]
                                       )
                     idx_finite = idx_finite + 1
                 else:
-                    rpsm_of_barcode = rpsm[3][dim-1][idx_essential]
+                    gens_of_barcode = gens[3][dim-1][idx_essential]
                     assert np.isclose(barcode[0],
-                                      X[rpsm_of_barcode[0]][rpsm_of_barcode[1]]
+                                      X[gens_of_barcode[0]][gens_of_barcode[1]]
                                       )
                     idx_essential = idx_essential + 1
 
 
-def test_rpsm_with_collapser():
+def test_gens_with_collapser():
     """This test ensures that you cannot use collapser and
     retrieve representative simplicies. This is a temporary behavior."""
     X = squareform(pdist(np.random.random((100, 3))))
@@ -247,7 +247,7 @@ def test_rpsm_with_collapser():
 @settings(deadline=500)
 @given(dm=get_dense_distance_matrices())
 @pytest.mark.parametrize('format', ['dense', 'sparse'])
-def test_rpsm_non_0_diagonal_dim0(dm, format):
+def test_gens_non_0_diagonal_dim0(dm, format):
     np.fill_diagonal(dm, np.random.uniform(low=0, high=1,
                                            size=(dm.shape[0])))
     if format == 'dense':
@@ -258,19 +258,19 @@ def test_rpsm_non_0_diagonal_dim0(dm, format):
     ret = ripser(X, metric='precomputed', ret_representative_simplices=True)
 
     dgms_0 = ret['dgms'][0]
-    rpsm_fin_0 = ret['rpsm'][0]
-    rpsm_ess_0 = ret['rpsm'][2]
+    gens_fin_0 = ret['gens'][0]
+    gens_ess_0 = ret['gens'][2]
 
     # Verifies that the birth indices for essential and finite
     # representatives are unique
-    assert len(np.unique(np.sort(rpsm_fin_0[:, 0]))) == len(rpsm_fin_0[:, 0])
-    assert len(np.unique(np.sort(rpsm_ess_0))) == len(rpsm_ess_0)
+    assert len(np.unique(np.sort(gens_fin_0[:, 0]))) == len(gens_fin_0[:, 0])
+    assert len(np.unique(np.sort(gens_ess_0))) == len(gens_ess_0)
     # Verifies that there are no duplicates between finite and essential
     # And also the other way around
-    assert len([x for x in rpsm_fin_0[:, 0] if x in rpsm_ess_0]) == 0
-    assert len([x for x in rpsm_ess_0 if x in rpsm_fin_0[:, 0]]) == 0
+    assert len([x for x in gens_fin_0[:, 0] if x in gens_ess_0]) == 0
+    assert len([x for x in gens_ess_0 if x in gens_fin_0[:, 0]]) == 0
 
-    for barcode, rp in zip(dgms_0, rpsm_fin_0):
+    for barcode, rp in zip(dgms_0, gens_fin_0):
         # Verify birth of dim-0 finite representative
         # The birth is located on the diagonal
         assert np.isclose(barcode[0], X[rp[0], rp[0]])
@@ -278,7 +278,7 @@ def test_rpsm_non_0_diagonal_dim0(dm, format):
         # Verify death of dim-0 finite representative
         assert np.isclose(barcode[1], X[rp[1], rp[2]])
 
-    for barcode, rp in zip(dgms_0[len(dgms_0):], rpsm_ess_0):
+    for barcode, rp in zip(dgms_0[len(dgms_0):], gens_ess_0):
         # Verify birth of dim-0 essential representative
         # The birth is located on the diagonal
         assert np.isclose(barcode[0], X[rp, rp])
