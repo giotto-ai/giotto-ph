@@ -478,7 +478,7 @@ def test_infinite_deaths_always_essential():
     assert len(gens_fin_dim1) == 0
 
 
-def test_cocycles_in_persistance_pair():
+def test_cocycles_in_persistence_pair():
     """Test for a simple cocycle in a persistence pair
        The data and the results are taken from cocycles notebook of
        ripser.py package"""
