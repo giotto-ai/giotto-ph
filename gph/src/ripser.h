@@ -429,18 +429,21 @@ struct euclidean_distance_matrix {
 class union_find
 {
     std::vector<index_t> parent;
-    std::vector<uint8_t> rank;
+    std::vector<uint8_t> rank;  // TODO: Understand if uint8 is enough for large data
     std::vector<value_t> birth;
+    std::vector<index_t> birth_idxs;
 
 public:
-    union_find(const index_t n) : parent(n), rank(n, 0), birth(n, 0)
+    union_find(const index_t n) : parent(n), rank(n, 0), birth(n, 0), birth_idxs(n, 0)
     {
         // Fills the range [first, last) with sequentially increasing values
         std::iota(parent.begin(), parent.end(), 0);
+        std::iota(birth_idxs.begin(), birth_idxs.end(), 0);
     }
 
     void set_birth(index_t i, value_t val) { birth[i] = val; }
     value_t get_birth(index_t i) { return birth[i]; }
+    index_t get_birth_idx(index_t i) { return birth_idxs[i]; }
 
     index_t find(index_t x)
     {
@@ -465,28 +468,30 @@ public:
          * The full Kruskal algorithm is implemented in `compute_dim_0`
          * and it is there that we ensure that we have root nodes before
          * calling this function. */
-        index_t birth_idx = x;
-        value_t birth_latest = birth[x];
-        /* Convention for the case of equal ranks is different from U. Bauer's
-         * Ripser to have outputs aligned with GUDHI's */
-        if (x != y) {
-            if (birth[x] < birth[y]) {
-                birth_idx = y;
-                birth_latest = birth[y];  // Elder rule
-                parent[y] = x;
-            } else if (birth[x] > birth[y]) {
-                parent[x] = y;
-            } else {
-                if (rank[x] < rank[y]) {
-                    parent[x] = y;
-                } else {
-                    birth_idx = y;
-                    parent[y] = x;
-                }
-            }
+        index_t birth_idx = birth_idxs[y];
+        value_t birth_latest = birth[y];
 
-            if (rank[x] == rank[y])
-                ++rank[y];
+        if (x != y) {
+            if (rank[x] < rank[y]) {
+                parent[x] = y;
+                if (birth[x] > birth[y]) {
+                    birth_idx = birth_idxs[x];
+                    birth_latest = birth[x];
+                } else {
+                    birth[y] = birth[x];
+                    birth_idxs[y] = birth_idxs[x];
+                }
+            } else {
+                parent[y] = x;
+                if (birth[x] > birth[y]) {
+                    birth_idx = birth_idxs[x];
+                    birth_latest = birth[x];
+                    birth[x] = birth[y];
+                    birth_idxs[x] = birth_idxs[y];
+                }
+                if (rank[x] == rank[y])
+                    ++rank[x];
+            }
         }
         return diameter_index_t{birth_latest, birth_idx};
     }
@@ -1003,15 +1008,17 @@ public:
         columns_to_reduce.resize(i);
         std::reverse(columns_to_reduce.begin(), columns_to_reduce.end());
 
-        for (index_t i = 0; i < n; ++i)
-            if (dset.find(i) == i) {
+        for (index_t i = 0; i < n; ++i) {
+            index_t u = dset.find(i);
+            if (u == i) {
                 births_and_deaths_by_dim[0].push_back(dset.get_birth(i));
                 births_and_deaths_by_dim[0].push_back(
                     std::numeric_limits<value_t>::infinity());
                 if (return_flag_persistence_generators) {
-                    flag_persistence_generators.essential_0.push_back(i);
+                    flag_persistence_generators.essential_0.push_back(dset.get_birth_idx(u));
                 }
             }
+        }
     }
 
     diameter_entry_t pop_pivot(WorkingColumn& column)
