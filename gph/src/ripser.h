@@ -429,12 +429,14 @@ struct euclidean_distance_matrix {
 class union_find
 {
     std::vector<index_t> parent;
-    std::vector<uint8_t> rank;  // TODO: Understand if uint8 is enough for large data
+    std::vector<uint8_t>
+        rank;  // TODO: Understand if uint8 is enough for large data
     std::vector<value_t> birth;
     std::vector<index_t> birth_idxs;
 
 public:
-    union_find(const index_t n) : parent(n), rank(n, 0), birth(n, 0), birth_idxs(n, 0)
+    union_find(const index_t n)
+        : parent(n), rank(n, 0), birth(n, 0), birth_idxs(n, 0)
     {
         // Fills the range [first, last) with sequentially increasing values
         std::iota(parent.begin(), parent.end(), 0);
@@ -1019,13 +1021,13 @@ public:
         std::reverse(columns_to_reduce.begin(), columns_to_reduce.end());
 
         for (index_t i = 0; i < n; ++i) {
-            index_t u = dset.find(i);
-            if (u == i) {
+            if (dset.find(i) == i) {
                 births_and_deaths_by_dim[0].push_back(dset.get_birth(i));
                 births_and_deaths_by_dim[0].push_back(
                     std::numeric_limits<value_t>::infinity());
                 if (return_flag_persistence_generators) {
-                    flag_persistence_generators.essential_0.push_back(dset.get_birth_idx(u));
+                    flag_persistence_generators.essential_0.push_back(
+                        dset.get_birth_idx(i));
                 }
             }
         }
@@ -1306,10 +1308,9 @@ public:
         /* Pre-allocate containers for parallel computation */
         std::vector<value_t> diameters(columns_to_reduce.size());
         std::vector<value_t> essential_pair(columns_to_reduce.size());
-        flagPersGen::essential_higher_t essential_representative(
+        flagPersGen::essential_higher_t essential_generator(
             columns_to_reduce.size());
-        flagPersGen::finite_higher_t finite_representative(
-            columns_to_reduce.size());
+        flagPersGen::finite_higher_t finite_generator(columns_to_reduce.size());
 
         foreach (columns_to_reduce, [&](index_t index_column_to_reduce,
                                         bool first,
@@ -1463,7 +1464,7 @@ public:
                             edge_t death_edge =
                                 get_youngest_edge_simplex(vertices_death);
 
-                            finite_representative[location] = {
+                            finite_generator[location] = {
                                 birth_edge.first, birth_edge.second,
                                 death_edge.first, death_edge.second};
                         }
@@ -1487,8 +1488,8 @@ public:
                         edge_t birth_edge =
                             get_youngest_edge_simplex(vertices_birth);
 
-                        essential_representative[idx_] = {birth_edge.first,
-                                                          birth_edge.second};
+                        essential_generator[idx_] = {birth_edge.first,
+                                                     birth_edge.second};
                     }
 
                     // TODO: these will need special attention, if output
@@ -1517,7 +1518,7 @@ public:
                 value_t birth =
                     get_diameter(columns_to_reduce[get_index(x.second)]);
                 if (death > birth * ratio) {
-                    /* We push the order of the representative simplices
+                    /* We push the order of the generator simplices
                      * by when they are inserted as barcodes. This can be done
                      * because get_index(it->second) is equivalent to `location`
                      * in the core algorithm
@@ -1576,16 +1577,16 @@ public:
 #if defined(SORT_BARCODES)
             for (const auto ordered_idx : indexes)
                 flag_persistence_generators.finite_higher[dim - 1].push_back(
-                    finite_representative[ordered_location[ordered_idx]]);
+                    finite_generator[ordered_location[ordered_idx]]);
 #else
             for (const auto ordered_idx : ordered_location)
                 flag_persistence_generators.finite_higher[dim - 1].push_back(
-                    finite_representative[ordered_idx]);
+                    finite_generator[ordered_idx]);
 #endif
 
             for (size_t i = 0; i < idx_essential; ++i) {
                 flag_persistence_generators.essential_higher[dim - 1].push_back(
-                    essential_representative[i]);
+                    essential_generator[i]);
             }
         }
     }
