@@ -248,8 +248,9 @@ def test_gens_with_collapser():
 @given(dm=get_dense_distance_matrices())
 @pytest.mark.parametrize('format', ['dense', 'sparse'])
 def test_gens_non_0_diagonal_dim0(dm, format):
-    np.fill_diagonal(dm, np.random.uniform(low=0, high=1,
+    np.fill_diagonal(dm, np.random.uniform(low=0, high=np.amin(dm),
                                            size=(dm.shape[0])))
+    x_len = dm.shape[0]
     if format == 'dense':
         X = dm
     else:
@@ -260,6 +261,10 @@ def test_gens_non_0_diagonal_dim0(dm, format):
     dgms_0 = ret['dgms'][0]
     gens_fin_0 = ret['gens'][0]
     gens_ess_0 = ret['gens'][2]
+
+    # Verifies that the number of essential and finite generators
+    # combined is equal to the number of points in the point cloud
+    assert (x_len - len(gens_ess_0)) == len(gens_fin_0)
 
     # Verifies that the birth indices for essential and finite
     # representatives are unique
