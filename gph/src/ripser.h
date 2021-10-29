@@ -468,6 +468,10 @@ public:
          * The full Kruskal algorithm is implemented in `compute_dim_0`
          * and it is there that we ensure that we have root nodes before
          * calling this function. */
+        /* birth_idxs[y] stores the index of the vertex with the earliest birth
+         * among the current children of vertex y. birth[y] stores the value of
+         * the earliest birth among the current children of vertex y. Both these
+         * are updated and propagated in the algorithm as merges occur. */
         index_t birth_idx = birth_idxs[y];
         value_t birth_latest = birth[y];
 
@@ -475,17 +479,23 @@ public:
             if (rank[x] < rank[y]) {
                 parent[x] = y;
                 if (birth[x] > birth[y]) {
-                    birth_idx = birth_idxs[x];
+                    birth_idx = birth_idxs[x];  // Elder rule
                     birth_latest = birth[x];
                 } else {
+                    /* Since y is the new parent but it is not born after x,
+                     * birth indices and values are propagated from x to y. */
                     birth[y] = birth[x];
                     birth_idxs[y] = birth_idxs[x];
                 }
             } else {
                 parent[y] = x;
                 if (birth[x] > birth[y]) {
+                    /* Since x is the new parent but it is born after y, the
+                     * birth index and value to return is the one currently
+                     * associated to x, but then we propagate new birth indices
+                     * and values from y to x. */
                     birth_idx = birth_idxs[x];
-                    birth_latest = birth[x];
+                    birth_latest = birth[x];  // Elder rule
                     birth[x] = birth[y];
                     birth_idxs[x] = birth_idxs[y];
                 }
