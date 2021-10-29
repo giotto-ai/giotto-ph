@@ -287,3 +287,16 @@ def test_gens_non_0_diagonal_dim0(dm, format):
         # Verify birth of dim-0 essential representative
         # The birth is located on the diagonal
         assert np.isclose(barcode[0], X[rp, rp])
+
+
+def test_gens_order_vertices_higher_dimension():
+    square = np.array([[0, 0],
+                       [1, 0],
+                       [1, 1],
+                       [0, 1]],
+                      dtype=np.float64)
+    gens = ripser(square, maxdim=1, return_generators=True)['gens']
+    gens_fin_dim1 = gens[1][0]
+
+    assert len(gens_fin_dim1) == 1
+    assert np.array_equal(gens_fin_dim1[0], np.array([1, 0, 3, 1]))
