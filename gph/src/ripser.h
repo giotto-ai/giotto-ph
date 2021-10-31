@@ -718,7 +718,7 @@ public:
             double to_sqrt = (4 * (n * (n - 1))) - (8 * idx_) - 7;
             double n_ = n;
             index_t row_idx =
-                std::ceil(n_ - 1.5 - (0.5 * std::sqrt(to_sqrt)));
+                static_cast<index_t>(std::ceil(n_ - 1.5 - (0.5 * std::sqrt(to_sqrt))));
             index_t num_in_row =
                 row_idx * (n - 1 - row_idx) + ((row_idx * (row_idx + 1)) / 2);
             index_t col_idx = n - num_in_row + idx_;
