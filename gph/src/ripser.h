@@ -714,11 +714,10 @@ public:
             }
             return out;
         } else {
-            index_t n_pairs = binomial_coeff(n, 2);
             double to_sqrt = 8 * idx + 1;
             index_t row_idx =
                 static_cast<index_t>(std::floor(1.5 + (0.5 * std::sqrt(to_sqrt)))) - 1;
-            index_t col_idx = (n - row_idx) * (row_idx - 1) + binomial_coeff(n + 1 - row_idx, 2) - n_pairs + idx;
+            index_t col_idx = idx - binomial_coeff(row_idx, 2);
             *out++ = row_idx;
             *out++ = col_idx;
             idx = 0;
