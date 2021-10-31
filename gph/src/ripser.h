@@ -714,13 +714,14 @@ public:
             }
             return out;
         } else {
-            index_t idx_ = ((n * (n - 1)) / 2) - 1 - idx;
-            double to_sqrt = (4 * (n * (n - 1))) - (8 * idx_) - 7;
+            index_t n_pairs = binomial_coeff(n, 2);
+            index_t idx_ = n_pairs - 1 - idx;
+            double to_sqrt = 8 * idx + 1;
             double n_ = n;
             index_t row_idx =
                 static_cast<index_t>(std::ceil(n_ - 1.5 - (0.5 * std::sqrt(to_sqrt))));
             index_t num_in_row =
-                row_idx * (n - 1 - row_idx) + ((row_idx * (row_idx + 1)) / 2);
+                (row_idx + 1) * (n - 2 - row_idx) + (((row_idx + 1) * (row_idx + 2)) / 2);
             index_t col_idx = n - num_in_row + idx_;
             *out++ = n - 1 - row_idx;
             *out++ = n - 1 - col_idx;
