@@ -646,15 +646,12 @@ public:
             return out;
         } else {
             index_t n_pairs = binomial_coeff(n, 2);
-            index_t idx_ = n_pairs - 1 - idx;
             double to_sqrt = 8 * idx + 1;
             index_t row_idx =
-                n - static_cast<index_t>(std::floor(1.5 + (0.5 * std::sqrt(to_sqrt))));
-            index_t num_in_row =
-                (row_idx + 1) * (n - 2 - row_idx) + (((row_idx + 1) * (row_idx + 2)) / 2);
-            index_t col_idx = n - num_in_row + idx_;
-            *out++ = n - 1 - row_idx;
-            *out++ = n - 1 - col_idx;
+                static_cast<index_t>(std::floor(1.5 + (0.5 * std::sqrt(to_sqrt)))) - 1;
+            index_t col_idx = (n - row_idx) * (row_idx - 1) + binomial_coeff(n + 1 - row_idx, 2) - n_pairs + idx;
+            *out++ = row_idx;
+            *out++ = col_idx;
             idx = 0;
             return out;
         }
