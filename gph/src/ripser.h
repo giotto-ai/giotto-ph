@@ -1441,7 +1441,7 @@ public:
                                 .insert({get_index(get_entry(pivot)), location})
                                 .second;
 
-                        /* Only insert when it is the first time this barcode is
+                        /* Only insert when it is the first time this bar is
                          * encountered
                          */
                         if (return_flag_persistence_generators && first_ins) {
@@ -1518,9 +1518,9 @@ public:
                 value_t birth =
                     get_diameter(columns_to_reduce[get_index(x.second)]);
                 if (death > birth * ratio) {
-                    /* We push the order of the generator simplices
-                     * by when they are inserted as barcodes. This can be done
-                     * because get_index(it->second) is equivalent to `location`
+                    /* We push the order of the generator simplices by when
+                     * they are inserted as bars. This can be done because
+                     * get_index(it->second) is equivalent to `location`
                      * in the core algorithm
                      */
                     ordered_location.push_back(get_index(it->second));
