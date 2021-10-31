@@ -290,13 +290,23 @@ def test_gens_non_0_diagonal_dim0(dm, format):
 
 
 def test_gens_order_vertices_higher_dimension():
-    square = np.array([[0, 0],
-                       [1, 0],
-                       [1, 1],
-                       [0, 1]],
-                      dtype=np.float64)
-    gens = ripser(square, maxdim=1, return_generators=True)['gens']
-    gens_fin_dim1 = gens[1][0]
+    """This test verifies that function get_youngest_edge_simplex
+       returns the correct vertices. We are interested that in the computation
+       it will return the edge with the youngest vertices a the biggest diameter
+    """
+    diamond = np.array(
+        [[0,      1,      100, 1,      1,      1],
+         [0,      0,      1,      100, 1,      1],
+         [0,      0,      0,      1,      1,      1],
+         [0,      0,      0,      0,      1,      1],
+         [0,      0,      0,      0,      0,      100],
+         [0,      0,      0,      0,      0,      0]],
+        dtype=np.float64)
 
-    assert len(gens_fin_dim1) == 1
-    assert np.array_equal(gens_fin_dim1[0], np.array([1, 0, 3, 1]))
+    diamond += diamond.T
+
+    gens = ripser(diamond, maxdim=2, return_generators=True)['gens']
+    gens_fin_dim2 = gens[1][1]
+
+    assert len(gens_fin_dim2) == 1
+    assert np.array_equal(gens_fin_dim2[0], np.array([1, 0, 5, 4]))
