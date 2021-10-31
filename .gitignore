@@ -15,4 +15,5 @@ build
 # macOS files
 *.DS_store
 
-
+# JetBrains
+.idea/
