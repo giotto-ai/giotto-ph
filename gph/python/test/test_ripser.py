@@ -6,7 +6,7 @@ from hypothesis.strategies import floats, integers, composite
 from numpy.testing import assert_almost_equal
 from scipy.sparse import coo_matrix
 
-from gph.python import ripser_parallel as ripser
+from gph import ripser_parallel as ripser
 
 
 @composite
