@@ -7,7 +7,13 @@
 /*.egg-info
 *.so
 build
+
+# Unit test
+.pytest_cache/
 .hypothesis/
+
+# Pytest output files
+test-output.xml
 
 # Notebook checkpoints
 /examples/.*
