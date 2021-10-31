@@ -1,10 +1,10 @@
 ripser_parallel
 ===============
 
-gph.python.ripser\_interface function
--------------------------------------
+gph.ripser\_parallel function
+-----------------------------
 
-.. automodule:: gph.python.ripser_interface
+.. automodule:: gph.ripser_parallel
    :members:
    :undoc-members:
    :show-inheritance:
