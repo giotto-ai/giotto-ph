@@ -63,7 +63,7 @@ Basic imports:
 .. code-block:: python
     
     import numpy as np
-    from gph.python import ripser_parallel
+    from gph import ripser_parallel
 
 Point clouds
 ------------
