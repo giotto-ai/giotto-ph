@@ -725,7 +725,7 @@ public:
             index_t col_idx = n - num_in_row + idx_;
             *out++ = n - 1 - row_idx;
             *out++ = n - 1 - col_idx;
-            idx -= idx;
+            idx = 0;
             return out;
         }
     }
