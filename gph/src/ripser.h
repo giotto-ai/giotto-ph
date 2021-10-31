@@ -1361,11 +1361,11 @@ public:
 
                             // this is a weaker check than in the original
                             // lockfree persistence paper (it would suffice
-                            // that the pivot in reduction_column_to_add)
+                            // that the pivot in reduction_column_to_add
                             // hasn't changed, but given that matrix V is
                             // stored, rather than matrix R, it's easier to
                             // check that pivot_column_index entry we read
-                            // hasn't changed
+                            // hasn't changed)
                             // TODO: think through memory orders, and
                             // whether we need to adjust anything
                             entry_column_to_add =
@@ -1429,7 +1429,7 @@ public:
                                            // got there before us,
                                            // continue reduction
                             continue;      // TODO: insertion_result.first is
-                                           // the new pair; could elide and
+                                           // the new pair; could elide an
                                            // extra atomic load
 
                         /* Pairs should be extracted if insertion was
