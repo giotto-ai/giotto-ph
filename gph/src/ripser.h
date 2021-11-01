@@ -740,7 +740,6 @@ public:
         *out++ = n;
         idx -= binomial_coeff(n, 2);
         *out = idx;
-        idx = 0;
 
         return out;
     }
