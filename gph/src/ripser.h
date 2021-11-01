@@ -738,7 +738,7 @@ public:
         }
 
         double to_sqrt = 8 * idx + 1;
-        n = static_cast<index_t>(std::floor(1.5 + (0.5 * std::sqrt(to_sqrt)))) - 1;
+        n = static_cast<index_t>(std::floor(0.5 + (0.5 * std::sqrt(to_sqrt)));
         *out++ = n;
         idx -= binomial_coeff(n, 2);
         *out = idx;
