@@ -290,10 +290,11 @@ def test_gens_non_0_diagonal_dim0(dm, format):
 
 
 def test_gens_order_vertices_higher_dimension():
-    """This test verifies that function get_youngest_edge_simplex
-       returns the correct vertices. We are interested that in the computation
-       it will return the edge with the youngest vertices a the biggest diameter
-    """
+    """This test verifies that function `get_youngest_edge_simplex` returns the
+    correct vertices. It should return the edge with the largest diameter in
+    the simplex and, if several are present with the same diameter, the oldest
+    one in the reverse colexicographic order used to build the simplexwise
+    refinement of the Vietoris-Rips filtration."""
     diamond = np.array(
         [[0,      1,      100, 1,      1,      1],
          [0,      0,      1,      100, 1,      1],
