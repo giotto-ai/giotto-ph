@@ -700,21 +700,23 @@ public:
         } else {
             long double to_cbrt = 6 * idx;
             index_t guess = static_cast<index_t>(std::floor(std::cbrt(to_cbrt)));
-            if (!pred(guess)) {
-                while (true) {
-                    --guess;
-                    if (pred(guess))
-                        break;
-                }
-            } else {
-                while (true) {
+
+            const bool increment = pred(guess);
+
+            while (true) {
+                if (increment) {
                     ++guess;
                     if (!pred(guess)) {
                         --guess;
                         break;
                     }
+                } else {
+                    --guess;
+                    if (pred(guess))
+                        break;
                 }
             }
+
             return guess;
         }
     }
