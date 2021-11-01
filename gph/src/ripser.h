@@ -646,11 +646,11 @@ public:
             return out;
         } else {
             double to_sqrt = 8 * idx + 1;
-            index_t row_idx =
+            idx =
                 static_cast<index_t>(std::floor(1.5 + (0.5 * std::sqrt(to_sqrt)))) - 1;
-            index_t col_idx = idx - binomial_coeff(row_idx, 2);
-            *out++ = row_idx;
-            *out++ = col_idx;
+            *out++ = idx
+            idx -= binomial_coeff(row_idx, 2);
+            *out++ = idx;
             idx = 0;
             return out;
         }
