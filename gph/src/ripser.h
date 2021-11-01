@@ -5,8 +5,9 @@
  MIT License
 
  Copyright (c) 2015–2021 Ulrich Bauer
+ Copyright (c) 2018 Christopher Tralie
  Copyright (c) 2020 Dmitriy Morozov and Arnur Nigmetov
- Copyright (c) 2021 Julián Burella Pérez and Sydney Hauke
+ Copyright (c) 2021 Julián Burella Pérez, Sydney Hauke and Umberto Lupo
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -88,6 +89,8 @@ public:
 typedef float value_t;
 typedef int64_t index_t;
 typedef uint16_t coefficient_t;
+
+using barcodes_t = std::vector<value_t>;
 
 static const size_t num_coefficient_bits = 8;
 
@@ -426,18 +429,23 @@ struct euclidean_distance_matrix {
 class union_find
 {
     std::vector<index_t> parent;
-    std::vector<uint8_t> rank;
+    std::vector<uint8_t>
+        rank;  // TODO: Understand if uint8 is enough for large data
     std::vector<value_t> birth;
+    std::vector<index_t> birth_idxs;
 
 public:
-    union_find(const index_t n) : parent(n), rank(n, 0), birth(n, 0)
+    union_find(const index_t n)
+        : parent(n), rank(n, 0), birth(n, 0), birth_idxs(n, 0)
     {
         // Fills the range [first, last) with sequentially increasing values
         std::iota(parent.begin(), parent.end(), 0);
+        std::iota(birth_idxs.begin(), birth_idxs.end(), 0);
     }
 
     void set_birth(index_t i, value_t val) { birth[i] = val; }
     value_t get_birth(index_t i) { return birth[i]; }
+    index_t get_birth_idx(index_t i) { return birth_idxs[i]; }
 
     index_t find(index_t x)
     {
@@ -455,21 +463,49 @@ public:
         return z;
     }
 
-    void link(index_t x, index_t y)
+    diameter_index_t link_roots_and_get_birth_vertex(index_t x, index_t y)
     {
-        x = find(x);
-        y = find(y);
-        if (x == y)
-            return;
-        if (rank[x] > rank[y]) {
-            parent[y] = x;
-            birth[x] = std::min(birth[x], birth[y]);  // Elder rule
-        } else {
-            parent[x] = y;
-            birth[y] = std::min(birth[x], birth[y]);  // Elder rule
-            if (rank[x] == rank[y])
-                ++rank[y];
+        /* In Kruskal's algorithm, in the `link` function, normally one should
+         * first call `find` on each node to get the respective root node.
+         * The full Kruskal algorithm is implemented in `compute_dim_0`
+         * and it is there that we ensure that we have root nodes before
+         * calling this function. */
+        /* birth_idxs[y] stores the index of the vertex with the earliest birth
+         * among the current children of vertex y. birth[y] stores the value of
+         * the earliest birth among the current children of vertex y. Both these
+         * are updated and propagated in the algorithm as merges occur. */
+        index_t birth_idx = birth_idxs[y];
+        value_t birth_latest = birth[y];
+
+        if (x != y) {
+            if (rank[x] < rank[y]) {
+                parent[x] = y;
+                if (birth[x] > birth[y]) {
+                    birth_idx = birth_idxs[x];  // Elder rule
+                    birth_latest = birth[x];
+                } else {
+                    /* Since y is the new parent but it is not born after x,
+                     * birth indices and values are propagated from x to y. */
+                    birth[y] = birth[x];
+                    birth_idxs[y] = birth_idxs[x];
+                }
+            } else {
+                parent[y] = x;
+                if (birth[x] > birth[y]) {
+                    /* Since x is the new parent but it is born after y, the
+                     * birth index and value to return is the one currently
+                     * associated to x, but then we propagate new birth indices
+                     * and values from y to x. */
+                    birth_idx = birth_idxs[x];
+                    birth_latest = birth[x];  // Elder rule
+                    birth[x] = birth[y];
+                    birth_idxs[x] = birth_idxs[y];
+                }
+                if (rank[x] == rank[y])
+                    ++rank[x];
+            }
         }
+        return diameter_index_t{birth_latest, birth_idx};
     }
 };
 
@@ -529,6 +565,24 @@ index_t get_max(index_t top, index_t count, const Predicate pred)
     return top;
 }
 
+class flagPersGen
+{
+public:
+    using finite_0_t = std::vector<std::tuple<index_t, index_t, index_t>>;
+    using finite_higher_t =
+        std::vector<std::tuple<index_t, index_t, index_t, index_t>>;
+    using finite_higher_by_dim_t = std::vector<finite_higher_t>;
+
+    using essential_0_t = std::vector<index_t>;
+    using essential_higher_t = std::vector<std::tuple<index_t, index_t>>;
+    using essential_higher_by_dim_t = std::vector<essential_higher_t>;
+
+    finite_0_t finite_0;
+    finite_higher_by_dim_t finite_higher;
+    essential_0_t essential_0;
+    essential_higher_by_dim_t essential_higher;
+};
+
 /* This is the data structure from which the results of running ripser can be
  * returned */
 typedef struct {
@@ -538,10 +592,13 @@ typedef struct {
        for k points in the 0D persistence diagram
        and likewise for d-dimensional persistence in births_and_deaths_by_dim[d]
     */
-    std::vector<std::vector<value_t>> births_and_deaths_by_dim;
-    /* The second variable is the number of edges that were added during the
-     * computation*/
+    std::vector<barcodes_t> births_and_deaths_by_dim;
+    /* The second variable stores the flag persistence generators */
+    flagPersGen flag_persistence_generators;
+    /* The third variable is the number of edges that were added during the
+     * computation */
     int num_edges;
+
 } ripserResults;
 
 template <typename DistanceMatrix>
@@ -556,6 +613,9 @@ class ripser
     const std::vector<coefficient_t> multiplicative_inverse;
     int num_threads;
     std::unique_ptr<ctpl::thread_pool> p;
+    // If this flag is off, don't extract the flag persistence
+    // pairings and essential simplices
+    const bool return_flag_persistence_generators;
 
     struct entry_hash {
         std::size_t operator()(const entry_t& e) const
@@ -578,6 +638,7 @@ class ripser
         diameter_entry_t, std::vector<diameter_entry_t>,
         greater_diameter_or_smaller_index<diameter_entry_t>>;
     using mat_simplicies_t = std::vector<std::vector<diameter_index_t>>;
+    using edge_t = std::pair<index_t, index_t>;
 
 private:
     const bool is_not_present(entry_hash_map& hm,
@@ -587,14 +648,18 @@ private:
     }
 
 public:
-    mutable std::vector<std::vector<value_t>> births_and_deaths_by_dim;
+    mutable std::vector<barcodes_t> births_and_deaths_by_dim;
+    mutable flagPersGen flag_persistence_generators;
 
     ripser(DistanceMatrix&& _dist, index_t _dim_max, value_t _threshold,
-           float _ratio, coefficient_t _modulus, int _num_threads)
+           float _ratio, coefficient_t _modulus, int _num_threads,
+           bool return_flag_persistence_generators_)
         : dist(std::move(_dist)), n(dist.size()), dim_max(_dim_max),
           threshold(_threshold), ratio(_ratio), modulus(_modulus),
           num_threads(_num_threads), binomial_coeff(n, dim_max + 2),
-          multiplicative_inverse(multiplicative_inverse_vector(_modulus))
+          multiplicative_inverse(multiplicative_inverse_vector(_modulus)),
+          return_flag_persistence_generators(
+              return_flag_persistence_generators_)
     {
         /* Uses all concurrent threads supported */
         if (num_threads == -1)
@@ -610,8 +675,12 @@ public:
     }
 
     void copy_results(ripserResults& res)
+    /* This function will assign to res the results of the persistent homology
+    computation. It is here to facilitate binding with Python
+     */
     {
         res.births_and_deaths_by_dim = births_and_deaths_by_dim;
+        res.flag_persistence_generators = flag_persistence_generators;
     }
 
     index_t get_max_vertex(const index_t idx, const index_t k,
@@ -916,36 +985,52 @@ public:
         std::vector<index_t> vertices_of_edge(2);
         columns_to_reduce.resize(edges.size());
         size_t i = 0;
+        value_t birth;
+        diameter_index_t birth_vertex;
         for (auto e : edges) {
             get_simplex_vertices(get_index(e), 1, n, vertices_of_edge.rbegin());
-            index_t u = dset.find(vertices_of_edge[0]),
-                    v = dset.find(vertices_of_edge[1]);
+            index_t v1 = vertices_of_edge[0];
+            index_t v2 = vertices_of_edge[1];
+            index_t u = dset.find(v1), v = dset.find(v2);
 
             if (u != v) {
+                // link must be always done and now because we retrieve
+                // birth vertex value and index, it must be computed before
+                // the if condition
+                birth_vertex = dset.link_roots_and_get_birth_vertex(u, v);
                 if (get_diameter(e) != 0) {
                     // Elder rule; youngest class (max birth time of u and v)
                     // dies first
-                    value_t birth =
-                        std::max(dset.get_birth(u), dset.get_birth(v));
+                    birth = birth_vertex.first;
                     value_t death = get_diameter(e);
                     if (death > birth) {
                         births_and_deaths_by_dim[0].push_back(birth);
                         births_and_deaths_by_dim[0].push_back(death);
+
+                        if (return_flag_persistence_generators) {
+                            flag_persistence_generators.finite_0.push_back(
+                                {birth_vertex.second, std::max(v1, v2),
+                                 std::min(v1, v2)});
+                        }
                     }
                 }
-                dset.link(u, v);
             } else if (get_index(get_zero_apparent_cofacet(e, 1)) == -1)
                 columns_to_reduce[i++] = e;
         }
         columns_to_reduce.resize(i);
         std::reverse(columns_to_reduce.begin(), columns_to_reduce.end());
 
-        for (index_t i = 0; i < n; ++i)
+        for (index_t i = 0; i < n; ++i) {
             if (dset.find(i) == i) {
                 births_and_deaths_by_dim[0].push_back(dset.get_birth(i));
                 births_and_deaths_by_dim[0].push_back(
                     std::numeric_limits<value_t>::infinity());
+                if (return_flag_persistence_generators) {
+                    flag_persistence_generators.essential_0.push_back(
+                        dset.get_birth_idx(i));
+                }
             }
+        }
     }
 
     diameter_entry_t pop_pivot(WorkingColumn& column)
@@ -1163,6 +1248,52 @@ public:
                                           idx_col, 1, dim)) == pivot_index);
     }
 
+    edge_t
+    get_youngest_edge_simplex(const std::vector<index_t>& vertices_simplex)
+    {
+        value_t diam = -std::numeric_limits<value_t>::infinity();
+        edge_t edge;
+
+        for (index_t i = 0; i < vertices_simplex.size(); ++i) {
+            for (index_t j = 0; j < i; ++j) {
+                index_t v1 = vertices_simplex[i];
+                index_t v2 = vertices_simplex[j];
+
+                value_t new_diam = dist(v1, v2);
+                edge_t new_cand = {v1, v2};
+
+                if (new_diam >= diam) {
+                    /* swap current candidate if
+                     * The new diameter is bigger than the current cadidate
+                     * diameter. Or if they have equal diameter, look for
+                     * vertices of each candidate use the same sorting order
+                     * as used for the filtration (by reverse colexicographic
+                     * vertex order).
+                     */
+                    if (new_diam > diam) {
+                        edge = new_cand;
+                        diam = new_diam;
+                    } else {
+                        // cc : Current cadidate
+                        // nc : New cadidate
+                        index_t cc_v1 = std::max(edge.first, edge.second);
+                        index_t nc_v1 =
+                            std::max(new_cand.first, new_cand.second);
+
+                        if ((cc_v1 > nc_v1) ||
+                            (cc_v1 == nc_v1 &&
+                             std::min(edge.first, edge.second) >
+                                 std::min(new_cand.first, new_cand.second))) {
+                            edge = new_cand;
+                        }
+                    }
+                }
+            }
+        }
+
+        return edge;
+    }
+
     void compute_pairs(const std::vector<diameter_index_t>& columns_to_reduce,
                        entry_hash_map& pivot_column_index, const index_t dim)
     {
@@ -1174,9 +1305,12 @@ public:
         entry_hash_map deaths;
         deaths.reserve(columns_to_reduce.size());
 
+        /* Pre-allocate containers for parallel computation */
         std::vector<value_t> diameters(columns_to_reduce.size());
-        std::vector<value_t> essential_pair;
-        essential_pair.resize(columns_to_reduce.size());
+        std::vector<value_t> essential_pair(columns_to_reduce.size());
+        flagPersGen::essential_higher_t essential_generator(
+            columns_to_reduce.size());
+        flagPersGen::finite_higher_t finite_generator(columns_to_reduce.size());
 
         foreach (columns_to_reduce, [&](index_t index_column_to_reduce,
                                         bool first,
@@ -1227,11 +1361,11 @@ public:
 
                             // this is a weaker check than in the original
                             // lockfree persistence paper (it would suffice
-                            // that the pivot in reduction_column_to_add)
+                            // that the pivot in reduction_column_to_add
                             // hasn't changed, but given that matrix V is
                             // stored, rather than matrix R, it's easier to
                             // check that pivot_column_index entry we read
-                            // hasn't changed
+                            // hasn't changed)
                             // TODO: think through memory orders, and
                             // whether we need to adjust anything
                             entry_column_to_add =
@@ -1295,19 +1429,69 @@ public:
                                            // got there before us,
                                            // continue reduction
                             continue;      // TODO: insertion_result.first is
-                                           // the new pair; could elide and
+                                           // the new pair; could elide an
                                            // extra atomic load
 
-                        /* Pairs should be extracted if insertation was
+                        /* Pairs should be extracted if insertion was
                          * first one ! */
                         size_t location = last_diameter_index++;
                         diameters[location] = get_diameter(pivot);
-                        deaths.insert({get_index(get_entry(pivot)), location});
+                        auto first_ins =
+                            deaths
+                                .insert({get_index(get_entry(pivot)), location})
+                                .second;
+
+                        /* Only insert when it is the first time this bar is
+                         * encountered
+                         */
+                        if (return_flag_persistence_generators && first_ins) {
+                            // Inessential flag persistence generators in dim >
+                            // 0
+                            std::vector<index_t> vertices_birth(dim + 1);
+                            std::vector<index_t> vertices_death(dim + 2);
+
+                            index_t birth_idx =
+                                get_index(get_entry(column_to_reduce));
+                            index_t death_idx = get_index(get_entry(pivot));
+
+                            get_simplex_vertices(birth_idx, dim, n,
+                                                 vertices_birth.rbegin());
+                            get_simplex_vertices(death_idx, dim + 1, n,
+                                                 vertices_death.rbegin());
+
+                            edge_t birth_edge =
+                                get_youngest_edge_simplex(vertices_birth);
+                            edge_t death_edge =
+                                get_youngest_edge_simplex(vertices_death);
+
+                            finite_generator[location] = {
+                                birth_edge.first, birth_edge.second,
+                                death_edge.first, death_edge.second};
+                        }
+
                         break;
                     }
                 } else {
-                    essential_pair[idx_essential++] =
-                        get_diameter(column_to_reduce);
+                    auto idx_ = idx_essential++;
+                    essential_pair[idx_] = get_diameter(column_to_reduce);
+
+                    if (return_flag_persistence_generators) {
+                        // Essential flag persistence generators in dim > 0
+                        std::vector<index_t> vertices_birth(dim + 1);
+
+                        index_t birth_idx =
+                            get_index(get_entry(column_to_reduce));
+
+                        get_simplex_vertices(birth_idx, dim, n,
+                                             vertices_birth.rbegin());
+
+                        edge_t birth_edge =
+                            get_youngest_edge_simplex(vertices_birth);
+
+                        essential_generator[idx_] = {birth_edge.first,
+                                                     birth_edge.second};
+                    }
+
                     // TODO: these will need special attention, if output
                     // happens after the reduction, not during
                     break;
@@ -1321,8 +1505,10 @@ public:
         /* persistence pairs */
 #if defined(SORT_BARCODES)
         std::vector<std::pair<value_t, value_t>> persistence_pair;
+        std::vector<size_t> indexes;
 #endif
 
+        std::vector<size_t> ordered_location;
         pivot_column_index.foreach (
             [&](const typename entry_hash_map::value_type& x) {
                 auto it = deaths.find(x.first);
@@ -1332,6 +1518,12 @@ public:
                 value_t birth =
                     get_diameter(columns_to_reduce[get_index(x.second)]);
                 if (death > birth * ratio) {
+                    /* We push the order of the generator simplices by when
+                     * they are inserted as bars. This can be done because
+                     * get_index(it->second) is equivalent to `location`
+                     * in the core algorithm
+                     */
+                    ordered_location.push_back(get_index(it->second));
 #if defined(SORT_BARCODES)
                     persistence_pair.push_back({birth, death});
 #else
@@ -1341,7 +1533,19 @@ public:
                 }
             });
 #if defined(SORT_BARCODES)
+        /* `indexes` allows to keep track of the permutation performed when
+         * sorting barcodes. See https://stackoverflow.com/a/17554343
+         */
         if (persistence_pair.size()) {
+            if (return_flag_persistence_generators) {
+                indexes.resize(ordered_location.size());
+                std::iota(indexes.begin(), indexes.end(), 0);
+                std::sort(indexes.begin(), indexes.end(),
+                          [&](const auto& lhs, const auto& rhs) {
+                              return persistence_pair[lhs] >
+                                     persistence_pair[rhs];
+                          });
+            }
             std::sort(persistence_pair.begin(), persistence_pair.end(),
                       std::greater<>());
             for (auto& pair : persistence_pair) {
@@ -1365,6 +1569,26 @@ public:
                 }
             }
         }
+
+        if (return_flag_persistence_generators) {
+            /* We store in dim-1, because *_higher does not include
+             * dim 0
+             */
+#if defined(SORT_BARCODES)
+            for (const auto ordered_idx : indexes)
+                flag_persistence_generators.finite_higher[dim - 1].push_back(
+                    finite_generator[ordered_location[ordered_idx]]);
+#else
+            for (const auto ordered_idx : ordered_location)
+                flag_persistence_generators.finite_higher[dim - 1].push_back(
+                    finite_generator[ordered_idx]);
+#endif
+
+            for (size_t i = 0; i < idx_essential; ++i) {
+                flag_persistence_generators.essential_higher[dim - 1].push_back(
+                    essential_generator[i]);
+            }
+        }
     }
 
     std::vector<diameter_index_t> get_edges();
@@ -1375,6 +1599,8 @@ public:
 
         /* pre allocate Container for each dimension */
         births_and_deaths_by_dim.resize(dim_max + 1);
+        flag_persistence_generators.finite_higher.resize(dim_max);
+        flag_persistence_generators.essential_higher.resize(dim_max);
 
         compute_dim_0_pairs(simplices, columns_to_reduce);
         /* pre allocate Container for each dimension */
