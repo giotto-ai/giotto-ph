@@ -691,9 +691,32 @@ public:
         };
 
         const index_t cnt = n - (k - 1);
+
         if (pred(n) || (cnt <= 0))
             return n;
-        return get_max(n, cnt, pred);
+
+        if (k != 3) {
+            return get_max(n, cnt, pred);
+        } else {
+            long double to_cbrt = 6 * idx;
+            index_t guess = static_cast<index_t>(std::floor(std::cbrt(to_cbrt)));
+            if (!pred(guess)) {
+                while (true) {
+                    --guess;
+                    if (pred(guess))
+                        break;
+                }
+            } else {
+                while (true) {
+                    ++guess;
+                    if (!pred(guess)) {
+                        --guess;
+                        break;
+                    }
+                }
+            }
+            return guess;
+        }
     }
 
     index_t get_edge_index(const index_t i, const index_t j) const
