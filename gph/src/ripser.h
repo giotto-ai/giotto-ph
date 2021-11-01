@@ -728,23 +728,21 @@ public:
     OutputIterator get_simplex_vertices(index_t idx, const index_t dim,
                                         index_t n, OutputIterator out) const
     {
-        if (dim != 1) {
-            --n;
-            for (index_t k = dim + 1; k > 0; --k) {
-                n = get_max_vertex(idx, k, n);
-                *out++ = n;
-                idx -= binomial_coeff(n, k);
-            }
-            return out;
-        } else {
-            double to_sqrt = 8 * idx + 1;
-            n = static_cast<index_t>(std::floor(1.5 + (0.5 * std::sqrt(to_sqrt)))) - 1;
+        --n;
+        for (index_t k = dim + 1; k > 2; --k) {
+            n = get_max_vertex(idx, k, n);
             *out++ = n;
-            idx -= binomial_coeff(n, 2);
-            *out++ = idx;
-            idx = 0;
-            return out;
+            idx -= binomial_coeff(n, k);
         }
+
+        double to_sqrt = 8 * idx + 1;
+        n = static_cast<index_t>(std::floor(1.5 + (0.5 * std::sqrt(to_sqrt)))) - 1;
+        *out++ = n;
+        idx -= binomial_coeff(n, 2);
+        *out++ = idx;
+        idx = 0;
+
+        return out;
     }
 
     value_t compute_diameter(const index_t index, const index_t dim) const
