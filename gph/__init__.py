@@ -1,6 +1,8 @@
+from .python import ripser_parallel
 from ._version import __version__
 
 __all__ = [
-    'modules',
-    '__version__'
+    "ripser_parallel",
+    "modules",
+    "__version__"
 ]
