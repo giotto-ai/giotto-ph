@@ -739,7 +739,7 @@ public:
         n = static_cast<index_t>(std::floor(1.5 + (0.5 * std::sqrt(to_sqrt)))) - 1;
         *out++ = n;
         idx -= binomial_coeff(n, 2);
-        *out++ = idx;
+        *out = idx;
         idx = 0;
 
         return out;
