@@ -715,10 +715,9 @@ public:
             return out;
         } else {
             double to_sqrt = 8 * idx + 1;
-            idx =
-                static_cast<index_t>(std::floor(1.5 + (0.5 * std::sqrt(to_sqrt)))) - 1;
-            *out++ = idx
-            idx -= binomial_coeff(row_idx, 2);
+            n = static_cast<index_t>(std::floor(1.5 + (0.5 * std::sqrt(to_sqrt)))) - 1;
+            *out++ = n;
+            idx -= binomial_coeff(n, 2);
             *out++ = idx;
             idx = 0;
             return out;
