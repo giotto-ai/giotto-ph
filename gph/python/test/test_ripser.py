@@ -3,7 +3,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis.extra.numpy import arrays
 from hypothesis.strategies import floats, integers, composite
-from numpy.testing import assert_almost_equal
+from numpy.testing import assert_almost_equal, assert_array_equal
 from scipy.sparse import coo_matrix
 from scipy.spatial.distance import pdist, squareform
 
@@ -325,5 +325,4 @@ def test_ph_maxdim_0():
     assert res_maxdim_0.shape[0] == res_maxdim_1.shape[0]
 
     # Verifies if both computation have the same barcodes
-    for barcode in res_maxdim_0:
-        assert any(np.equal(barcode, res_maxdim_1).all(1))
+    assert_array_equal(res_maxdim_0, res_maxdim_1)
