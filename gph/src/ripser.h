@@ -995,24 +995,19 @@ public:
             index_t u = dset.find(v1), v = dset.find(v2);
 
             if (u != v) {
-                // link must be always done and now because we retrieve
-                // birth vertex value and index, it must be computed before
-                // the if condition
                 birth_vertex = dset.link_roots_and_get_birth_vertex(u, v);
-                if (get_diameter(e) != 0) {
-                    // Elder rule; youngest class (max birth time of u and v)
-                    // dies first
-                    birth = birth_vertex.first;
-                    value_t death = get_diameter(e);
-                    if (death > birth) {
-                        births_and_deaths_by_dim[0].push_back(birth);
-                        births_and_deaths_by_dim[0].push_back(death);
+                // Elder rule; youngest class (max birth time of u and v)
+                // dies first
+                birth = birth_vertex.first;
+                value_t death = get_diameter(e);
+                if (death > birth) {
+                    births_and_deaths_by_dim[0].push_back(birth);
+                    births_and_deaths_by_dim[0].push_back(death);
 
-                        if (return_flag_persistence_generators) {
-                            flag_persistence_generators.finite_0.push_back(
-                                {birth_vertex.second, std::max(v1, v2),
-                                 std::min(v1, v2)});
-                        }
+                    if (return_flag_persistence_generators) {
+                        flag_persistence_generators.finite_0.push_back(
+                            {birth_vertex.second, std::max(v1, v2),
+                             std::min(v1, v2)});
                     }
                 }
             } else if (prepare_higher_dims &&
