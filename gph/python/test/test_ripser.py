@@ -321,8 +321,5 @@ def test_ph_maxdim_0():
     res_maxdim_0 = ripser(X, maxdim=0)['dgms'][0]
     res_maxdim_1 = ripser(X, maxdim=1)['dgms'][0]
 
-    # Verifies that the number of barcodes is the same
-    assert res_maxdim_0.shape[0] == res_maxdim_1.shape[0]
-
-    # Verifies if both computation have the same barcodes
+    # Verifies if both computations have the same barcodes
     assert_array_equal(res_maxdim_0, res_maxdim_1)
