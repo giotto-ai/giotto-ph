@@ -985,6 +985,7 @@ public:
         std::vector<index_t> vertices_of_edge(2);
         columns_to_reduce.resize(edges.size());
         size_t i = 0;
+        const bool prepare_higher_dims = (dim_max > 0);
         value_t birth;
         diameter_index_t birth_vertex;
         for (auto e : edges) {
@@ -1014,7 +1015,8 @@ public:
                         }
                     }
                 }
-            } else if (get_index(get_zero_apparent_cofacet(e, 1)) == -1)
+            } else if (prepare_higher_dims &&
+                       get_index(get_zero_apparent_cofacet(e, 1)) == -1)
                 columns_to_reduce[i++] = e;
         }
         columns_to_reduce.resize(i);
