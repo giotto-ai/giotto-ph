@@ -698,7 +698,7 @@ public:
         if (k != 3) {
             return get_max(n, cnt, pred);
         } else {
-            long double to_cbrt = 6 * idx;
+            double to_cbrt = 6 * idx;
             index_t guess = static_cast<index_t>(std::floor(std::cbrt(to_cbrt))) + 1;
 
             const bool increment = pred(guess);
