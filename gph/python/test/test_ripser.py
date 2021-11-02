@@ -311,3 +311,10 @@ def test_gens_order_vertices_higher_dimension():
 
     assert len(gens_fin_dim2) == 1
     assert np.array_equal(gens_fin_dim2[0], np.array([1, 0, 5, 4]))
+
+
+def test_ph_maxdim_0():
+    """Regression test for issue #39, an issue was found when only computing
+    up to dimension 0. The test also compares the results of dimension 0"""
+    X = np.array([[1., 2], [3, 4], [5, 0]])
+    ripser(X, maxdim=0)['dgms'][0]
