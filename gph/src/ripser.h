@@ -699,8 +699,11 @@ public:
             return get_max(n, cnt, pred);
         } else {
             double to_cbrt = 6 * idx;
-            index_t guess = static_cast<index_t>(std::floor(std::cbrt(to_cbrt))) + 1;
+            index_t guess =
+                static_cast<index_t>(std::floor(std::cbrt(to_cbrt))) + 1;
 
+            /* Perform a local linear search starting from guess,
+             * instead of a binary search. */
             const bool increment = pred(guess);
 
             while (true) {
@@ -731,6 +734,9 @@ public:
                                         index_t n, OutputIterator out) const
     {
         --n;
+        /* Perform steps for k = 1 and 2 using the exact formula for the
+         * integer part of the real number solution of binom(n, 2) = idx,
+         * see below. */
         for (index_t k = dim + 1; k > 2; --k) {
             n = get_max_vertex(idx, k, n);
             *out++ = n;
@@ -738,6 +744,7 @@ public:
         }
 
         double to_sqrt = 2 * idx + 0.25;
+        // Exact formula, modulo numerics
         n = static_cast<index_t>(std::round(std::sqrt(to_sqrt)));
         *out++ = n;
         idx -= binomial_coeff(n, 2);
