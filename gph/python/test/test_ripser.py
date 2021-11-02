@@ -315,6 +315,15 @@ def test_gens_order_vertices_higher_dimension():
 
 def test_ph_maxdim_0():
     """Regression test for issue #39, an issue was found when only computing
-    up to dimension 0. The test also compares the results of dimension 0"""
+    up to dimension 0. The test also compares the results of dimension 0
+    when maxdim=1 and maxdim=0"""
     X = np.array([[1., 2], [3, 4], [5, 0]])
-    ripser(X, maxdim=0)['dgms'][0]
+    res_maxdim_0 = ripser(X, maxdim=0)['dgms'][0]
+    res_maxdim_1 = ripser(X, maxdim=1)['dgms'][0]
+
+    # Verifies that the number of barcodes is the same
+    assert res_maxdim_0.shape[0] == res_maxdim_1.shape[0]
+
+    # Verifies if both computation have the same barcodes
+    for barcode in res_maxdim_0:
+        assert any(np.equal(barcode, res_maxdim_1).all(1))
