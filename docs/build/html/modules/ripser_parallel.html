@@ -116,9 +116,9 @@ distance/dissimilarity between them.</p>
 <dt>metric_params<span class="classifier">dict, optional, default: <code class="docutils literal notranslate"><span class="pre">{}</span></code></span></dt><dd><p>Additional parameters to be passed to the distance function.</p>
 </dd>
 <dt>weights<span class="classifier"><code class="docutils literal notranslate"><span class="pre">&quot;DTM&quot;</span></code>, ndarray or None, optional, default: <code class="docutils literal notranslate"><span class="pre">None</span></code></span></dt><dd><p>If not <code class="docutils literal notranslate"><span class="pre">None</span></code>, the persistence of a weighted Vietoris-Rips filtration
-is computed as described in <a class="footnote-reference brackets" href="#id7" id="id1">3</a>, and this parameter determines the
+is computed as described in <a class="footnote-reference brackets" href="#id16" id="id1">6</a>, and this parameter determines the
 vertex weights in the modified adjacency matrix. <code class="docutils literal notranslate"><span class="pre">&quot;DTM&quot;</span></code> denotes the
-empirical distance-to-measure function defined, following <a class="footnote-reference brackets" href="#id7" id="id2">3</a>, by</p>
+empirical distance-to-measure function defined, following <a class="footnote-reference brackets" href="#id16" id="id2">6</a>, by</p>
 <div class="math notranslate nohighlight">
 \[w(x) = 2\left(\frac{1}{n+1} \sum_{k=1}^n
 \mathrm{dist}(x, x_k)^r \right)^{1/r}.\]</div>
@@ -151,7 +151,7 @@ used in computing edge weights from vertex weights. It can be one of
 <code class="docutils literal notranslate"><span class="pre">&quot;n_neighbors&quot;</span></code> (default: <code class="docutils literal notranslate"><span class="pre">3</span></code>) are available (see <cite>weights</cite>,
 where the latter corresponds to <span class="math notranslate nohighlight">\(n\)</span>).</p>
 </dd>
-<dt>collapse_edges<span class="classifier">bool, optional, default: <code class="docutils literal notranslate"><span class="pre">False</span></code></span></dt><dd><p>Whether to use the edge collapse algorithm as described in <a class="footnote-reference brackets" href="#id6" id="id3">2</a> prior
+<dt>collapse_edges<span class="classifier">bool, optional, default: <code class="docutils literal notranslate"><span class="pre">False</span></code></span></dt><dd><p>Whether to use the edge collapse algorithm as described in <a class="footnote-reference brackets" href="#id15" id="id3">5</a> prior
 to computing persistence. Cannot be <code class="docutils literal notranslate"><span class="pre">True</span></code> if <cite>return_generators</cite> is
 also <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
 </dd>
@@ -169,8 +169,8 @@ the return dictionary under the key <cite>gens</cite>. Cannot be <code class="do
 </section>
 <section id="returns">
 <h3>Returns<a class="headerlink" href="#returns" title="Permalink to this headline"></a></h3>
-<p>A dictionary holding all of the results of the computation:
-{</p>
+<p>A dictionary holding the results of the computation. Keys and values are as
+follows:</p>
 <blockquote>
 <div><dl>
 <dt>‘dgms’: list (length maxdim + 1) of ndarray (n_pairs, 2)</dt><dd><p>A list of persistence diagrams, one for each dimension less than or
@@ -200,46 +200,65 @@ death.</p>
 </dd>
 </dl>
 </div></blockquote>
-<p>}</p>
 </section>
 <section id="notes">
 <h3>Notes<a class="headerlink" href="#notes" title="Permalink to this headline"></a></h3>
-<p><a class="reference external" href="https://github.com/Ripser/ripser">Ripser</a> is used as a C++ backend
-for computing Vietoris–Rips persistent homology. Python bindings were
-modified for performance from the <a class="reference external" href="https://github.com/scikit-tda/ripser.py">ripser.py</a> package.</p>
+<p>The C++ backend and Python API for the computation of Vietoris–Rips
+persistent homology are developments of the ones in the
+<a class="reference external" href="https://github.com/scikit-tda/ripser.py">ripser.py</a> project <a class="footnote-reference brackets" href="#id9" id="id4">1</a>, with
+added optimizations from <a class="reference external" href="https://github.com/Ripser/ripser">Ripser</a> <a class="footnote-reference brackets" href="#id12" id="id5">2</a>,
+lock-free reduction from <a class="footnote-reference brackets" href="#id13" id="id6">3</a>, and additional performance improvements. See
+<a class="footnote-reference brackets" href="#id14" id="id7">4</a> for details.</p>
 <p>Ripser supports two memory representations, dense and sparse. The sparse
 representation is used in the following cases:</p>
 <blockquote>
 <div><ul class="simple">
-<li><p>Input is sparse of type scipy.sparse</p></li>
-<li><p>Collapser is enabled</p></li>
-<li><p>The user provides a threshold</p></li>
+<li><p>input is sparse of type scipy.sparse;</p></li>
+<li><p>collapser is enabled;</p></li>
+<li><p>a threshold is provided.</p></li>
 </ul>
 </div></blockquote>
 <dl class="simple">
 <dt>The dense representation will be used in the following cases:</dt><dd><ul class="simple">
-<li><p>Input is a point cloud or a distance matrix</p></li>
+<li><p>input is a point cloud or a distance matrix.</p></li>
 </ul>
 </dd>
 </dl>
-<p>The implementation of the edge collapse algorithm <a class="footnote-reference brackets" href="#id6" id="id4">2</a> is a modification of
+<p>The implementation of the edge collapse algorithm <a class="footnote-reference brackets" href="#id15" id="id8">5</a> is a modification of
 <a class="reference external" href="https://github.com/GUDHI/gudhi-devel">GUDHI’s</a> C++ implementation.</p>
 </section>
 <section id="references">
 <h3>References<a class="headerlink" href="#references" title="Permalink to this headline"></a></h3>
 <dl class="footnote brackets">
-<dt class="label" id="id5"><span class="brackets">1</span></dt>
-<dd><p>U. Bauer, “Ripser: efficient computation of Vietoris–Rips
-persistence barcodes”, 2021; <a class="reference external" href="https://arxiv.org/abs/1908.02518">arXiv:1908.02518</a>.</p>
+<dt class="label" id="id9"><span class="brackets"><a class="fn-backref" href="#id4">1</a></span></dt>
+<dd><p>C. Tralie et al, “Ripser.py: A Lean Persistent Homology Library for
+Python”, <em>Journal of Open Source Software</em>, <a href="#id10"><span class="problematic" id="id11">**</span></a>3**(29), 2021;
+<a class="reference external" href="https://doi.org/10.21105/joss.00925">DOI: 10.21105/joss.00925</a>.</p>
 </dd>
-<dt class="label" id="id6"><span class="brackets">2</span><span class="fn-backref">(<a href="#id3">1</a>,<a href="#id4">2</a>)</span></dt>
+<dt class="label" id="id12"><span class="brackets"><a class="fn-backref" href="#id5">2</a></span></dt>
+<dd><p>U. Bauer, “Ripser: efficient computation of Vietoris–Rips persistence
+barcodes”, <em>J Appl. and Comput. Topology</em>, <strong>5</strong>, pp. 391–423, 2021;
+<a class="reference external" href="https://doi.org/10.1007/s41468-021-00071-5">DOI: 10.1007/s41468-021-00071-5</a>.</p>
+</dd>
+<dt class="label" id="id13"><span class="brackets"><a class="fn-backref" href="#id6">3</a></span></dt>
+<dd><p>D. Morozov and A. Nigmetov, “Towards Lockfree Persistent Homology”;
+in <em>SPAA ‘20: Proceedings of the 32nd ACM Symposium on Parallelism
+in Algorithms and Architectures</em>, pp. 555–557, 2020;
+<a class="reference external" href="https://doi.org/10.1145/3350755.3400244">DOI: 10.1145/3350755.3400244</a>.</p>
+</dd>
+<dt class="label" id="id14"><span class="brackets"><a class="fn-backref" href="#id7">4</a></span></dt>
+<dd><p>J. Burella Pérez et al, “giotto-ph: A Python Library for
+High-Performance Computation of Persistent Homology of Vietoris–Rips
+Filtrations”, 2021; <a class="reference external" href="https://arxiv.org/abs/2107.05412">arXiv:2107.05412</a>.</p>
+</dd>
+<dt class="label" id="id15"><span class="brackets">5</span><span class="fn-backref">(<a href="#id3">1</a>,<a href="#id8">2</a>)</span></dt>
 <dd><p>J.-D. Boissonnat and S. Pritam, “Edge Collapse and Persistence of
 Flag Complexes”; in <em>36th International Symposium on Computational
 Geometry (SoCG 2020)</em>, pp. 19:1–19:15, Schloss
 Dagstuhl-Leibniz–Zentrum für Informatik, 2020;
 <a class="reference external" href="https://doi.org/10.4230/LIPIcs.SoCG.2020.19">DOI: 10.4230/LIPIcs.SoCG.2020.19</a>.</p>
 </dd>
-<dt class="label" id="id7"><span class="brackets">3</span><span class="fn-backref">(<a href="#id1">1</a>,<a href="#id2">2</a>)</span></dt>
+<dt class="label" id="id16"><span class="brackets">6</span><span class="fn-backref">(<a href="#id1">1</a>,<a href="#id2">2</a>)</span></dt>
 <dd><p>H. Anai et al, “DTM-Based Filtrations”; in <em>Topological Data
 Analysis</em> (Abel Symposia, vol 15), Springer, 2020;
 <a class="reference external" href="https://doi.org/10.1007/978-3-030-43408-3_2">DOI: 10.1007/978-3-030-43408-3_2</a>.</p>
