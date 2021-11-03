@@ -354,8 +354,9 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
 
     Returns
     -------
-    A dictionary holding all of the results of the computation:
-    {
+    A dictionary holding the results of the computation. Keys and values are as
+    follows:
+
         'dgms': list (length maxdim + 1) of ndarray (n_pairs, 2)
             A list of persistence diagrams, one for each dimension less than or
             equal to maxdim. Each diagram is an ndarray of size (n_pairs, 2)
@@ -381,7 +382,6 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             index 3: list (length maxdim) of int ndarray with 2 columns
                 Essential simplices corresponding to infinite bars in dimensions
                 1 to maxdim, with 2 vertices (edge) for each birth.
-    }
 
     Notes
     -----
