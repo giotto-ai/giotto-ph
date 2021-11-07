@@ -457,8 +457,6 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
     else:
         # Only consider strict upper diagonal
         DParam = squareform(dm, checks=False).astype(np.float32)
-        # Free up memory taken by `dm`
-        del dm
         res = _compute_ph_vr_dense(DParam, maxdim, thresh, coeff, n_threads)
 
     # Unwrap persistence diagrams
