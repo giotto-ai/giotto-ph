@@ -17,7 +17,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import gc
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
@@ -517,9 +516,6 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
     else:
         # Only consider strict upper diagonal
         DParam = squareform(dm, checks=False).astype(np.float32)
-        # Run garbage collector to free up memory taken by `dm`
-        del dm
-        gc.collect()
         res = _compute_ph_vr_dense(DParam, maxdim, thresh, coeff, n_threads,
                                    return_generators)
 
