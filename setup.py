@@ -29,7 +29,7 @@ with codecs.open("README.rst", encoding="utf-8-sig") as f:
 if platform.system() == "Windows":
     LONG_DESCRIPTION = "giotto-ph at https://github.com/giotto-ai/giotto-ph"
 LONG_DESCRIPTION_TYPE = "text/x-rst"
-MAINTAINER = "Julián Burella Pérez"
+MAINTAINER = "Julián Burella Pérez and Umberto Lupo"
 MAINTAINER_EMAIL = "maintainers@giotto.ai"
 URL = "https://github.com/giotto-ai/giotto-ph"
 LICENSE = "GNU AGPLv3"

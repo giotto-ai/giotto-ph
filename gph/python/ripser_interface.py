@@ -30,24 +30,29 @@ from sklearn.utils.validation import column_or_1d
 from ..modules import gph_ripser, gph_ripser_coeff, gph_collapser
 
 
-def _compute_ph_vr_dense(DParam, maxHomDim, thresh=-1, coeff=2, n_threads=1):
+def _compute_ph_vr_dense(DParam, maxHomDim, thresh=-1, coeff=2, n_threads=1,
+                         return_generators=False):
     if coeff == 2:
         ret = gph_ripser.rips_dm(DParam, DParam.shape[0], coeff,
-                                 maxHomDim, thresh, n_threads)
+                                 maxHomDim, thresh, n_threads,
+                                 return_generators)
     else:
         ret = gph_ripser_coeff.rips_dm(DParam, DParam.shape[0], coeff,
-                                       maxHomDim, thresh, n_threads)
+                                       maxHomDim, thresh, n_threads,
+                                       return_generators)
     return ret
 
 
 def _compute_ph_vr_sparse(I, J, V, N, maxHomDim, thresh=-1, coeff=2,
-                          n_threads=1):
+                          n_threads=1, return_generators=False):
     if coeff == 2:
         ret = gph_ripser.rips_dm_sparse(I, J, V, I.size, N, coeff,
-                                        maxHomDim, thresh, n_threads)
+                                        maxHomDim, thresh, n_threads,
+                                        return_generators)
     else:
         ret = gph_ripser_coeff.rips_dm_sparse(I, J, V, I.size, N, coeff,
-                                              maxHomDim, thresh, n_threads)
+                                              maxHomDim, thresh, n_threads,
+                                              return_generators)
     return ret
 
 
@@ -229,7 +234,7 @@ def _compute_weights(dm, weights, weight_params, n_points,
 
 
 def _ideal_thresh(dm, thresh):
-    """This fonction computes enclosing radius. Enclosing radius
+    """This function computes enclosing radius. Enclosing radius
     indicates that all distances above this threshold will produce
     trivial homology
 
@@ -248,8 +253,9 @@ def _ideal_thresh(dm, thresh):
 
 def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                     metric_params={}, weights=None, weight_params=None,
-                    collapse_edges=False, n_threads=1):
-    """Compute persistence diagrams for X data array using Ripser [1]_.
+                    collapse_edges=False, n_threads=1,
+                    return_generators=False):
+    """Compute persistence diagrams for X data array.
 
     If X is a point cloud, it will be converted to a distance matrix
     using the chosen metric.
@@ -262,7 +268,7 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
 
     maxdim : int, optional, default: ``1``
         Maximum homology dimension computed. Will compute all dimensions lower
-        than or equal to this value. For 1, both H_0 and H_1 will be computed.
+        than or equal to this value.
 
     thresh : float, optional, default: ``numpy.inf``
         Maximum distances considered when constructing filtration. If
@@ -289,9 +295,9 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
 
     weights : ``"DTM"``, ndarray or None, optional, default: ``None``
         If not ``None``, the persistence of a weighted Vietoris-Rips filtration
-        is computed as described in [3]_, and this parameter determines the
+        is computed as described in [6]_, and this parameter determines the
         vertex weights in the modified adjacency matrix. ``"DTM"`` denotes the
-        empirical distance-to-measure function defined, following [3]_, by
+        empirical distance-to-measure function defined, following [6]_, by
 
         .. math:: w(x) = 2\\left(\\frac{1}{n+1} \\sum_{k=1}^n
            \\mathrm{dist}(x, x_k)^r \\right)^{1/r}.
@@ -328,63 +334,115 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         ``"n_neighbors"`` (default: ``3``) are available (see `weights`,
         where the latter corresponds to :math:`n`).
 
-
     collapse_edges : bool, optional, default: ``False``
-        Whether to use the edge collapse algorithm as described in [2]_ prior
-        to calling ``ripser_parallel``.
+        Whether to use the edge collapse algorithm as described in [5]_ prior
+        to computing persistence. Cannot be ``True`` if `return_generators` is
+        also ``True``.
 
     n_threads : int, optional, default: ``1``
         Maximum number of threads available to use during persistent
         homology computation. When passing ``-1``, it will try to use the
         maximal number of threads available on the host machine.
 
+    return_generators : bool, optional, default: ``False``
+        Whether to return information on the simplex pairs and essential
+        simplices corresponding to the finite and infinite bars (respectively)
+        in the persistence barcode. If ``True``, this information is stored in
+        the return dictionary under the key `gens`. Cannot be ``True`` if
+        `collapse_edges` is also ``True``.
+
     Returns
     -------
-    A dictionary holding all of the results of the computation
-    {
-        'dgms': list (size maxdim) of ndarray (n_pairs, 2)
-            A list of persistence diagrams, one for each dimension less
-            than maxdim. Each diagram is an ndarray of size (n_pairs, 2)
-            with the first column representing the birth time and the
-            second column representing the death time of each pair.
-    }
+    A dictionary holding the results of the computation. Keys and values are as
+    follows:
+
+        'dgms': list (length maxdim + 1) of ndarray (n_pairs, 2)
+            A list of persistence diagrams, one for each dimension less than or
+            equal to maxdim. Each diagram is an ndarray of size (n_pairs, 2)
+            with the first column representing the birth time and the second
+            column representing the death time of each pair.
+
+        'gens': tuple (length 4) of ndarray or list of ndarray
+            Information on the simplex pairs and essential simplices generating
+            the points in 'dgms'. Each simplex of dimension 1 or above is
+            replaced with the vertices of the edges that gave it its filtration
+            value. The 4 entries of this tuple are as follows:
+
+            index 0: int ndarray with 3 columns
+                Simplex pairs corresponding to finite bars in dimension 0, with
+                one vertex for birth and two vertices for death.
+            index 1: list (length maxdim) of int ndarray with 4 columns
+                Simplex pairs corresponding to finite bars in dimensions 1 to
+                maxdim, with two vertices (one edge) for birth and two for
+                death.
+            index 2: 1D int ndarray
+                Essential simplices corresponding to infinite bars in dimension
+                0, with one vertex for each birth.
+            index 3: list (length maxdim) of int ndarray with 2 columns
+                Essential simplices corresponding to infinite bars in dimensions
+                1 to maxdim, with 2 vertices (edge) for each birth.
 
     Notes
     -----
-    `Ripser <https://github.com/Ripser/ripser>`_ is used as a C++ backend
-    for computing Vietoris–Rips persistent homology. Python bindings were
-    modified for performance from the `ripser.py
-    <https://github.com/scikit-tda/ripser.py>`_ package.
+    The C++ backend and Python API for the computation of Vietoris–Rips
+    persistent homology are developments of the ones in the
+    `ripser.py <https://github.com/scikit-tda/ripser.py>`_ project [1]_, with
+    added optimizations from `Ripser <https://github.com/Ripser/ripser>`_ [2]_,
+    lock-free reduction from [3]_, and additional performance improvements. See
+    [4]_ for details.
 
     Ripser supports two memory representations, dense and sparse. The sparse
     representation is used in the following cases:
-        - Input is sparse of type scipy.sparse
-        - Collapser is enable
-        - The user provide a threshold
+        - input is sparse of type scipy.sparse;
+        - collapser is enabled;
+        - a threshold is provided.
     The dense representation will be used in the following cases:
-        - Input is a point-cloud or a distance matrix
-    `GUDHI <https://github.com/GUDHI/gudhi-devel>`_ is used as a C++ backend
-    for the edge collapse algorithm described in [2]_.
+        - input is a point cloud or a distance matrix.
+
+    The implementation of the edge collapse algorithm [5]_ is a modification of
+    `GUDHI's <https://github.com/GUDHI/gudhi-devel>`_ C++ implementation.
 
     References
     ----------
-    .. [1] U. Bauer, "Ripser: efficient computation of Vietoris–Rips
-           persistence barcodes", 2021; `arXiv:1908.02518
-           <https://arxiv.org/abs/1908.02518>`_.
+    .. [1] C. Tralie et al, "Ripser.py: A Lean Persistent Homology Library for
+           Python", *Journal of Open Source Software*, **3**(29), 2021;
+           `DOI: 10.21105/joss.00925
+           <https://doi.org/10.21105/joss.00925>`_.
+   
+    .. [2] U. Bauer, "Ripser: efficient computation of Vietoris–Rips persistence
+           barcodes", *J Appl. and Comput. Topology*, **5**, pp. 391–423, 2021;
+           `DOI: 10.1007/s41468-021-00071-5
+           <https://doi.org/10.1007/s41468-021-00071-5>`_.
 
-    .. [2] J.-D. Boissonnat and S. Pritam, "Edge Collapse and Persistence of
+    .. [3] D. Morozov and A. Nigmetov, "Towards Lockfree Persistent Homology";
+           in *SPAA '20: Proceedings of the 32nd ACM Symposium on Parallelism
+           in Algorithms and Architectures*, pp. 555–557, 2020;
+           `DOI: 10.1145/3350755.3400244
+           <https://doi.org/10.1145/3350755.3400244>`_.
+
+    .. [4] J. Burella Pérez et al, "giotto-ph: A Python Library for
+           High-Performance Computation of Persistent Homology of Vietoris–Rips
+           Filtrations", 2021; `arXiv:2107.05412
+           <https://arxiv.org/abs/2107.05412>`_.
+
+    .. [5] J.-D. Boissonnat and S. Pritam, "Edge Collapse and Persistence of
            Flag Complexes"; in *36th International Symposium on Computational
            Geometry (SoCG 2020)*, pp. 19:1–19:15, Schloss
            Dagstuhl-Leibniz–Zentrum für Informatik, 2020;
            `DOI: 10.4230/LIPIcs.SoCG.2020.19
            <https://doi.org/10.4230/LIPIcs.SoCG.2020.19>`_.
 
-    .. [3] H. Anai et al, "DTM-Based Filtrations"; in *Topological Data
+    .. [6] H. Anai et al, "DTM-Based Filtrations"; in *Topological Data
            Analysis* (Abel Symposia, vol 15), Springer, 2020;
            `DOI: 10.1007/978-3-030-43408-3_2
            <https://doi.org/10.1007/978-3-030-43408-3_2>`_.
 
     """
+
+    if collapse_edges and return_generators:
+        raise NotImplementedError(
+            "`collapse_edges` and `return_generators`cannot both be True."
+        )
 
     if metric == 'precomputed':
         dm = X
@@ -446,18 +504,20 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
 
     if use_sparse_computer:
         res = _compute_ph_vr_sparse(
-            np.asarray(row, dtype=np.int32, order="C"),
-            np.asarray(col, dtype=np.int32, order="C"),
+            np.asarray(row, dtype=np.int64, order="C"),
+            np.asarray(col, dtype=np.int64, order="C"),
             np.asarray(data, dtype=np.float32, order="C"),
             n_points,
             maxdim,
             thresh,
             coeff,
-            n_threads)
+            n_threads,
+            return_generators)
     else:
         # Only consider strict upper diagonal
         DParam = squareform(dm, checks=False).astype(np.float32)
-        res = _compute_ph_vr_dense(DParam, maxdim, thresh, coeff, n_threads)
+        res = _compute_ph_vr_dense(DParam, maxdim, thresh, coeff, n_threads,
+                                   return_generators)
 
     # Unwrap persistence diagrams
     dgms = res.births_and_deaths_by_dim
@@ -466,5 +526,21 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         dgms[dim] = np.reshape(np.array(dgms[dim]), [N, 2])
 
     ret = {"dgms": dgms}
+
+    if return_generators:
+        finite_0 = np.array(res.flag_persistence_generators_by_dim.finite_0,
+                            dtype=np.int64).reshape(-1, 3)
+        finite_higher = [
+            np.array(x, dtype=np.int64).reshape(-1, 4)
+            for x in res.flag_persistence_generators_by_dim.finite_higher
+            ]
+        essential_0 = \
+            np.array(res.flag_persistence_generators_by_dim.essential_0,
+                     dtype=np.int64)
+        essential_higher = [
+            np.array(x, dtype=np.int64).reshape(-1, 2)
+            for x in res.flag_persistence_generators_by_dim.essential_higher
+            ]
+        ret['gens'] = (finite_0, finite_higher, essential_0, essential_higher)
 
     return ret

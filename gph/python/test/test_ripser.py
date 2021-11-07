@@ -3,10 +3,11 @@ import pytest
 from hypothesis import given, settings
 from hypothesis.extra.numpy import arrays
 from hypothesis.strategies import floats, integers, composite
-from numpy.testing import assert_almost_equal
+from numpy.testing import assert_almost_equal, assert_array_equal
 from scipy.sparse import coo_matrix
+from scipy.spatial.distance import pdist, squareform
 
-from gph.python import ripser_parallel as ripser
+from gph import ripser_parallel as ripser
 
 
 @composite
@@ -189,3 +190,136 @@ def test_multithread_consistent(dm):
         for i in range(1, len(res)):
             res[i][dim] = np.sort(res[i][dim], axis=0)
             assert_almost_equal(res[0][dim], res[i][dim])
+
+
+def test_gens_edge_in_dm_and_sorted():
+    """This test verifies that the representative simplicies, the index of the
+    vertices matches the corresponding edge in the distance matrix and that
+    the gens are aligned with the correponding barcodes"""
+    X = squareform(pdist(np.random.random((100, 3))))
+
+    ret = ripser(X, metric='precomputed', maxdim=3, thresh=np.inf,
+                 collapse_edges=False, return_generators=True)
+
+    barcodes = ret['dgms']
+    gens = ret['gens']
+
+    for dim, bar_in_dim in enumerate(barcodes):
+        idx_essential = 0
+        idx_finite = 0
+        for barcode in bar_in_dim:
+            if dim == 0 and barcode[1] != np.inf:
+                # Verifies gens in dim 0, discards essential ones
+                gens_of_barcode = gens[0][idx_finite]
+                assert np.isclose(barcode[1],
+                                  X[gens_of_barcode[1]][gens_of_barcode[2]])
+                idx_finite = idx_finite + 1
+            if dim > 0:
+                # Verifies gens in dim > 0, expects first all non essential
+                # barcodes and then the finite ones
+                if barcode[1] != np.inf:
+                    gens_of_barcode = gens[1][dim-1][idx_finite]
+                    assert np.isclose(barcode[0],
+                                      X[gens_of_barcode[0]][gens_of_barcode[1]]
+                                      )
+                    assert np.isclose(barcode[1],
+                                      X[gens_of_barcode[2]][gens_of_barcode[3]]
+                                      )
+                    idx_finite = idx_finite + 1
+                else:
+                    gens_of_barcode = gens[3][dim-1][idx_essential]
+                    assert np.isclose(barcode[0],
+                                      X[gens_of_barcode[0]][gens_of_barcode[1]]
+                                      )
+                    idx_essential = idx_essential + 1
+
+
+def test_gens_with_collapser():
+    """This test ensures that you cannot use collapser and
+    retrieve representative simplicies. This is a temporary behavior."""
+    X = squareform(pdist(np.random.random((100, 3))))
+
+    with pytest.raises(NotImplementedError):
+        ripser(X, metric='precomputed', collapse_edges=True,
+               return_generators=True)
+
+
+@settings(deadline=500)
+@given(dm=get_dense_distance_matrices())
+@pytest.mark.parametrize('format', ['dense', 'sparse'])
+def test_gens_non_0_diagonal_dim0(dm, format):
+    np.fill_diagonal(dm, np.random.uniform(low=0, high=np.amin(dm),
+                                           size=(dm.shape[0])))
+    x_len = dm.shape[0]
+    if format == 'dense':
+        X = dm
+    else:
+        X = coo_matrix(dm).tocsr()
+
+    ret = ripser(X, metric='precomputed', return_generators=True)
+
+    dgms_0 = ret['dgms'][0]
+    gens_fin_0 = ret['gens'][0]
+    gens_ess_0 = ret['gens'][2]
+
+    # Verifies that the number of essential and finite generators
+    # combined is equal to the number of points in the point cloud
+    assert (x_len - len(gens_ess_0)) == len(gens_fin_0)
+
+    # Verifies that the birth indices for essential and finite
+    # representatives are unique
+    assert len(np.unique(np.sort(gens_fin_0[:, 0]))) == len(gens_fin_0[:, 0])
+    assert len(np.unique(np.sort(gens_ess_0))) == len(gens_ess_0)
+    # Verifies that there are no duplicates between finite and essential
+    # And also the other way around
+    assert len([x for x in gens_fin_0[:, 0] if x in gens_ess_0]) == 0
+    assert len([x for x in gens_ess_0 if x in gens_fin_0[:, 0]]) == 0
+
+    for barcode, rp in zip(dgms_0, gens_fin_0):
+        # Verify birth of dim-0 finite representative
+        # The birth is located on the diagonal
+        assert np.isclose(barcode[0], X[rp[0], rp[0]])
+
+        # Verify death of dim-0 finite representative
+        assert np.isclose(barcode[1], X[rp[1], rp[2]])
+
+    for barcode, rp in zip(dgms_0[len(dgms_0):], gens_ess_0):
+        # Verify birth of dim-0 essential representative
+        # The birth is located on the diagonal
+        assert np.isclose(barcode[0], X[rp, rp])
+
+
+def test_gens_order_vertices_higher_dimension():
+    """This test verifies that function `get_youngest_edge_simplex` returns the
+    correct vertices. It should return the edge with the largest diameter in
+    the simplex and, if several are present with the same diameter, the oldest
+    one in the reverse colexicographic order used to build the simplexwise
+    refinement of the Vietoris-Rips filtration."""
+    diamond = np.array(
+        [[0,      1,      100, 1,      1,      1],
+         [0,      0,      1,      100, 1,      1],
+         [0,      0,      0,      1,      1,      1],
+         [0,      0,      0,      0,      1,      1],
+         [0,      0,      0,      0,      0,      100],
+         [0,      0,      0,      0,      0,      0]],
+        dtype=np.float64)
+
+    diamond += diamond.T
+
+    gens = ripser(diamond, maxdim=2, return_generators=True)['gens']
+    gens_fin_dim2 = gens[1][1]
+
+    assert len(gens_fin_dim2) == 1
+    assert np.array_equal(gens_fin_dim2[0], np.array([1, 0, 5, 4]))
+
+
+def test_ph_maxdim_0():
+    """Regression test for issue #39, an issue was found when only computing
+    up to dimension 0. The test also compares the results of dimension 0
+    when maxdim=1 and maxdim=0"""
+    X = np.array([[1., 2], [3, 4], [5, 0]])
+    res_maxdim_0 = ripser(X, maxdim=0)['dgms'][0]
+    res_maxdim_1 = ripser(X, maxdim=1)['dgms'][0]
+
+    # Verifies if both computations have the same barcodes
+    assert_array_equal(res_maxdim_0, res_maxdim_1)
