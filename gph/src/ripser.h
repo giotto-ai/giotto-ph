@@ -986,7 +986,7 @@ public:
         columns_to_reduce.resize(edges.size());
         size_t i = 0;
         const bool prepare_higher_dims = (dim_max > 0);
-        value_t birth;
+        value_t birth, death;
         diameter_index_t birth_vertex;
         for (auto e : edges) {
             get_simplex_vertices(get_index(e), 1, n, vertices_of_edge.rbegin());
@@ -1002,7 +1002,7 @@ public:
                 /* Elder rule; youngest class (max birth time of u and v)
                  * dies first */
                 birth = birth_vertex.first;
-                value_t death = get_diameter(e);
+                death = get_diameter(e);
                 if (death > birth) {
                     births_and_deaths_by_dim[0].push_back(birth);
                     births_and_deaths_by_dim[0].push_back(death);
@@ -1013,7 +1013,6 @@ public:
                              std::min(v1, v2)});
                     }
                 }
-
             } else if (prepare_higher_dims &&
                        get_index(get_zero_apparent_cofacet(e, 1)) == -1)
                 columns_to_reduce[i++] = e;
