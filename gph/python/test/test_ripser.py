@@ -1,13 +1,12 @@
 import numpy as np
 import pytest
+from gph import ripser_parallel as ripser
 from hypothesis import given, settings
 from hypothesis.extra.numpy import arrays
 from hypothesis.strategies import floats, integers, composite
 from numpy.testing import assert_almost_equal, assert_array_equal
 from scipy.sparse import coo_matrix
 from scipy.spatial.distance import pdist, squareform
-
-from gph import ripser_parallel as ripser
 
 
 @composite
@@ -22,11 +21,9 @@ def get_dense_distance_matrices(draw):
                                      exclude_min=True,
                                      width=32),
                      shape=(shapes, shapes), unique=False))
-    # mirror along the diagonal the values of the
-    # distance matrix
-    dm = np.triu(dm.astype(np.float32), k=0)
+    # Extract strict upper diagonal and make symmetric
+    dm = np.triu(dm.astype(np.float32), k=1)
     dm = dm + dm.T
-    np.fill_diagonal(dm, 0)
     return dm
 
 
@@ -236,7 +233,7 @@ def test_gens_edge_in_dm_and_sorted():
 
 def test_gens_with_collapser():
     """This test ensures that you cannot use collapser and
-    retrieve representative simplicies. This is a temporary behavior."""
+    retrieve representative simplices. This is a temporary behavior."""
     X = squareform(pdist(np.random.random((100, 3))))
 
     with pytest.raises(NotImplementedError):
@@ -296,12 +293,12 @@ def test_gens_order_vertices_higher_dimension():
     one in the reverse colexicographic order used to build the simplexwise
     refinement of the Vietoris-Rips filtration."""
     diamond = np.array(
-        [[0,      1,      100, 1,      1,      1],
-         [0,      0,      1,      100, 1,      1],
-         [0,      0,      0,      1,      1,      1],
-         [0,      0,      0,      0,      1,      1],
+        [[0,      1,      100,    1,      1,      1  ],
+         [0,      0,      1,      100,    1,      1  ],
+         [0,      0,      0,      1,      1,      1  ],
+         [0,      0,      0,      0,      1,      1  ],
          [0,      0,      0,      0,      0,      100],
-         [0,      0,      0,      0,      0,      0]],
+         [0,      0,      0,      0,      0,      0  ]],
         dtype=np.float64)
 
     diamond += diamond.T
@@ -321,5 +318,5 @@ def test_ph_maxdim_0():
     res_maxdim_0 = ripser(X, maxdim=0)['dgms'][0]
     res_maxdim_1 = ripser(X, maxdim=1)['dgms'][0]
 
-    # Verifies if both computations have the same barcodes
+    # Verifies that the two computations lead to the same barcodes
     assert_array_equal(res_maxdim_0, res_maxdim_1)
