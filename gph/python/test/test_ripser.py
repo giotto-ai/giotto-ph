@@ -320,3 +320,42 @@ def test_ph_maxdim_0():
 
     # Verifies that the two computations lead to the same barcodes
     assert_array_equal(res_maxdim_0, res_maxdim_1)
+
+
+@settings(deadline=500)
+@given(dm=get_dense_distance_matrices())
+def test_equivariance(dm):
+    """Test that if we shift all entries (diagonal or not) in the input matrix
+    by a constant then the barcodes are also shifted by that constant. Doubles
+    also as a regression test for issue #31."""
+    maxdim = 1
+    kwargs = {"metric": "precomputed", "maxdim": maxdim}
+
+    # - Median may or may not make some edges zero, and will make some edges
+    #   negative and all vertex weights negative
+    # - Min is guaranteed to make at least one edge exactly zero, and all
+    #   vertex weights negative
+    # - Max is guaranteed to make all edge and vertex weights non-positive (or
+    #   infinite)
+    dm_flat = squareform(dm, checks=False)  # Get strict upper diagonal
+    dm_finite_nonzero_flat_sorted = np.sort(
+        dm_flat[np.logical_and(dm_flat > 0, dm_flat < np.inf)]
+        )  # Filter out zero values and infinite values, and sort
+    # This test will fail if val - offset = -offset numerically for some entry
+    # val in dm, because this will make some 0-dimensional classes disappear
+    # (they are born dead)
+    offsets = [0, 0, 0]  # Fallback if no edge weights are finite and positive
+    if len(dm_finite_nonzero_flat_sorted):
+        offset_cand = [np.float32(np.median(dm_finite_nonzero_flat_sorted)),
+                       np.min(dm_finite_nonzero_flat_sorted),
+                       np.max(dm_finite_nonzero_flat_sorted)]
+        for i, offset in enumerate(offset_cand):
+            if not np.any(dm - offset == -offset):
+                offsets[i] = offset_cand
+
+    dgms_orig = ripser(dm, **kwargs)["dgms"]
+
+    for offset in offsets:
+        dgms_offset = ripser(dm - offset, **kwargs)["dgms"]
+        for dim in range(maxdim + 1):
+            assert_array_equal(dgms_offset[dim], dgms_orig[dim] - offset)
