@@ -7,7 +7,7 @@ Major Features and Improvements
 -------------------------------
 
 - ``ripser_parallel`` can now return "flag persistence generators", i.e. vertices and edges creating/destroying bars in the barcode (`#29 <https://github.com/giotto-ai/giotto-ph/pull/29>`_). A new Jupyter notebook illustrates usage of this new feature.
-- Wheels for Python 3.10 have been added (`#49 <https://github.com/giotto-ai/giotto-ph/pull/49>`_).
+- Wheels for Python 3.10 have been added (`#47 <https://github.com/giotto-ai/giotto-ph/pull/47>`_).
 - The computation of the enclosing radius has been sped up (`#28 <https://github.com/giotto-ai/giotto-ph/pull/28>`_).
 - ``ripser_parallel`` can now be imported directly from ``gph`` (`#36 <https://github.com/giotto-ai/giotto-ph/pull/36>`_).
 - A garbage collection step which was found to negatively impact runtimes with little memory benefit has been removed (`#33 <https://github.com/giotto-ai/giotto-ph/pull/33>`_).
