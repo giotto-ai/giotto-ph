@@ -996,8 +996,11 @@ public:
 
             if (u != v) {
                 birth_vertex = dset.link_roots_and_get_birth_vertex(u, v);
-                // Elder rule; youngest class (max birth time of u and v)
-                // dies first
+                /* Unlike Ripser/ripser, here we do not exclude edges with
+                 * zero "diameters". This is because we don't assume that
+                 * all vertex weights are zero, as Ripser/ripser does. */
+                /* Elder rule; youngest class (max birth time of u and v)
+                 * dies first */
                 birth = birth_vertex.first;
                 value_t death = get_diameter(e);
                 if (death > birth) {
