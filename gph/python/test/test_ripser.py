@@ -1,12 +1,13 @@
 import numpy as np
 import pytest
-from gph import ripser_parallel as ripser
 from hypothesis import given, settings
 from hypothesis.extra.numpy import arrays
 from hypothesis.strategies import floats, integers, composite
 from numpy.testing import assert_almost_equal, assert_array_equal
 from scipy.sparse import coo_matrix
 from scipy.spatial.distance import pdist, squareform
+
+from gph import ripser_parallel as ripser
 
 
 @composite
@@ -352,6 +353,31 @@ def test_equivariance(dm):
         for i, offset in enumerate(offset_cand):
             if not np.any(dm - offset == -offset):
                 offsets[i] = offset_cand
+
+    dgms_orig = ripser(dm, **kwargs)["dgms"]
+
+    for offset in offsets:
+        dgms_offset = ripser(dm - offset, **kwargs)["dgms"]
+        for dim in range(maxdim + 1):
+            assert_array_equal(dgms_offset[dim], dgms_orig[dim] - offset)
+
+
+def test_equivariance_regression():
+    """Make sure that, if `hypothesis` did not pick up a distance matrix like
+    the one in issue #31, then we test it by hand anyway, to avoid regressions.
+    """
+    maxdim = 1
+    kwargs = {"metric": "precomputed", "maxdim": maxdim}
+    dm = np.array([[0, 1, 3, 5, 4],
+                   [1, 0, 6, 7, 2],
+                   [3, 6, 0, 8, 9],
+                   [5, 7, 8, 0, 10],
+                   [4, 2, 9, 10, 0]], dtype=np.float32)
+
+    dm_flat = squareform(dm)
+    offsets = [np.median(dm_flat),
+               np.min(dm_flat),
+               np.max(dm_flat)]
 
     dgms_orig = ripser(dm, **kwargs)["dgms"]
 
