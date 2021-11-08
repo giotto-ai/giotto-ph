@@ -26,7 +26,7 @@ jobs:
         env:
           # Specify which Python versions to build wheels
           # https://cibuildwheel.readthedocs.io/en/stable/options/#build-skip
-          CIBW_BUILD: "cp36-* cp37-* cp38-* cp39-*"
+          CIBW_BUILD: "cp36-* cp37-* cp38-* cp39-* cp310-*"
           # Skip 32 bit architectures
           CIBW_SKIP: "*-win32 *-manylinux_i686"
           CIBW_BEFORE_BUILD: python -m pip install cmake
