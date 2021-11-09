@@ -27,6 +27,7 @@ jobs:
           CIBW_TEST_COMMAND: python -m pytest {package}/gph/python/test
           CIBW_TEST_REQUIRES: pytest hypothesis
 
+      # SciPy do not ship manylinux2010 wheels for Python 3.10, so we too build ours for manylinux2014
       - name: Build wheels for Python 3.10
         uses: pypa/cibuildwheel@v2.2.2
         env:
