@@ -65,7 +65,7 @@ jobs:
             # TODO: When updating c++ backend, use new date (yy-mm-dd)
           key: ${{ runner.os }}-ccache-${{ matrix.python-version }}-21-11-08
 
-      - name: Install dependencies
+      - name: Upgrade pip and setuptools
         run: |
           python -m pip install --upgrade pip setuptools
 
