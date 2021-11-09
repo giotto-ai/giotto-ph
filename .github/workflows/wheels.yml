@@ -27,6 +27,17 @@ jobs:
           CIBW_TEST_COMMAND: python -m pytest {package}/gph/python/test
           CIBW_TEST_REQUIRES: pytest hypothesis
 
+      # SciPy do not ship manylinux2010 wheels for Python 3.10, so we too build ours for manylinux2014
+      - name: Build wheels for Python 3.10
+        uses: pypa/cibuildwheel@v2.2.2
+        env:
+          CIBW_BUILD: "cp310-*"
+          CIBW_SKIP: "*-win32 *-musllinux_x86_64 *_i686"
+          CIBW_BEFORE_BUILD: python -m pip install cmake
+          CIBW_TEST_COMMAND: python -m pytest {package}/gph/python/test
+          CIBW_TEST_REQUIRES: pytest hypothesis
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+
       - uses: actions/upload-artifact@v2
         name: Upload wheels
         with:
