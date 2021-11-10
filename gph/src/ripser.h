@@ -161,7 +161,7 @@ std::vector<coefficient_t> multiplicative_inverse_vector(const coefficient_t m)
 #ifdef _MSC_VER
 #define PACK(...) __pragma(pack(push, 1)) __VA_ARGS__ __pragma(pack(pop))
 #else
-#define PACK(...) __attribute__((__packed__)) __VA_ARGS__
+#define PACK(...) __VA_ARGS__ __attribute__((__packed__))
 #endif
 
 PACK(struct entry_t {
