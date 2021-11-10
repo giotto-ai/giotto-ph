@@ -123,23 +123,23 @@ public:
     /* Transposed binomial table
      * It's transposed because access where done over the rows and not the
      * columns */
-    binomial_coeff_table(index_t k, index_t n) : B(n + 1, row_bc(k + 1, 0))
+    binomial_coeff_table(index_t n, index_t k) : B(k + 1, row_bc(n + 1, 0))
     {
-        for (index_t i = 0; i <= k; ++i) {
+        for (index_t i = 0; i <= n; ++i) {
             B[0][i] = 1;
-            if (i <= n)
+            if (i <= k)
                 B[i][i] = 1;
-            for (index_t j = 1; j < std::min(i, n + 1); ++j) {
+            for (index_t j = 1; j < std::min(i, k + 1); ++j) {
                 B[j][i] = B[j - 1][i - 1] + B[j][i - 1];
             }
-            check_overflow(B[std::min(i >> 1, n)][i]);
+            check_overflow(B[std::min(i >> 1, k)][i]);
         }
     }
 
-    index_t operator()(index_t k, index_t n) const
+    index_t operator()(index_t n, index_t k) const
     {
-        assert(n < B.size() && k < B[n].size() && n >= k - 1);
-        return B[n][k];
+        assert(k < B.size() && k < B[k].size() && n >= k - 1);
+        return B[k][n];
     }
 };
 
