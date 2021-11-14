@@ -14,6 +14,30 @@
 
 namespace py = pybind11;
 
+/* This function allows a conversion from a vector of vector into a
+ * vector of numpy arrays. This would be translated in Python into a
+ * List[np.array, ...]
+ */
+std::vector<py::array_t<value_t>>
+to_numpy_barcodes(std::vector<barcodes_t> barcodes)
+{
+    auto mat = std::vector<py::array_t<value_t>>(barcodes.size());
+
+    size_t i = 0;
+    for (auto& barcode : barcodes) {
+        auto arr = py::array_t<value_t>(
+            py::buffer_info(barcode.data(),
+                            sizeof(value_t),  // itemsize
+                            py::format_descriptor<value_t>::format(),
+                            barcode.size()  // shape
+                            ));
+
+        mat[i++] = arr;
+    }
+
+    return mat;
+}
+
 #if defined USE_COEFFICIENTS
 PYBIND11_MODULE(gph_ripser_coeff, m)
 {
@@ -35,8 +59,10 @@ PYBIND11_MODULE(gph_ripser, m)
     // ImportError: generic_type: type "ripserResults" is already registered!
     // When same python module imports gtda_ripser and gtda_ripser_coeff
     py::class_<ripserResults>(m, "ripserResults", py::module_local())
-        .def_readwrite("births_and_deaths_by_dim",
-                       &ripserResults::births_and_deaths_by_dim)
+        .def("births_and_deaths_by_dim",
+             [&](ripserResults& res) {
+                 return to_numpy_barcodes(res.births_and_deaths_by_dim);
+             })
         .def_readwrite("flag_persistence_generators_by_dim",
                        &ripserResults::flag_persistence_generators)
         .def_readwrite("num_edges", &ripserResults::num_edges);

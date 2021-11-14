@@ -520,7 +520,7 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                                    return_generators)
 
     # Unwrap persistence diagrams
-    dgms = res.births_and_deaths_by_dim
+    dgms = res.births_and_deaths_by_dim()
     for dim in range(len(dgms)):
         N = int(len(dgms[dim]) / 2)
         dgms[dim] = np.reshape(np.array(dgms[dim]), [N, 2])
