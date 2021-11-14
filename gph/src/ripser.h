@@ -756,6 +756,11 @@ public:
         {
         }
 
+        simplex_boundary_enumerator(const ripser& _parent)
+            : simplex_boundary_enumerator(-1, 0, _parent)
+        {
+        }
+
         void set_simplex(const diameter_entry_t _simplex, const index_t _dim,
                          const ripser& _parent)
         {
@@ -796,28 +801,16 @@ public:
         }
     };
 
-    diameter_entry_t get_zero_pivot_facet(const diameter_entry_t simplex,
-                                          const index_t dim)
+    template <typename Enumerator>
+    diameter_entry_t get_zero_pivot(const diameter_entry_t simplex,
+                                    const index_t dim)
     {
-        thread_local simplex_boundary_enumerator facets(0, *this);
-        facets.set_simplex(simplex, dim, *this);
-        while (facets.has_next()) {
-            diameter_entry_t facet = facets.next();
-            if (get_diameter(facet) == get_diameter(simplex))
-                return facet;
-        }
-        return diameter_entry_t(-1);
-    }
-
-    diameter_entry_t get_zero_pivot_cofacet(const diameter_entry_t simplex,
-                                            const index_t dim)
-    {
-        thread_local simplex_coboundary_enumerator cofacets(*this);
-        cofacets.set_simplex(simplex, dim, *this);
-        while (cofacets.has_next()) {
-            diameter_entry_t cofacet = cofacets.next();
-            if (get_diameter(cofacet) == get_diameter(simplex))
-                return cofacet;
+        thread_local Enumerator column(*this);
+        column.set_simplex(simplex, dim, *this);
+        while (column.has_next()) {
+            diameter_entry_t elem = column.next();
+            if (get_diameter(elem) == get_diameter(simplex))
+                return elem;
         }
         return diameter_entry_t(-1);
     }
@@ -825,10 +818,11 @@ public:
     diameter_entry_t get_zero_apparent_facet(const diameter_entry_t simplex,
                                              const index_t dim)
     {
-        diameter_entry_t facet = get_zero_pivot_facet(simplex, dim);
+        diameter_entry_t facet =
+            get_zero_pivot<simplex_boundary_enumerator>(simplex, dim);
         return ((get_index(facet) != -1) &&
-                (get_index(get_zero_pivot_cofacet(facet, dim - 1)) ==
-                 get_index(simplex)))
+                (get_index(get_zero_pivot<simplex_coboundary_enumerator>(
+                     facet, dim - 1)) == get_index(simplex)))
                    ? facet
                    : diameter_entry_t(-1);
     }
@@ -836,10 +830,11 @@ public:
     diameter_entry_t get_zero_apparent_cofacet(const diameter_entry_t simplex,
                                                const index_t dim)
     {
-        diameter_entry_t cofacet = get_zero_pivot_cofacet(simplex, dim);
+        diameter_entry_t cofacet =
+            get_zero_pivot<simplex_coboundary_enumerator>(simplex, dim);
         return ((get_index(cofacet) != -1) &&
-                (get_index(get_zero_pivot_facet(cofacet, dim + 1)) ==
-                 get_index(simplex)))
+                (get_index(get_zero_pivot<simplex_boundary_enumerator>(
+                     cofacet, dim + 1)) == get_index(simplex)))
                    ? cofacet
                    : diameter_entry_t(-1);
     }
