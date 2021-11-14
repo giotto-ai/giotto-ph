@@ -132,4 +132,7 @@ PYBIND11_MODULE(gph_ripser, m)
         "I"_a, "J"_a, "V"_a, "NEdges"_a, "N"_a, "modulus"_a, "dim_max"_a,
         "threshold"_a, "num_threads"_a, "return_generators"_a,
         "ripser sparse distance matrix");
+
+    m.def("get_max_coefficient_field_supported",
+          []() { return (uintptr_t(1) << num_coefficient_bits) - 1; });
 }

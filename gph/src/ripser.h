@@ -93,7 +93,7 @@ typedef uint16_t coefficient_t;
 
 using barcodes_t = std::vector<value_t>;
 
-static const size_t num_coefficient_bits = 8;
+const size_t num_coefficient_bits = 8;
 
 // 1L on windows is ALWAYS 32 bits, when on unix systems is pointer size
 static const index_t max_simplex_index =
