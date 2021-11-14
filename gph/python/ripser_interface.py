@@ -251,6 +251,21 @@ def _ideal_thresh(dm, thresh):
     return min([enclosing_radius, thresh])
 
 
+def _supported_coeff_field(coeff):
+    max_coeff = gph_ripser.get_max_coefficient_field_supported()
+
+    # https://stackoverflow.com/questions/2068372/fastest-way-to-list-all-primes-below-n-in-python/3035188#3035188
+    def rwh_primes(n):
+        """ Returns  a list of primes < n """
+        sieve = [True] * n
+        for i in range(3, int(n**0.5)+1, 2):
+            if sieve[i]:
+                sieve[i*i::2*i] = [False]*int(((n-i*i-1)/(2*i)+1))
+        return [2] + [i for i in range(3, n, 2) if sieve[i]]
+
+    return coeff < max_coeff and coeff in rwh_primes(max_coeff)
+
+
 def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                     metric_params={}, weights=None, weight_params=None,
                     collapse_edges=False, n_threads=1,
@@ -443,6 +458,11 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         raise NotImplementedError(
             "`collapse_edges` and `return_generators`cannot both be True."
         )
+
+    if coeff != 2 and not _supported_coeff_field(coeff):
+        raise ValueError("coeff value not supported, coeff value must be prime"
+                         " and lower than {}".format(
+                             gph_ripser.get_max_coefficient_field_supported()))
 
     if metric == 'precomputed':
         dm = X
