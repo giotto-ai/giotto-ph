@@ -520,6 +520,8 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                                    return_generators)
 
     # Unwrap persistence diagrams
+    # He must do a call now, because call a method of object ripserResults
+    # Instead of calling an attribute of the object
     dgms = res.births_and_deaths_by_dim()
     for dim in range(len(dgms)):
         N = int(len(dgms[dim]) / 2)
