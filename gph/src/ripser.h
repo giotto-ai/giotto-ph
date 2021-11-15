@@ -706,11 +706,13 @@ public:
                                         index_t n, OutputIterator out) const
     {
         --n;
-        for (index_t k = dim + 1; k > 0; --k) {
+        for (index_t k = dim + 1; k > 1; --k) {
             n = get_max_vertex(idx, k, n);
             *out++ = n;
             idx -= binomial_coeff(n, k);
         }
+        // k = 1 is 0-simplices (vertices), and get_max_vertex(idx, 1, n) = idx
+        *out = idx;
         return out;
     }
 
