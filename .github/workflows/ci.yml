@@ -67,7 +67,7 @@ jobs:
 
       - name: Upgrade pip and setuptools
         run: |
-          python -m pip install --upgrade pip setuptools
+          python -m pip install --upgrade pip
 
       - name: Build giotto-ph on Linux and MacOs
         if: ${{ runner.os != 'Windows' }}
