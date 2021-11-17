@@ -1,4 +1,4 @@
-"""``giotto-ph`` is a Python library implementing algorithms for the
+"""``giotto-ph`` is a C++/Python library implementing algorithms for the
 computation of persistent homology for different filtrations."""
 # License: GNU AGPLv3
 
@@ -19,4 +19,4 @@ computation of persistent homology for different filtrations."""
 # 'X.Y.dev0' is the canonical version of 'X.Y.dev'
 #
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

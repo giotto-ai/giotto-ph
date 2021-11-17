@@ -17,7 +17,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import gc
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
@@ -296,9 +295,9 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
 
     weights : ``"DTM"``, ndarray or None, optional, default: ``None``
         If not ``None``, the persistence of a weighted Vietoris-Rips filtration
-        is computed as described in [3]_, and this parameter determines the
+        is computed as described in [6]_, and this parameter determines the
         vertex weights in the modified adjacency matrix. ``"DTM"`` denotes the
-        empirical distance-to-measure function defined, following [3]_, by
+        empirical distance-to-measure function defined, following [6]_, by
 
         .. math:: w(x) = 2\\left(\\frac{1}{n+1} \\sum_{k=1}^n
            \\mathrm{dist}(x, x_k)^r \\right)^{1/r}.
@@ -336,7 +335,7 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         where the latter corresponds to :math:`n`).
 
     collapse_edges : bool, optional, default: ``False``
-        Whether to use the edge collapse algorithm as described in [2]_ prior
+        Whether to use the edge collapse algorithm as described in [5]_ prior
         to computing persistence. Cannot be ``True`` if `return_generators` is
         also ``True``.
 
@@ -354,8 +353,9 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
 
     Returns
     -------
-    A dictionary holding all of the results of the computation:
-    {
+    A dictionary holding the results of the computation. Keys and values are as
+    follows:
+
         'dgms': list (length maxdim + 1) of ndarray (n_pairs, 2)
             A list of persistence diagrams, one for each dimension less than or
             equal to maxdim. Each diagram is an ndarray of size (n_pairs, 2)
@@ -381,39 +381,58 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             index 3: list (length maxdim) of int ndarray with 2 columns
                 Essential simplices corresponding to infinite bars in dimensions
                 1 to maxdim, with 2 vertices (edge) for each birth.
-    }
 
     Notes
     -----
-    `Ripser <https://github.com/Ripser/ripser>`_ is used as a C++ backend
-    for computing Vietoris–Rips persistent homology. Python bindings were
-    modified for performance from the `ripser.py
-    <https://github.com/scikit-tda/ripser.py>`_ package.
+    The C++ backend and Python API for the computation of Vietoris–Rips
+    persistent homology are developments of the ones in the
+    `ripser.py <https://github.com/scikit-tda/ripser.py>`_ project [1]_, with
+    added optimizations from `Ripser <https://github.com/Ripser/ripser>`_ [2]_,
+    lock-free reduction from [3]_, and additional performance improvements. See
+    [4]_ for details.
 
     Ripser supports two memory representations, dense and sparse. The sparse
     representation is used in the following cases:
-        - Input is sparse of type scipy.sparse
-        - Collapser is enabled
-        - The user provides a threshold
+        - input is sparse of type scipy.sparse;
+        - collapser is enabled;
+        - a threshold is provided.
     The dense representation will be used in the following cases:
-        - Input is a point cloud or a distance matrix
-    The implementation of the edge collapse algorithm [2]_ is a modification of
+        - input is a point cloud or a distance matrix.
+
+    The implementation of the edge collapse algorithm [5]_ is a modification of
     `GUDHI's <https://github.com/GUDHI/gudhi-devel>`_ C++ implementation.
 
     References
     ----------
-    .. [1] U. Bauer, "Ripser: efficient computation of Vietoris–Rips
-           persistence barcodes", 2021; `arXiv:1908.02518
-           <https://arxiv.org/abs/1908.02518>`_.
+    .. [1] C. Tralie et al, "Ripser.py: A Lean Persistent Homology Library for
+           Python", *Journal of Open Source Software*, **3**(29), 2021;
+           `DOI: 10.21105/joss.00925
+           <https://doi.org/10.21105/joss.00925>`_.
+   
+    .. [2] U. Bauer, "Ripser: efficient computation of Vietoris–Rips persistence
+           barcodes", *J Appl. and Comput. Topology*, **5**, pp. 391–423, 2021;
+           `DOI: 10.1007/s41468-021-00071-5
+           <https://doi.org/10.1007/s41468-021-00071-5>`_.
 
-    .. [2] J.-D. Boissonnat and S. Pritam, "Edge Collapse and Persistence of
+    .. [3] D. Morozov and A. Nigmetov, "Towards Lockfree Persistent Homology";
+           in *SPAA '20: Proceedings of the 32nd ACM Symposium on Parallelism
+           in Algorithms and Architectures*, pp. 555–557, 2020;
+           `DOI: 10.1145/3350755.3400244
+           <https://doi.org/10.1145/3350755.3400244>`_.
+
+    .. [4] J. Burella Pérez et al, "giotto-ph: A Python Library for
+           High-Performance Computation of Persistent Homology of Vietoris–Rips
+           Filtrations", 2021; `arXiv:2107.05412
+           <https://arxiv.org/abs/2107.05412>`_.
+
+    .. [5] J.-D. Boissonnat and S. Pritam, "Edge Collapse and Persistence of
            Flag Complexes"; in *36th International Symposium on Computational
            Geometry (SoCG 2020)*, pp. 19:1–19:15, Schloss
            Dagstuhl-Leibniz–Zentrum für Informatik, 2020;
            `DOI: 10.4230/LIPIcs.SoCG.2020.19
            <https://doi.org/10.4230/LIPIcs.SoCG.2020.19>`_.
 
-    .. [3] H. Anai et al, "DTM-Based Filtrations"; in *Topological Data
+    .. [6] H. Anai et al, "DTM-Based Filtrations"; in *Topological Data
            Analysis* (Abel Symposia, vol 15), Springer, 2020;
            `DOI: 10.1007/978-3-030-43408-3_2
            <https://doi.org/10.1007/978-3-030-43408-3_2>`_.
@@ -497,9 +516,6 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
     else:
         # Only consider strict upper diagonal
         DParam = squareform(dm, checks=False).astype(np.float32)
-        # Run garbage collector to free up memory taken by `dm`
-        del dm
-        gc.collect()
         res = _compute_ph_vr_dense(DParam, maxdim, thresh, coeff, n_threads,
                                    return_generators)
 

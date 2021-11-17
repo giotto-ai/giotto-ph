@@ -1006,8 +1006,8 @@ public:
     void compute_dim_0_pairs(std::vector<diameter_index_t>& edges,
                              std::vector<diameter_index_t>& columns_to_reduce)
     {
-        // TODO: Get correct birth times if the edges are negative (required for
-        // lower star)
+        /* TODO: Ensure https://github.com/scikit-tda/ripser.py/issues/135 is no
+         * longer an issue for us. */
         union_find dset(n);
         for (index_t i = 0; i < n; i++) {
             dset.set_birth(i, get_vertex_birth(i));
@@ -1024,7 +1024,8 @@ public:
         std::vector<index_t> vertices_of_edge(2);
         columns_to_reduce.resize(edges.size());
         size_t i = 0;
-        value_t birth;
+        const bool prepare_higher_dims = (dim_max > 0);
+        value_t birth, death;
         diameter_index_t birth_vertex;
         for (auto e : edges) {
             get_simplex_vertices(get_index(e), 1, n, vertices_of_edge.rbegin());
@@ -1033,27 +1034,26 @@ public:
             index_t u = dset.find(v1), v = dset.find(v2);
 
             if (u != v) {
-                // link must be always done and now because we retrieve
-                // birth vertex value and index, it must be computed before
-                // the if condition
                 birth_vertex = dset.link_roots_and_get_birth_vertex(u, v);
-                if (get_diameter(e) != 0) {
-                    // Elder rule; youngest class (max birth time of u and v)
-                    // dies first
-                    birth = birth_vertex.first;
-                    value_t death = get_diameter(e);
-                    if (death > birth) {
-                        births_and_deaths_by_dim[0].push_back(birth);
-                        births_and_deaths_by_dim[0].push_back(death);
+                /* Unlike Ripser/ripser, here we do not exclude edges with
+                 * zero "diameters". This is because we don't assume that
+                 * all vertex weights are zero, as Ripser/ripser does. */
+                /* Elder rule; youngest class (max birth time of u and v)
+                 * dies first */
+                birth = birth_vertex.first;
+                death = get_diameter(e);
+                if (death > birth) {
+                    births_and_deaths_by_dim[0].push_back(birth);
+                    births_and_deaths_by_dim[0].push_back(death);
 
-                        if (return_flag_persistence_generators) {
-                            flag_persistence_generators.finite_0.push_back(
-                                {birth_vertex.second, std::max(v1, v2),
-                                 std::min(v1, v2)});
-                        }
+                    if (return_flag_persistence_generators) {
+                        flag_persistence_generators.finite_0.push_back(
+                            {birth_vertex.second, std::max(v1, v2),
+                             std::min(v1, v2)});
                     }
                 }
-            } else if (get_index(get_zero_apparent_cofacet(e, 1)) == -1)
+            } else if (prepare_higher_dims &&
+                       get_index(get_zero_apparent_cofacet(e, 1)) == -1)
                 columns_to_reduce[i++] = e;
         }
         columns_to_reduce.resize(i);

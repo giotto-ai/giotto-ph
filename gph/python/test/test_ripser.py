@@ -3,7 +3,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis.extra.numpy import arrays
 from hypothesis.strategies import floats, integers, composite
-from numpy.testing import assert_almost_equal
+from numpy.testing import assert_almost_equal, assert_array_equal
 from scipy.sparse import coo_matrix
 from scipy.spatial.distance import pdist, squareform
 
@@ -22,11 +22,9 @@ def get_dense_distance_matrices(draw):
                                      exclude_min=True,
                                      width=32),
                      shape=(shapes, shapes), unique=False))
-    # mirror along the diagonal the values of the
-    # distance matrix
-    dm = np.triu(dm.astype(np.float32), k=0)
+    # Extract strict upper diagonal and make symmetric
+    dm = np.triu(dm.astype(np.float32), k=1)
     dm = dm + dm.T
-    np.fill_diagonal(dm, 0)
     return dm
 
 
@@ -236,7 +234,7 @@ def test_gens_edge_in_dm_and_sorted():
 
 def test_gens_with_collapser():
     """This test ensures that you cannot use collapser and
-    retrieve representative simplicies. This is a temporary behavior."""
+    retrieve representative simplices. This is a temporary behavior."""
     X = squareform(pdist(np.random.random((100, 3))))
 
     with pytest.raises(NotImplementedError):
@@ -296,12 +294,12 @@ def test_gens_order_vertices_higher_dimension():
     one in the reverse colexicographic order used to build the simplexwise
     refinement of the Vietoris-Rips filtration."""
     diamond = np.array(
-        [[0,      1,      100, 1,      1,      1],
-         [0,      0,      1,      100, 1,      1],
-         [0,      0,      0,      1,      1,      1],
-         [0,      0,      0,      0,      1,      1],
+        [[0,      1,      100,    1,      1,      1  ],
+         [0,      0,      1,      100,    1,      1  ],
+         [0,      0,      0,      1,      1,      1  ],
+         [0,      0,      0,      0,      1,      1  ],
          [0,      0,      0,      0,      0,      100],
-         [0,      0,      0,      0,      0,      0]],
+         [0,      0,      0,      0,      0,      0  ]],
         dtype=np.float64)
 
     diamond += diamond.T
@@ -311,3 +309,79 @@ def test_gens_order_vertices_higher_dimension():
 
     assert len(gens_fin_dim2) == 1
     assert np.array_equal(gens_fin_dim2[0], np.array([1, 0, 5, 4]))
+
+
+def test_ph_maxdim_0():
+    """Regression test for issue #39, an issue was found when only computing
+    up to dimension 0. The test also compares the results of dimension 0
+    when maxdim=1 and maxdim=0"""
+    X = np.array([[1., 2], [3, 4], [5, 0]])
+    res_maxdim_0 = ripser(X, maxdim=0)['dgms'][0]
+    res_maxdim_1 = ripser(X, maxdim=1)['dgms'][0]
+
+    # Verifies that the two computations lead to the same barcodes
+    assert_array_equal(res_maxdim_0, res_maxdim_1)
+
+
+@settings(deadline=500)
+@given(dm=get_dense_distance_matrices())
+def test_equivariance(dm):
+    """Test that if we shift all entries (diagonal or not) in the input matrix
+    by a constant then the barcodes are also shifted by that constant. Doubles
+    also as a regression test for issue #31."""
+    maxdim = 1
+    kwargs = {"metric": "precomputed", "maxdim": maxdim}
+
+    # - Median may or may not make some edges zero, and will make some edges
+    #   negative and all vertex weights negative
+    # - Min is guaranteed to make at least one edge exactly zero, and all
+    #   vertex weights negative
+    # - Max is guaranteed to make all edge and vertex weights non-positive (or
+    #   infinite)
+    dm_flat = squareform(dm, checks=False)  # Get strict upper diagonal
+    dm_finite_nonzero_flat_sorted = np.sort(
+        dm_flat[np.logical_and(dm_flat > 0, dm_flat < np.inf)]
+        )  # Filter out zero values and infinite values, and sort
+    # This test will fail if val - offset = -offset numerically for some entry
+    # val in dm, because this will make some 0-dimensional classes disappear
+    # (they are born dead)
+    offsets = [0, 0, 0]  # Fallback if no edge weights are finite and positive
+    if len(dm_finite_nonzero_flat_sorted):
+        offset_cand = [np.float32(np.median(dm_finite_nonzero_flat_sorted)),
+                       np.min(dm_finite_nonzero_flat_sorted),
+                       np.max(dm_finite_nonzero_flat_sorted)]
+        for i, offset in enumerate(offset_cand):
+            if not np.any(dm - offset == -offset):
+                offsets[i] = offset_cand
+
+    dgms_orig = ripser(dm, **kwargs)["dgms"]
+
+    for offset in offsets:
+        dgms_offset = ripser(dm - offset, **kwargs)["dgms"]
+        for dim in range(maxdim + 1):
+            assert_array_equal(dgms_offset[dim], dgms_orig[dim] - offset)
+
+
+def test_equivariance_regression():
+    """Make sure that, if `hypothesis` did not pick up a distance matrix like
+    the one in issue #31, then we test it by hand anyway, to avoid regressions.
+    """
+    maxdim = 1
+    kwargs = {"metric": "precomputed", "maxdim": maxdim}
+    dm = np.array([[0, 1, 3, 5, 4],
+                   [1, 0, 6, 7, 2],
+                   [3, 6, 0, 8, 9],
+                   [5, 7, 8, 0, 10],
+                   [4, 2, 9, 10, 0]], dtype=np.float32)
+
+    dm_flat = squareform(dm)
+    offsets = [np.median(dm_flat),
+               np.min(dm_flat),
+               np.max(dm_flat)]
+
+    dgms_orig = ripser(dm, **kwargs)["dgms"]
+
+    for offset in offsets:
+        dgms_offset = ripser(dm - offset, **kwargs)["dgms"]
+        for dim in range(maxdim + 1):
+            assert_array_equal(dgms_offset[dim], dgms_orig[dim] - offset)
