@@ -253,6 +253,11 @@ def _ideal_thresh(dm, thresh):
 
 
 def _pc_to_dm_with_threshold(pc, thresh, p):
+    """This function computes a pairwise distance of a point cloud
+    but it uses a threshold to remove all values superior to this
+    threshold.
+
+    The output of this function is a coo_matrix"""
     kd_tree = cKDTree(pc)
     return kd_tree.sparse_distance_matrix(kd_tree, thresh, p=p,
                                           output_type='coo_matrix')
