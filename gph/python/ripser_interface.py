@@ -22,6 +22,7 @@ from warnings import catch_warnings, simplefilter
 import numpy as np
 from scipy.sparse import issparse, csr_matrix, coo_matrix
 from scipy.spatial.distance import squareform
+from scipy.spatial import cKDTree
 from sklearn.exceptions import EfficiencyWarning
 from sklearn.metrics.pairwise import pairwise_distances
 from sklearn.neighbors import kneighbors_graph
@@ -251,6 +252,12 @@ def _ideal_thresh(dm, thresh):
     return min([enclosing_radius, thresh])
 
 
+def _pc_to_dm_with_threshold(pc, thresh, metric="euclidean"):
+    kd_tree = cKDTree(pc)
+    return kd_tree.sparse_distance_matrix(kd_tree, thresh,
+                                          output_type='coo_matrix')
+
+
 def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                     metric_params={}, weights=None, weight_params=None,
                     collapse_edges=False, n_threads=1,
@@ -447,7 +454,10 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
     if metric == 'precomputed':
         dm = X
     else:
-        dm = pairwise_distances(X, metric=metric, **metric_params)
+        if thresh != np.inf:
+            dm = _pc_to_dm_with_threshold(X, thresh, metric)
+        else:
+            dm = pairwise_distances(X, metric=metric, **metric_params)
 
     n_points = max(dm.shape)
 
