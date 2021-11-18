@@ -252,9 +252,9 @@ def _ideal_thresh(dm, thresh):
     return min([enclosing_radius, thresh])
 
 
-def _pc_to_dm_with_threshold(pc, thresh, metric="euclidean"):
+def _pc_to_dm_with_threshold(pc, thresh, p):
     kd_tree = cKDTree(pc)
-    return kd_tree.sparse_distance_matrix(kd_tree, thresh,
+    return kd_tree.sparse_distance_matrix(kd_tree, thresh, p=p,
                                           output_type='coo_matrix')
 
 
@@ -454,8 +454,13 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
     if metric == 'precomputed':
         dm = X
     else:
-        if thresh != np.inf:
-            dm = _pc_to_dm_with_threshold(X, thresh, metric)
+        if thresh != np.inf and metric in ['euclidean', 'minkowski']:
+            if metric == 'euclidean':
+                p = 2
+            elif metric == 'minkowski':
+                p = metric_params['p']
+
+            dm = _pc_to_dm_with_threshold(X, thresh, p)
         else:
             dm = pairwise_distances(X, metric=metric, **metric_params)
 
