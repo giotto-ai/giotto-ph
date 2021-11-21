@@ -459,7 +459,8 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
     if metric == 'precomputed':
         dm = X
     else:
-        if thresh != np.inf and metric in ['euclidean', 'minkowski']:
+        if not issparse(X) and thresh != np.inf and \
+                metric in ['euclidean', 'minkowski']:
             if metric == 'euclidean':
                 p = 2
             elif metric == 'minkowski':
