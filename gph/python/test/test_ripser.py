@@ -385,3 +385,19 @@ def test_equivariance_regression():
         dgms_offset = ripser(dm - offset, **kwargs)["dgms"]
         for dim in range(maxdim + 1):
             assert_array_equal(dgms_offset[dim], dgms_orig[dim] - offset)
+
+
+def test_optimized_distance_matrix():
+    """Ensure that using the optimized distance matrix computation when using
+    threshold produces the same results than using one with a threshold who
+    correspond to the enclosing radius.
+    """
+    X = np.random.default_rng(0).random((100, 3))
+    maxdim = 2
+    enclosing_radius = 0.8884447324918705
+
+    dgms = ripser(X, maxdim=maxdim)["dgms"]
+    dgms_thresh = ripser(X, maxdim=maxdim, thresh=enclosing_radius)["dgms"]
+
+    for dim, dgm in enumerate(dgms):
+        assert_array_equal(dgm, dgms_thresh[dim])
