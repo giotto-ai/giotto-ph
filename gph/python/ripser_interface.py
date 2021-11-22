@@ -267,16 +267,33 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                     metric_params={}, weights=None, weight_params=None,
                     collapse_edges=False, n_threads=1,
                     return_generators=False):
-    """Compute persistence diagrams for X data array.
+    """Compute persistence diagrams from an input dense array or sparse matrix.
 
-    If X is a point cloud, it will be converted to a distance matrix
-    using the chosen metric.
+    If `X` represents a point cloud, a distance matrix will be internally
+    created using the chosen metric and its Vietoris–Rips persistent homology
+    will be computed.
 
     Parameters
     ----------
-    X : ndarray of shape (n_samples, n_features)
-        A numpy array of either data or distance matrix. Can also be a sparse
-        distance matrix of type scipy.sparse
+    X : ndarray or sparse matrix
+        If `metric` is not set to ``"precomputed"``, input data of shape
+        ``(n_samples, n_features)`` representing a point cloud. Otherwise,
+        dense or sparse input data of shape ``(n_samples, n_samples)``
+        representing a distance matrix or adjacency matrix of a weighted
+        undirected graph, with the following conventions:
+            - Diagonal entries indicate vertex weights, i.e. the filtration
+              parameters at which vertices appear.
+            - If `X` is dense, only its upper diagonal portion (including the
+              diagonal) is considered.
+            - If `X` is sparse, it does not need to be upper diagonal or
+              symmetric. If only one of entry (i, j) and (j, i) is stored, its
+              value is taken as the weight of the undirected edge {i, j}. If
+              both are stored, the value in the upper diagonal is taken.
+              Off-diagonal entries which are not explicitly stored are treated
+              as infinite, indicating absent edges.
+            - Entries of `X` should be compatible with a filtration, i.e.
+              the value at index (i, j) should be no smaller than the
+              values at diagonal indices (i, i) and (j, j).
 
     maxdim : int, optional, default: ``1``
         Maximum homology dimension computed. Will compute all dimensions lower
