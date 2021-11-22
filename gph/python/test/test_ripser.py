@@ -403,3 +403,16 @@ def test_optimized_distance_matrix(metric):
 
     for dim, dgm in enumerate(dgms):
         assert_array_equal(dgm, dgms_thresh[dim])
+
+
+def test_dense_finite_thresh_zero_edges():
+    """Check that if a dense distance matrix and a finite threshold are passed,
+    and some edges are zero, these edges are not treated as absent. Serves as
+    a regression test for issue #55."""
+    dm = np.array([[0., 0.],
+                   [0., 0.]])
+    dgm_0 = ripser(dm)["dgms"][0]
+    dgm_0_finite_thresh = ripser(dm, thresh=1.)["dgms"][0]
+    dgm_0_exp = np.array([[0., np.inf]])
+    assert_array_equal(dgm_0, dgm_0_exp)
+    assert_array_equal(dgm_0_finite_thresh, dgm_0_exp)
