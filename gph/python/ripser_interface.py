@@ -464,7 +464,7 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             if metric == 'euclidean':
                 p = 2
             elif metric == 'minkowski':
-                p = metric_params['p']
+                p = metric_params.get('p', 2)
 
             dm = _pc_to_sparse_dm_with_threshold(X, thresh, p)
         else:
