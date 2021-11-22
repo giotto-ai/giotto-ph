@@ -291,9 +291,9 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
               both are stored, the value in the upper diagonal is taken.
               Off-diagonal entries which are not explicitly stored are treated
               as infinite, indicating absent edges.
-            - Entries of `X` should be compatible with a filtration, i.e.
-              the value at index (i, j) should be no smaller than the
-              values at diagonal indices (i, i) and (j, j).
+            - Entries of `X` should be compatible with a filtration, i.e. the
+              the value at index (i, j) should be no smaller than the values at
+              diagonal indices (i, i) and (j, j).
 
     maxdim : int, optional, default: ``1``
         Maximum homology dimension computed. Will compute all dimensions lower
@@ -312,11 +312,10 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         as a distance matrix or of adjacency matrices of a weighted undirected
         graph. If a string, it must be one of the options allowed by
         :func:`scipy.spatial.distance.pdist` for its metric parameter, or a
-        or a metric listed in
-        :obj:`sklearn.pairwise.PAIRWISE_DISTANCE_FUNCTIONS`, including
-        ``'euclidean'``, ``'manhattan'`` or ``'cosine'``. If a callable, it
-        should take pairs of vectors (1D arrays) as input and, for each two
-        vectors in a pair, it should return a scalar indicating the
+        metric listed in :obj:`sklearn.pairwise.PAIRWISE_DISTANCE_FUNCTIONS`,
+        including ``'euclidean'``, ``'manhattan'`` or ``'cosine'``. If a
+        callable, it should take pairs of vectors (1D arrays) as input and, for
+        each two vectors in a pair, it should return a scalar indicating the
         distance/dissimilarity between them.
 
     metric_params : dict, optional, default: ``{}``
