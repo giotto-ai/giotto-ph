@@ -197,7 +197,6 @@ def _compute_weights(dm, weights, weight_params, n_points,
         weights_r = weight_params.get("r", 2)
 
         if is_sparse:
-
             # Restrict to off-diagonal entries for weights computation since
             # diagonal ones are given by `weights`. Explicitly set the diagonal
             # to 0 -- this is also important for DTM since otherwise
@@ -235,12 +234,12 @@ def _compute_weights(dm, weights, weight_params, n_points,
 
 
 def _ideal_thresh(dm, thresh):
-    """This function computes enclosing radius. Enclosing radius
-    indicates that all distances above this threshold will produce
-    trivial homology
+    """Compute the enclosing radius of an input distance matrix.
 
-    Enclosing radius is only computed if input matrix is square
-    """
+    Under a Vietoris–Rips filtration, all homology groups are trivial above
+    this value because the complex becomes a cone.
+
+    The enclosing radius is only computed if the input matrix is square."""
 
     # Check that matrix is square
     if dm.shape[0] != dm.shape[1]:
@@ -253,11 +252,11 @@ def _ideal_thresh(dm, thresh):
 
 
 def _pc_to_sparse_dm_with_threshold(pc, thresh, p):
-    """This function computes a pairwise distance of a point cloud
-    but it uses a threshold to remove all values superior to this
-    threshold.
+    """Compute a sparse matrix of pairwise distances between points in a point
+    cloud, removing all distances larger than a threshold.
 
-    The output of this function is a coo_matrix"""
+    Return the output in COO format."""
+
     kd_tree = cKDTree(pc)
     return kd_tree.sparse_distance_matrix(kd_tree, thresh, p=p,
                                           output_type='coo_matrix')
