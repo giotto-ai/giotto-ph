@@ -57,46 +57,44 @@ def _compute_ph_vr_sparse(I, J, V, N, maxHomDim, thresh=-1, coeff=2,
     return ret
 
 
-def _resolve_symmetry_conflicts(coo):
-    """Given a sparse matrix in COO format, filter out any entry at location
-    (i, j) strictly below the diagonal if the entry at (j, i) is also
-    stored. Return row, column and data information for an upper diagonal
-    COO matrix."""
-    _row, _col, _data = coo.row, coo.col, coo.data
+def _sanitize_coo(row, col, data, only_extract_upper=False):
+    """Given a sparse matrix in COO format, either return its upper triangular
+    portion directly, or filter out any entry at location (i, j) strictly below
+    the diagonal if the entry at (j, i) is also stored."""
 
-    below_diag = _col < _row
-    # Check if there is anything below the main diagonal
-    if below_diag.any():
-        # Initialize filtered COO data with information in the upper triangle
-        in_upper_triangle = np.logical_not(below_diag)
-        row = _row[in_upper_triangle]
-        col = _col[in_upper_triangle]
-        data = _data[in_upper_triangle]
+    row_orig, col_orig, data_orig = row, col, data
 
-        # Filter out entries below the diagonal for which entries at
-        # transposed positions are already available
-        upper_triangle_indices = set(zip(row, col))
-        additions = tuple(
-            zip(*((j, i, x) for (i, j, x) in zip(_row[below_diag],
-                                                 _col[below_diag],
-                                                 _data[below_diag])
-                  if (j, i) not in upper_triangle_indices))
-            )
-        # Add surviving entries below the diagonal to final COO data
-        if additions:
-            row_add, col_add, data_add = additions
-            row = np.concatenate([row, row_add])
-            col = np.concatenate([col, col_add])
-            data = np.concatenate([data, data_add])
-
+    # Initialize filtered COO data with information in the upper triangle
+    in_upper_triangle = row_orig <= col_orig
+    row = row_orig[in_upper_triangle]
+    col = col_orig[in_upper_triangle]
+    data = data_orig[in_upper_triangle]
+    if only_extract_upper:
         return row, col, data
-    else:
-        return _row, _col, _data
+
+    below_diag_idxs = np.flatnonzero(np.logical_not(in_upper_triangle))
+    # Check if there is anything below the main diagonal
+    if len(below_diag_idxs):
+        # Only keep entries below the diagonal for which entries at transposed
+        # positions are not available
+        upper_triangle_row_col = set(zip(row, col))
+        additions_idxs = [
+            i for i in below_diag_idxs
+            if (col_orig[i], row_orig[i]) not in upper_triangle_row_col
+            ]
+        # Add surviving entries below the diagonal to final COO data
+        if len(additions_idxs):
+            row = np.concatenate([row, col_orig[additions_idxs]])
+            col = np.concatenate([col, row_orig[additions_idxs]])
+            data = np.concatenate([data, data_orig[additions_idxs]])
+
+    return row, col, data
 
 
 def _collapse_coo(row, col, data, thresh):
     """Run edge collapser on off-diagonal data and then reinsert diagonal
     data."""
+
     diag = row == col
     row_diag, col_diag, data_diag = row[diag], col[diag], data[diag]
     row, col, data = gph_collapser. \
@@ -127,6 +125,7 @@ def _weight_filtration(dist, weights_x, weights_y, p):
     column vector, `weights_y` is a 1D array, `dist` is the original distance
     matrix, and the computations exploit array broadcasting. For sparse data,
     all three are 1D arrays. `p` can only be ``numpy.inf``, ``1``, or ``2``."""
+
     if p == np.inf:
         return np.maximum(dist, np.maximum(weights_x, weights_y))
     elif p == 1:
@@ -471,6 +470,7 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             "`collapse_edges` and `return_generators`cannot both be True."
         )
 
+    is_sparse_matrix_symmetric = None
     if metric == 'precomputed':
         dm = X
     else:
@@ -482,6 +482,7 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                 p = metric_params.get('p', 2)
 
             dm = _pc_to_sparse_dm_with_threshold(X, thresh, p)
+            is_sparse_matrix_symmetric = True
         else:
             dm = pairwise_distances(X, metric=metric, **metric_params)
 
@@ -489,7 +490,11 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
 
     use_sparse_computer = True
     if issparse(dm):
-        row, col, data = _resolve_symmetry_conflicts(dm.tocoo())  # Upper diag
+        coo = dm.tocoo()
+        row, col, data = _sanitize_coo(
+            coo.row, coo.col, coo.data,
+            only_extract_upper=is_sparse_matrix_symmetric
+            )
 
         if weights is not None:
             sparse_kwargs = {
@@ -509,18 +514,19 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             dm = _compute_weights(dm, weights, weight_params, n_points)
 
         compute_enclosing_radius = False
-        if not (dm.diagonal() != 0).any():
+        nonzero_in_diag = (dm.diagonal() != 0).any()
+        if not nonzero_in_diag:
             # Compute ideal threshold only when a distance matrix is passed
             # as input without specifying any threshold
             # We check if any element and if no entries is present in the
-            # diagonal. This allow to have the enclosing radius before
+            # diagonal. This allows to have the enclosing radius before
             # calling collapser if computed
             if thresh == np.inf:
                 thresh = _ideal_thresh(dm, thresh)
                 compute_enclosing_radius = True
 
-        if (dm.diagonal() != 0).any():
-            # Convert to sparse format, because currently that's the only
+        if nonzero_in_diag:
+            # Convert to sparse format, because currently that's the only one
             # one handling nonzero births
             (row, col) = np.triu_indices_from(dm)
             data = dm[(row, col)]
@@ -533,8 +539,10 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         elif not compute_enclosing_radius:
             # If the user specifies a threshold, we use a sparse
             # representation like Ripser does
-            dm[dm > thresh] = 0.0
-            row, col, data = _resolve_symmetry_conflicts(coo_matrix(dm))
+            row, col = np.nonzero(dm <= thresh)
+            data = dm[(row, col)]
+            row, col, data = _sanitize_coo(row, col, data,
+                                           only_extract_upper=True)
         else:
             use_sparse_computer = False
 
@@ -548,7 +556,8 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             thresh,
             coeff,
             n_threads,
-            return_generators)
+            return_generators
+            )
     else:
         # Only consider strict upper diagonal
         DParam = squareform(dm, checks=False).astype(np.float32)
