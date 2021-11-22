@@ -252,7 +252,7 @@ def _ideal_thresh(dm, thresh):
     return min([enclosing_radius, thresh])
 
 
-def _pc_to_dm_with_threshold(pc, thresh, p):
+def _pc_to_sparse_dm_with_threshold(pc, thresh, p):
     """This function computes a pairwise distance of a point cloud
     but it uses a threshold to remove all values superior to this
     threshold.
