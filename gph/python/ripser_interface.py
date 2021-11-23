@@ -470,7 +470,8 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             "`collapse_edges` and `return_generators`cannot both be True."
         )
 
-    is_sparse_matrix_symmetric = None
+    use_sparse_computer = True
+    is_dm_sparse_and_symmetric = False
     if metric == 'precomputed':
         dm = X
     else:
@@ -482,18 +483,17 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                 p = metric_params.get('p', 2)
 
             dm = _pc_to_sparse_dm_with_threshold(X, thresh, p)
-            is_sparse_matrix_symmetric = True
+            is_dm_sparse_and_symmetric = True
         else:
             dm = pairwise_distances(X, metric=metric, **metric_params)
 
     n_points = max(dm.shape)
 
-    use_sparse_computer = True
     if issparse(dm):
         coo = dm.tocoo()
         row, col, data = _sanitize_coo(
             coo.row, coo.col, coo.data,
-            only_extract_upper=is_sparse_matrix_symmetric
+            only_extract_upper=is_dm_sparse_and_symmetric
             )
 
         if weights is not None:
