@@ -234,7 +234,7 @@ def test_gens_edge_in_dm_and_sorted():
 
 def test_gens_with_collapser():
     """This test ensures that you cannot use collapser and
-    retrieve representative simplices. This is a temporary behavior."""
+    retrieve generators. This is a temporary behavior."""
     X = squareform(pdist(np.random.random((10, 3))))
 
     with pytest.raises(NotImplementedError):
