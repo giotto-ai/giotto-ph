@@ -527,7 +527,7 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
 
         if nonzero_in_diag:
             # Convert to sparse format, because currently that's the only one
-            # one handling nonzero births
+            # handling nonzero births
             (row, col) = np.triu_indices_from(dm)
             data = dm[(row, col)]
             if collapse_edges:
@@ -537,8 +537,8 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                 flag_complex_collapse_edges_dense(dm.astype(np.float32),
                                                   thresh)
         elif not compute_enclosing_radius:
-            # If the user specifies a threshold, we use a sparse
-            # representation like Ripser does
+            # If the user specifies a threshold, we use a sparse representation
+            # like Ripser does
             row, col = np.nonzero(dm <= thresh)
             data = dm[(row, col)]
             row, col, data = _sanitize_coo(row, col, data,
