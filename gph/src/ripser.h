@@ -991,35 +991,35 @@ public:
         value_t birth, death;
         diameter_index_t birth_vertex;
         for (auto e : edges) {
-            if (get_diameter(e) != std::numeric_limits<value_t>::infinity()) {
-                get_simplex_vertices(get_index(e), 1, n, vertices_of_edge.rbegin());
-                index_t v1 = vertices_of_edge[0];
-                index_t v2 = vertices_of_edge[1];
-                index_t u = dset.find(v1), v = dset.find(v2);
+            if (get_diameter(e) == std::numeric_limits<value_t>::infinity())
+                continue;
+            get_simplex_vertices(get_index(e), 1, n, vertices_of_edge.rbegin());
+            index_t v1 = vertices_of_edge[0];
+            index_t v2 = vertices_of_edge[1];
+            index_t u = dset.find(v1), v = dset.find(v2);
 
-                if (u != v) {
-                    birth_vertex = dset.link_roots_and_get_birth_vertex(u, v);
-                    /* Unlike Ripser/ripser, here we do not exclude edges with
-                     * zero "diameters". This is because we don't assume that
-                     * all vertex weights are zero, as Ripser/ripser does. */
-                    /* Elder rule; youngest class (max birth time of u and v)
-                     * dies first */
-                    birth = birth_vertex.first;
-                    death = get_diameter(e);
-                    if (death > birth) {
-                        births_and_deaths_by_dim[0].push_back(birth);
-                        births_and_deaths_by_dim[0].push_back(death);
+            if (u != v) {
+                birth_vertex = dset.link_roots_and_get_birth_vertex(u, v);
+                /* Unlike Ripser/ripser, here we do not exclude edges with
+                 * zero "diameters". This is because we don't assume that
+                 * all vertex weights are zero, as Ripser/ripser does. */
+                /* Elder rule; youngest class (max birth time of u and v)
+                 * dies first */
+                birth = birth_vertex.first;
+                death = get_diameter(e);
+                if (death > birth) {
+                    births_and_deaths_by_dim[0].push_back(birth);
+                    births_and_deaths_by_dim[0].push_back(death);
 
-                        if (return_flag_persistence_generators) {
-                            flag_persistence_generators.finite_0.push_back(
-                                {birth_vertex.second, std::max(v1, v2),
-                                 std::min(v1, v2)});
-                        }
+                    if (return_flag_persistence_generators) {
+                        flag_persistence_generators.finite_0.push_back(
+                            {birth_vertex.second, std::max(v1, v2),
+                             std::min(v1, v2)});
                     }
-                } else if (prepare_higher_dims &&
-                           get_index(get_zero_apparent_cofacet(e, 1)) == -1)
-                    columns_to_reduce[i++] = e;
-            }
+                }
+            } else if (prepare_higher_dims &&
+                       get_index(get_zero_apparent_cofacet(e, 1)) == -1)
+                columns_to_reduce[i++] = e;
         }
         columns_to_reduce.resize(i);
         std::reverse(columns_to_reduce.begin(), columns_to_reduce.end());
