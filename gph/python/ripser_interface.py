@@ -460,12 +460,11 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             "`collapse_edges` and `return_generators`cannot both be True."
         )
 
+    max_coeff_supported = gph_ripser.get_max_coefficient_field_supported()
     if coeff != 2 and \
-            not _is_prime_and_larger_than_2(
-                coeff, gph_ripser.get_max_coefficient_field_supported()):
+            not _is_prime_and_larger_than_2(coeff, max_coeff_supported):
         raise ValueError("coeff value not supported, coeff value must be prime"
-                         " and lower than {}".format(
-                             gph_ripser.get_max_coefficient_field_supported()))
+                         " and lower than {}".format(max_coeff_supported))
 
     if metric == 'precomputed':
         dm = X
