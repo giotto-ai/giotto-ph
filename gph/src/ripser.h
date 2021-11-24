@@ -125,6 +125,7 @@ public:
      * columns */
     binomial_coeff_table(index_t n, index_t k) : B(k + 1, row_bc(n + 1, 0))
     {
+        /* B[j][i] = binom(i, j) */
         for (index_t i = 0; i <= n; ++i) {
             B[0][i] = 1;
             if (i <= k)
