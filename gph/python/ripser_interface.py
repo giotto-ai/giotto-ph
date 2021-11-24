@@ -17,6 +17,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import math
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
@@ -251,19 +252,18 @@ def _ideal_thresh(dm, thresh):
     return min([enclosing_radius, thresh])
 
 
-def _supported_coeff_field(coeff):
-    max_coeff = gph_ripser.get_max_coefficient_field_supported()
+def _is_prime_and_larger_than_2(x, N):
+    """Test whether 2 < x <= N is prime. Returns False when x is 2."""
+    if not x % 2 or x > N:
+        return False
 
-    # https://stackoverflow.com/questions/2068372/fastest-way-to-list-all-primes-below-n-in-python/3035188#3035188
-    def rwh_primes(n):
-        """ Returns  a list of primes < n """
-        sieve = [True] * n
-        for i in range(3, int(n**0.5)+1, 2):
-            if sieve[i]:
-                sieve[i*i::2*i] = [False]*int(((n-i*i-1)/(2*i)+1))
-        return [2] + [i for i in range(3, n, 2) if sieve[i]]
+    sieve = [True] * N
+    for i in range(3, min(x, int(math.sqrt(N))) + 1, 2):
+        if sieve[i]:
+            sieve[i * i::2 * i] = \
+                [False] * int(((N - i * i - 1) / (2 * i) + 1))
 
-    return coeff < max_coeff and coeff in rwh_primes(max_coeff)
+    return sieve[x]
 
 
 def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
@@ -459,7 +459,9 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             "`collapse_edges` and `return_generators`cannot both be True."
         )
 
-    if coeff != 2 and not _supported_coeff_field(coeff):
+    if coeff != 2 and \
+            not _is_prime_and_larger_than_2(
+                coeff, gph_ripser.get_max_coefficient_field_supported()):
         raise ValueError("coeff value not supported, coeff value must be prime"
                          " and lower than {}".format(
                              gph_ripser.get_max_coefficient_field_supported()))
