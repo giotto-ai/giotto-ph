@@ -121,7 +121,7 @@ class binomial_coeff_table
 
 public:
     /* Transposed binomial table
-     * It's transposed because access where done over the rows and not the
+     * It's transposed because access is done over the rows and not the
      * columns */
     binomial_coeff_table(index_t n, index_t k) : B(k + 1, row_bc(n + 1, 0))
     {
