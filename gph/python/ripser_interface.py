@@ -261,7 +261,7 @@ def _pc_to_sparse_dm_with_threshold(X, thresh, algorithm, leaf_size,
                              leaf_size=leaf_size,
                              metric=metric,
                              metric_params=metric_params,
-                             n_jobs=n_jobs).fit(X)
+                             n_jobs=n_threads).fit(X)
     # Upper triangular CSR output
     dm = triu(neigh.radius_neighbors_graph(mode="distance"))
 
