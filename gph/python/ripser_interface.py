@@ -325,6 +325,21 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
     metric_params : dict, optional, default: ``{}``
         Additional parameters to be passed to the distance function.
 
+    nearest_neighbors_params : dict, optional, default: ``{}``
+        Additional parameters that can be passed when `thresh` is finite and
+        `metric` is not ``"precomputed"``. Allowed keys and values are as
+        follows:
+
+            - ``"algorithm"``: ``"auto"`` | ``"ball_tree"`` | ``"kd_tree"`` |
+              ``"brute"`` (default when not passed: ``"auto"``)
+            - ``"leaf_size"``: int (default when not passed: ``30``)
+
+        These are passed as keyword arguments to an instance of
+        :class:`sklearn.neighbors.NearestNeighbors` to compute the thresholded
+        distance matrix in a sparse format. See the relevant
+        `scikit-learn User Guide
+        <https://scikit-learn.org/stable/modules/neighbors.html>`_.
+
     weights : ``"DTM"``, ndarray or None, optional, default: ``None``
         If not ``None``, the persistence of a weighted Vietoris-Rips filtration
         is computed as described in [6]_, and this parameter determines the
