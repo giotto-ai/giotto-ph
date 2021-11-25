@@ -304,8 +304,10 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         than or equal to this value.
 
     thresh : float, optional, default: ``numpy.inf``
-        Maximum distances considered when constructing filtration. If
-        ``numpy.inf``, compute the entire filtration.
+        Maximum value of the Vietoris–Rips filtration parameter. Points whose
+        distance is greater than this value will never be connected by an edge.
+        If ``numpy.inf``, compute the entire filtration. Otherwise, and if
+        `metric` is not ``"precomputed"``, see `nearest_neighbors_params`.
 
     coeff : int prime, optional, default: ``2``
         Compute homology with coefficients in the prime field Z/pZ for p=coeff.
