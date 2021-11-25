@@ -542,8 +542,9 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                                    return_generators)
 
     # Unwrap persistence diagrams
-    # He must do a call now, because call a method of object ripserResults
-    # Instead of calling an attribute of the object
+    # Barcodes must match the inner type of C++ core filtration value.
+    # We call a method from the bindings that returns the barcodes as
+    # numpy arrays with np.float32 type
     dgms = res.births_and_deaths_by_dim()
     for dim in range(len(dgms)):
         N = int(len(dgms[dim]) / 2)
