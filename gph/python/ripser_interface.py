@@ -249,7 +249,7 @@ def _ideal_thresh(dm, thresh):
     return min([enclosing_radius, thresh])
 
 
-def _pc_to_sparse_dm_with_threshold(X, thresh, algorithm, leaf_size,
+def _pc_to_sparse_dm_with_threshold(X, thresh, nearest_neighbors_params,
                                     metric, metric_params, n_threads):
     """Compute a sparse matrix of pairwise distances between points in a point
     cloud, removing all distances larger than a threshold.
@@ -257,11 +257,10 @@ def _pc_to_sparse_dm_with_threshold(X, thresh, algorithm, leaf_size,
     Return the output as an upper triangular sparse matrix in CSR format."""
 
     neigh = NearestNeighbors(radius=thresh,
-                             algorithm=algorithm,
-                             leaf_size=leaf_size,
                              metric=metric,
                              metric_params=metric_params,
-                             n_jobs=n_threads).fit(X)
+                             n_jobs=n_threads,
+                             **nearest_neighbors_params).fit(X)
     # Upper triangular CSR output
     dm = triu(neigh.radius_neighbors_graph(mode="distance"))
 
@@ -482,10 +481,9 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
     if metric == 'precomputed':
         dm = X
     elif thresh != np.inf:
-        algorithm = nearest_neighbors_params.get("algorithm", "auto")
-        leaf_size = nearest_neighbors_params.get("leaf_size", 30)
         dm = _pc_to_sparse_dm_with_threshold(
-            X, thresh, algorithm, leaf_size, metric, metric_params, n_threads
+            X, thresh, nearest_neighbors_params, metric, metric_params,
+            n_threads
             )
         is_dm_sparse_and_upper_triangular = True
     else:
