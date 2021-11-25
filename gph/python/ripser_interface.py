@@ -20,12 +20,11 @@
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
-from scipy.sparse import issparse, csr_matrix, coo_matrix
+from scipy.sparse import issparse, csr_matrix, coo_matrix, triu
 from scipy.spatial.distance import squareform
-from scipy.spatial import cKDTree
 from sklearn.exceptions import EfficiencyWarning
 from sklearn.metrics.pairwise import pairwise_distances
-from sklearn.neighbors import kneighbors_graph
+from sklearn.neighbors import NearestNeighbors, kneighbors_graph
 from sklearn.utils.validation import column_or_1d
 
 from ..modules import gph_ripser, gph_ripser_coeff, gph_collapser
@@ -250,21 +249,29 @@ def _ideal_thresh(dm, thresh):
     return min([enclosing_radius, thresh])
 
 
-def _pc_to_sparse_dm_with_threshold(pc, thresh, p):
+def _pc_to_sparse_dm_with_threshold(X, thresh, algorithm, leaf_size,
+                                    metric, metric_params, n_threads):
     """Compute a sparse matrix of pairwise distances between points in a point
     cloud, removing all distances larger than a threshold.
 
-    Return the output in COO format."""
+    Return the output as an upper triangular sparse matrix in CSR format."""
 
-    kd_tree = cKDTree(pc)
-    return kd_tree.sparse_distance_matrix(kd_tree, thresh, p=p,
-                                          output_type='coo_matrix')
+    neigh = NearestNeighbors(radius=thresh,
+                             algorithm=algorithm,
+                             leaf_size=leaf_size,
+                             metric=metric,
+                             metric_params=metric_params,
+                             n_jobs=n_jobs).fit(X)
+    # Upper triangular CSR output
+    dm = triu(neigh.radius_neighbors_graph(mode="distance"))
+
+    return dm
 
 
 def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
-                    metric_params={}, weights=None, weight_params=None,
-                    collapse_edges=False, n_threads=1,
-                    return_generators=False):
+                    metric_params={}, nearest_neighbors_params={},
+                    weights=None, weight_params=None, collapse_edges=False,
+                    n_threads=1, return_generators=False):
     """Compute persistence diagrams from an input dense array or sparse matrix.
 
     If `X` represents a point cloud, a distance matrix will be internally
@@ -471,30 +478,26 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         )
 
     use_sparse_computer = True
-    is_dm_sparse_and_symmetric = False
+    is_dm_sparse_and_upper_triangular = False
     if metric == 'precomputed':
         dm = X
+    elif thresh != np.inf:
+        algorithm = nearest_neighbors_params.get("algorithm", "auto")
+        leaf_size = nearest_neighbors_params.get("leaf_size", 30)
+        dm = _pc_to_sparse_dm_with_threshold(
+            X, thresh, algorithm, leaf_size, metric, metric_params, n_threads
+            )
+        is_dm_sparse_and_upper_triangular = True
     else:
-        if not issparse(X) and thresh != np.inf and \
-                metric in ['euclidean', 'minkowski']:
-            if metric == 'euclidean':
-                p = 2
-            elif metric == 'minkowski':
-                p = metric_params.get('p', 2)
-
-            dm = _pc_to_sparse_dm_with_threshold(X, thresh, p)
-            is_dm_sparse_and_symmetric = True
-        else:
-            dm = pairwise_distances(X, metric=metric, **metric_params)
+        dm = pairwise_distances(X, metric=metric, **metric_params)
 
     n_points = max(dm.shape)
 
     if issparse(dm):
         coo = dm.tocoo()
-        row, col, data = _sanitize_coo(
-            coo.row, coo.col, coo.data,
-            only_extract_upper=is_dm_sparse_and_symmetric
-            )
+        row, col, data = coo.row, coo.col, coo.data
+        if not is_dm_sparse_and_upper_triangular:
+            row, col, data = _sanitize_coo(row, col, data)
 
         if weights is not None:
             sparse_kwargs = {
