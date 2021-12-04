@@ -345,24 +345,21 @@ value_t compressed_upper_distance_matrix::operator()(const index_t i,
 struct sparse_distance_matrix {
     std::vector<std::vector<index_diameter_t>> neighbors;
     std::vector<value_t> vertex_births;
-    index_t num_edges;
 
     sparse_distance_matrix(
         std::vector<std::vector<index_diameter_t>>&& _neighbors,
         index_t _num_edges)
-        : neighbors(std::move(_neighbors)), vertex_births(neighbors.size(), 0),
-          num_edges(_num_edges)
+        : neighbors(std::move(_neighbors)), vertex_births(neighbors.size(), 0)
     {
     }
 
     template <typename DistanceMatrix>
     sparse_distance_matrix(const DistanceMatrix& mat, const value_t threshold)
-        : neighbors(mat.size()), vertex_births(mat.size(), 0), num_edges(0)
+        : neighbors(mat.size()), vertex_births(mat.size(), 0)
     {
         for (size_t i = 0; i < size(); ++i)
             for (size_t j = 0; j < size(); ++j)
                 if (i != j && mat(i, j) <= threshold) {
-                    ++num_edges;
                     neighbors[i].push_back({j, mat(i, j)});
                 }
     }
@@ -370,7 +367,7 @@ struct sparse_distance_matrix {
     // Initialize from COO format
     sparse_distance_matrix(index_t* I, index_t* J, value_t* V, int NEdges,
                            int N, const value_t threshold)
-        : neighbors(N), vertex_births(N, 0), num_edges(0)
+        : neighbors(N), vertex_births(N, 0)
     {
         int i, j;
         value_t val;
@@ -381,7 +378,6 @@ struct sparse_distance_matrix {
             if (i < j && val <= threshold) {
                 neighbors[i].push_back(std::make_pair(j, val));
                 neighbors[j].push_back(std::make_pair(i, val));
-                ++num_edges;
             } else if (i == j) {
                 vertex_births[i] = val;
             }
@@ -597,9 +593,6 @@ typedef struct {
     std::vector<barcodes_t> births_and_deaths_by_dim;
     /* The second variable stores the flag persistence generators */
     flagPersGen flag_persistence_generators;
-    /* The third variable is the number of edges that were added during the
-     * computation */
-    int num_edges;
 
 } ripserResults;
 

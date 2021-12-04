@@ -64,8 +64,7 @@ PYBIND11_MODULE(gph_ripser, m)
                  return to_numpy_barcodes(res.births_and_deaths_by_dim);
              })
         .def_readwrite("flag_persistence_generators_by_dim",
-                       &ripserResults::flag_persistence_generators)
-        .def_readwrite("num_edges", &ripserResults::num_edges);
+                       &ripserResults::flag_persistence_generators);
 
     m.def(
         "rips_dm",
@@ -78,20 +77,12 @@ PYBIND11_MODULE(gph_ripser, m)
                 compressed_lower_distance_matrix(
                     compressed_upper_distance_matrix(std::move(distances)));
 
-            int num_edges = 0;
-
-            for (auto d : dist.distances) {
-                if (d <= threshold)
-                    ++num_edges;
-            }
-
             ripserResults res;
             ripser<compressed_lower_distance_matrix> r(
                 std::move(dist), dim_max, threshold, modulus,
                 num_threads, return_generators);
             r.compute_barcodes();
             r.copy_results(res);
-            res.num_edges = num_edges;
             return res;
         },
         "D"_a, "N"_a, "modulus"_a, "dim_max"_a, "threshold"_a, "num_threads"_a,
@@ -112,16 +103,9 @@ PYBIND11_MODULE(gph_ripser, m)
                 dim_max, threshold, modulus, num_threads,
                 return_generators);
             r.compute_barcodes();
-            // Report the number of edges that were added
-            int num_edges = 0;
-            for (int idx = 0; idx < NEdges; idx++) {
-                if (I_[idx] < J_[idx] && V_[idx] <= threshold) {
-                    num_edges++;
-                }
-            }
+
             ripserResults res;
             r.copy_results(res);
-            res.num_edges = num_edges;
             return res;
         },
         "I"_a, "J"_a, "V"_a, "NEdges"_a, "N"_a, "modulus"_a, "dim_max"_a,
