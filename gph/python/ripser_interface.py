@@ -258,11 +258,11 @@ def _is_prime_and_larger_than_2(x, N):
         return False
 
     # https://stackoverflow.com/questions/2068372/fastest-way-to-list-all-primes-below-n-in-python/3035188#3035188
-    sieve = [True] * N
-    for i in range(3, min(x, int(math.sqrt(N))) + 1, 2):
+    sieve = [True] * (x + 1)
+    for i in range(3, int(math.sqrt(x)) + 1, 2):
         if sieve[i]:
             sieve[i * i::2 * i] = \
-                [False] * int(((N - i * i - 1) / (2 * i) + 1))
+                [False] * ((x - i * i) // (2 * i) + 1)
 
     return sieve[x]
 
