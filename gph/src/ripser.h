@@ -609,7 +609,6 @@ class ripser
     const DistanceMatrix dist;
     const index_t n, dim_max;
     const value_t threshold;
-    const float ratio;
     const coefficient_t modulus;
     const binomial_coeff_table binomial_coeff;
     const std::vector<coefficient_t> multiplicative_inverse;
@@ -654,10 +653,10 @@ public:
     mutable flagPersGen flag_persistence_generators;
 
     ripser(DistanceMatrix&& _dist, index_t _dim_max, value_t _threshold,
-           float _ratio, coefficient_t _modulus, int _num_threads,
+           coefficient_t _modulus, int _num_threads,
            bool return_flag_persistence_generators_)
         : dist(std::move(_dist)), n(dist.size()), dim_max(_dim_max),
-          threshold(_threshold), ratio(_ratio), modulus(_modulus),
+          threshold(_threshold), modulus(_modulus),
           num_threads(_num_threads), binomial_coeff(n, dim_max + 2),
           multiplicative_inverse(multiplicative_inverse_vector(_modulus)),
           return_flag_persistence_generators(
@@ -1515,7 +1514,7 @@ public:
                 value_t death = death_diams[get_index(it->second)];
                 value_t birth =
                     get_diameter(columns_to_reduce[get_index(x.second)]);
-                if (death > birth * ratio) {
+                if (death > birth) {
                     /* We push the order of the generator simplices by when
                      * they are inserted as bars. This can be done because
                      * get_index(it->second) is equivalent to `new_bar_pers_idx`
