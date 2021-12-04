@@ -1298,12 +1298,12 @@ public:
 
         // extra vector is a work-around inability to store floats in the
         // hash_map
-        std::atomic<size_t> last_diameter_index{0}, idx_essential{0};
-        entry_hash_map deaths;
-        deaths.reserve(columns_to_reduce.size());
+        std::atomic<size_t> idx_persistence{0}, idx_essential{0};
+        entry_hash_map pivot_to_death_idx;
+        pivot_to_death_idx.reserve(columns_to_reduce.size());
 
         /* Pre-allocate containers for parallel computation */
-        std::vector<value_t> diameters(columns_to_reduce.size());
+        std::vector<value_t> death_diams(columns_to_reduce.size());
         std::vector<value_t> essential_pair(columns_to_reduce.size());
         flagPersGen::essential_higher_t essential_generator(
             columns_to_reduce.size());
@@ -1431,11 +1431,12 @@ public:
 
                         /* Pairs should be extracted if insertion was
                          * first one ! */
-                        size_t location = last_diameter_index++;
-                        diameters[location] = get_diameter(pivot);
+                        const auto new_bar_pers_idx = idx_persistence++;
+                        death_diams[new_bar_pers_idx] = get_diameter(pivot);
                         auto first_ins =
-                            deaths
-                                .insert({get_index(get_entry(pivot)), location})
+                            pivot_to_death_idx
+                                .insert({get_index(get_entry(pivot)),
+                                        new_bar_pers_idx})
                                 .second;
 
                         /* Only insert when it is the first time this bar is
@@ -1461,7 +1462,7 @@ public:
                             edge_t death_edge =
                                 get_youngest_edge_simplex(vertices_death);
 
-                            finite_generator[location] = {
+                            finite_generator[new_bar_pers_idx] = {
                                 birth_edge.first, birth_edge.second,
                                 death_edge.first, death_edge.second};
                         }
@@ -1498,7 +1499,7 @@ public:
         })
             ;
         pivot_column_index.quiescent();
-        deaths.quiescent();
+        pivot_to_death_idx.quiescent();
         /* persistence pairs */
 #if defined(SORT_BARCODES)
         std::vector<std::pair<value_t, value_t>> persistence_pair;
@@ -1508,16 +1509,16 @@ public:
         std::vector<size_t> ordered_location;
         pivot_column_index.foreach (
             [&](const typename entry_hash_map::value_type& x) {
-                auto it = deaths.find(x.first);
-                if (it == deaths.end())
+                auto it = pivot_to_death_idx.find(x.first);
+                if (it == pivot_to_death_idx.end())
                     return;
-                value_t death = diameters[get_index(it->second)];
+                value_t death = death_diams[get_index(it->second)];
                 value_t birth =
                     get_diameter(columns_to_reduce[get_index(x.second)]);
                 if (death > birth * ratio) {
                     /* We push the order of the generator simplices by when
                      * they are inserted as bars. This can be done because
-                     * get_index(it->second) is equivalent to `location`
+                     * get_index(it->second) is equivalent to `new_bar_pers_idx`
                      * in the core algorithm
                      */
                     ordered_location.push_back(get_index(it->second));
