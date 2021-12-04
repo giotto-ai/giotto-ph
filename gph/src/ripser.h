@@ -1299,7 +1299,7 @@ public:
         // extra vector is a work-around inability to store floats in the
         // hash_map
         std::atomic<size_t> idx_persistence{0}, idx_essential{0};
-        entry_hash_map pivot_to_death_idx;
+        entry_hash_map pivot_to_death_idx(columns_to_reduce.size());
         pivot_to_death_idx.reserve(columns_to_reduce.size());
 
         /* Pre-allocate containers for parallel computation */
