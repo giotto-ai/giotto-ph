@@ -649,8 +649,8 @@ public:
            coefficient_t _modulus, int _num_threads,
            bool return_flag_persistence_generators_)
         : dist(std::move(_dist)), n(dist.size()), dim_max(_dim_max),
-          threshold(_threshold), modulus(_modulus),
-          num_threads(_num_threads), binomial_coeff(n, dim_max + 2),
+          threshold(_threshold), modulus(_modulus), num_threads(_num_threads),
+          binomial_coeff(n, dim_max + 2),
           multiplicative_inverse(multiplicative_inverse_vector(_modulus)),
           return_flag_persistence_generators(
               return_flag_persistence_generators_)
@@ -1428,7 +1428,7 @@ public:
                         auto first_ins =
                             pivot_to_death_idx
                                 .insert({get_index(get_entry(pivot)),
-                                        new_bar_pers_idx})
+                                         new_bar_pers_idx})
                                 .second;
 
                         /* Only insert when it is the first time this bar is
