@@ -1290,7 +1290,7 @@ public:
 
         // extra vector is a work-around inability to store floats in the
         // hash_map
-        std::atomic<size_t> idx_persistence{0}, idx_essential{0};
+        std::atomic<size_t> idx_finite_bar{0}, idx_essential{0};
         entry_hash_map pivot_to_death_idx(columns_to_reduce.size());
         pivot_to_death_idx.reserve(columns_to_reduce.size());
 
@@ -1423,12 +1423,12 @@ public:
 
                         /* Pairs should be extracted if insertion was
                          * first one ! */
-                        const auto new_bar_pers_idx = idx_persistence++;
-                        death_diams[new_bar_pers_idx] = get_diameter(pivot);
+                        const auto new_idx_finite_bar = idx_finite_bar++;
+                        death_diams[new_idx_finite_bar] = get_diameter(pivot);
                         auto first_ins =
                             pivot_to_death_idx
                                 .insert({get_index(get_entry(pivot)),
-                                         new_bar_pers_idx})
+                                         new_idx_finite_bar})
                                 .second;
 
                         /* Only insert when it is the first time this bar is
@@ -1454,7 +1454,7 @@ public:
                             edge_t death_edge =
                                 get_youngest_edge_simplex(vertices_death);
 
-                            finite_generator[new_bar_pers_idx] = {
+                            finite_generator[new_idx_finite_bar] = {
                                 birth_edge.first, birth_edge.second,
                                 death_edge.first, death_edge.second};
                         }
@@ -1510,8 +1510,8 @@ public:
                 if (death > birth) {
                     /* We push the order of the generator simplices by when
                      * they are inserted as bars. This can be done because
-                     * get_index(it->second) is equivalent to `new_bar_pers_idx`
-                     * in the core algorithm
+                     * get_index(it->second) is equivalent to
+                     * `new_idx_finite_bar` in the core algorithm
                      */
                     ordered_location.push_back(get_index(it->second));
 #if defined(SORT_BARCODES)
