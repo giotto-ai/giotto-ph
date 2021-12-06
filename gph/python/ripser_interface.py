@@ -17,6 +17,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import math
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
@@ -267,6 +268,21 @@ def _pc_to_sparse_dm_with_threshold(X, thresh, nearest_neighbors_params,
     return dm
 
 
+def _is_prime_and_larger_than_2(x, N):
+    """Test whether 2 < x <= N is prime. Returns False when x is 2."""
+    if not x % 2 or x > N:
+        return False
+
+    # https://stackoverflow.com/questions/2068372/fastest-way-to-list-all-primes-below-n-in-python/3035188#3035188
+    sieve = [True] * (x + 1)
+    for i in range(3, int(math.sqrt(x)) + 1, 2):
+        if sieve[i]:
+            sieve[i * i::2 * i] = \
+                [False] * ((x - i * i) // (2 * i) + 1)
+
+    return sieve[x]
+
+
 def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                     metric_params={}, nearest_neighbors_params={},
                     weights=None, weight_params=None, collapse_edges=False,
@@ -493,6 +509,12 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             "`collapse_edges` and `return_generators`cannot both be True."
         )
 
+    max_coeff_supported = gph_ripser.get_max_coefficient_field_supported()
+    if coeff != 2 and \
+            not _is_prime_and_larger_than_2(coeff, max_coeff_supported):
+        raise ValueError("coeff value not supported, coeff value must be prime"
+                         " and lower than {}".format(max_coeff_supported))
+
     use_sparse_computer = True
     is_dm_sparse_and_upper_triangular = False
     if metric == 'precomputed':
@@ -583,7 +605,10 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                                    return_generators)
 
     # Unwrap persistence diagrams
-    dgms = res.births_and_deaths_by_dim
+    # Barcodes must match the inner type of C++ core filtration value.
+    # We call a method from the bindings that returns the barcodes as
+    # numpy arrays with np.float32 type
+    dgms = res.births_and_deaths_by_dim()
     for dim in range(len(dgms)):
         N = int(len(dgms[dim]) / 2)
         dgms[dim] = np.reshape(np.array(dgms[dim]), [N, 2])

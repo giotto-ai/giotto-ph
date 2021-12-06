@@ -54,6 +54,7 @@
 #include <cstring>  // memcpy
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <numeric>
 #include <queue>
@@ -92,7 +93,7 @@ typedef uint16_t coefficient_t;
 
 using barcodes_t = std::vector<value_t>;
 
-static const size_t num_coefficient_bits = 8;
+const size_t num_coefficient_bits = 8;
 
 // 1L on windows is ALWAYS 32 bits, when on unix systems is pointer size
 static const index_t max_simplex_index =
@@ -120,25 +121,26 @@ class binomial_coeff_table
 
 public:
     /* Transposed binomial table
-     * It's transposed because access where done over the rows and not the
+     * It's transposed because access is done over the rows and not the
      * columns */
-    binomial_coeff_table(index_t k, index_t n) : B(n + 1, row_bc(k + 1, 0))
+    binomial_coeff_table(index_t n, index_t k) : B(k + 1, row_bc(n + 1, 0))
     {
-        for (index_t i = 0; i <= k; ++i) {
+        /* B[j][i] = binom(i, j) */
+        for (index_t i = 0; i <= n; ++i) {
             B[0][i] = 1;
-            if (i <= n)
+            if (i <= k)
                 B[i][i] = 1;
-            for (index_t j = 1; j < std::min(i, n + 1); ++j) {
+            for (index_t j = 1; j < std::min(i, k + 1); ++j) {
                 B[j][i] = B[j - 1][i - 1] + B[j][i - 1];
             }
-            check_overflow(B[std::min(i >> 1, n)][i]);
+            check_overflow(B[std::min(i >> 1, k)][i]);
         }
     }
 
-    index_t operator()(index_t k, index_t n) const
+    index_t operator()(index_t n, index_t k) const
     {
-        assert(n < B.size() && k < B[n].size() && n >= k - 1);
-        return B[n][k];
+        assert(k < B.size() && k < B[k].size() && n >= k - 1);
+        return B[k][n];
     }
 };
 
@@ -160,7 +162,7 @@ std::vector<coefficient_t> multiplicative_inverse_vector(const coefficient_t m)
 #ifdef _MSC_VER
 #define PACK(...) __pragma(pack(push, 1)) __VA_ARGS__ __pragma(pack(pop))
 #else
-#define PACK(...) __attribute__((__packed__)) __VA_ARGS__
+#define PACK(...) __VA_ARGS__ __attribute__((__packed__))
 #endif
 
 PACK(struct entry_t {
@@ -343,24 +345,21 @@ value_t compressed_upper_distance_matrix::operator()(const index_t i,
 struct sparse_distance_matrix {
     std::vector<std::vector<index_diameter_t>> neighbors;
     std::vector<value_t> vertex_births;
-    index_t num_edges;
 
     sparse_distance_matrix(
         std::vector<std::vector<index_diameter_t>>&& _neighbors,
         index_t _num_edges)
-        : neighbors(std::move(_neighbors)), vertex_births(neighbors.size(), 0),
-          num_edges(_num_edges)
+        : neighbors(std::move(_neighbors)), vertex_births(neighbors.size(), 0)
     {
     }
 
     template <typename DistanceMatrix>
     sparse_distance_matrix(const DistanceMatrix& mat, const value_t threshold)
-        : neighbors(mat.size()), vertex_births(mat.size(), 0), num_edges(0)
+        : neighbors(mat.size()), vertex_births(mat.size(), 0)
     {
         for (size_t i = 0; i < size(); ++i)
             for (size_t j = 0; j < size(); ++j)
                 if (i != j && mat(i, j) <= threshold) {
-                    ++num_edges;
                     neighbors[i].push_back({j, mat(i, j)});
                 }
     }
@@ -368,7 +367,7 @@ struct sparse_distance_matrix {
     // Initialize from COO format
     sparse_distance_matrix(index_t* I, index_t* J, value_t* V, int NEdges,
                            int N, const value_t threshold)
-        : neighbors(N), vertex_births(N, 0), num_edges(0)
+        : neighbors(N), vertex_births(N, 0)
     {
         int i, j;
         value_t val;
@@ -379,7 +378,6 @@ struct sparse_distance_matrix {
             if (i < j && val <= threshold) {
                 neighbors[i].push_back(std::make_pair(j, val));
                 neighbors[j].push_back(std::make_pair(i, val));
-                ++num_edges;
             } else if (i == j) {
                 vertex_births[i] = val;
             }
@@ -595,9 +593,6 @@ typedef struct {
     std::vector<barcodes_t> births_and_deaths_by_dim;
     /* The second variable stores the flag persistence generators */
     flagPersGen flag_persistence_generators;
-    /* The third variable is the number of edges that were added during the
-     * computation */
-    int num_edges;
 
 } ripserResults;
 
@@ -607,7 +602,6 @@ class ripser
     const DistanceMatrix dist;
     const index_t n, dim_max;
     const value_t threshold;
-    const float ratio;
     const coefficient_t modulus;
     const binomial_coeff_table binomial_coeff;
     const std::vector<coefficient_t> multiplicative_inverse;
@@ -652,11 +646,11 @@ public:
     mutable flagPersGen flag_persistence_generators;
 
     ripser(DistanceMatrix&& _dist, index_t _dim_max, value_t _threshold,
-           float _ratio, coefficient_t _modulus, int _num_threads,
+           coefficient_t _modulus, int _num_threads,
            bool return_flag_persistence_generators_)
         : dist(std::move(_dist)), n(dist.size()), dim_max(_dim_max),
-          threshold(_threshold), ratio(_ratio), modulus(_modulus),
-          num_threads(_num_threads), binomial_coeff(n, dim_max + 2),
+          threshold(_threshold), modulus(_modulus), num_threads(_num_threads),
+          binomial_coeff(n, dim_max + 2),
           multiplicative_inverse(multiplicative_inverse_vector(_modulus)),
           return_flag_persistence_generators(
               return_flag_persistence_generators_)
@@ -757,6 +751,11 @@ public:
         {
         }
 
+        simplex_boundary_enumerator(const ripser& _parent)
+            : simplex_boundary_enumerator(-1, 0, _parent)
+        {
+        }
+
         void set_simplex(const diameter_entry_t _simplex, const index_t _dim,
                          const ripser& _parent)
         {
@@ -797,28 +796,16 @@ public:
         }
     };
 
-    diameter_entry_t get_zero_pivot_facet(const diameter_entry_t simplex,
-                                          const index_t dim)
+    template <typename Enumerator>
+    diameter_entry_t get_zero_pivot(const diameter_entry_t simplex,
+                                    const index_t dim)
     {
-        thread_local simplex_boundary_enumerator facets(0, *this);
-        facets.set_simplex(simplex, dim, *this);
-        while (facets.has_next()) {
-            diameter_entry_t facet = facets.next();
-            if (get_diameter(facet) == get_diameter(simplex))
-                return facet;
-        }
-        return diameter_entry_t(-1);
-    }
-
-    diameter_entry_t get_zero_pivot_cofacet(const diameter_entry_t simplex,
-                                            const index_t dim)
-    {
-        thread_local simplex_coboundary_enumerator cofacets(*this);
-        cofacets.set_simplex(simplex, dim, *this);
-        while (cofacets.has_next()) {
-            diameter_entry_t cofacet = cofacets.next();
-            if (get_diameter(cofacet) == get_diameter(simplex))
-                return cofacet;
+        thread_local Enumerator column(*this);
+        column.set_simplex(simplex, dim, *this);
+        while (column.has_next()) {
+            diameter_entry_t elem = column.next();
+            if (get_diameter(elem) == get_diameter(simplex))
+                return elem;
         }
         return diameter_entry_t(-1);
     }
@@ -826,10 +813,11 @@ public:
     diameter_entry_t get_zero_apparent_facet(const diameter_entry_t simplex,
                                              const index_t dim)
     {
-        diameter_entry_t facet = get_zero_pivot_facet(simplex, dim);
+        diameter_entry_t facet =
+            get_zero_pivot<simplex_boundary_enumerator>(simplex, dim);
         return ((get_index(facet) != -1) &&
-                (get_index(get_zero_pivot_cofacet(facet, dim - 1)) ==
-                 get_index(simplex)))
+                (get_index(get_zero_pivot<simplex_coboundary_enumerator>(
+                     facet, dim - 1)) == get_index(simplex)))
                    ? facet
                    : diameter_entry_t(-1);
     }
@@ -837,10 +825,11 @@ public:
     diameter_entry_t get_zero_apparent_cofacet(const diameter_entry_t simplex,
                                                const index_t dim)
     {
-        diameter_entry_t cofacet = get_zero_pivot_cofacet(simplex, dim);
+        diameter_entry_t cofacet =
+            get_zero_pivot<simplex_coboundary_enumerator>(simplex, dim);
         return ((get_index(cofacet) != -1) &&
-                (get_index(get_zero_pivot_facet(cofacet, dim + 1)) ==
-                 get_index(simplex)))
+                (get_index(get_zero_pivot<simplex_boundary_enumerator>(
+                     cofacet, dim + 1)) == get_index(simplex)))
                    ? cofacet
                    : diameter_entry_t(-1);
     }
@@ -1303,12 +1292,12 @@ public:
 
         // extra vector is a work-around inability to store floats in the
         // hash_map
-        std::atomic<size_t> last_diameter_index{0}, idx_essential{0};
-        entry_hash_map deaths;
-        deaths.reserve(columns_to_reduce.size());
+        std::atomic<size_t> idx_finite_bar{0}, idx_essential{0};
+        entry_hash_map pivot_to_death_idx(columns_to_reduce.size());
+        pivot_to_death_idx.reserve(columns_to_reduce.size());
 
         /* Pre-allocate containers for parallel computation */
-        std::vector<value_t> diameters(columns_to_reduce.size());
+        std::vector<value_t> death_diams(columns_to_reduce.size());
         std::vector<value_t> essential_pair(columns_to_reduce.size());
         flagPersGen::essential_higher_t essential_generator(
             columns_to_reduce.size());
@@ -1436,11 +1425,12 @@ public:
 
                         /* Pairs should be extracted if insertion was
                          * first one ! */
-                        size_t location = last_diameter_index++;
-                        diameters[location] = get_diameter(pivot);
+                        const auto new_idx_finite_bar = idx_finite_bar++;
+                        death_diams[new_idx_finite_bar] = get_diameter(pivot);
                         auto first_ins =
-                            deaths
-                                .insert({get_index(get_entry(pivot)), location})
+                            pivot_to_death_idx
+                                .insert({get_index(get_entry(pivot)),
+                                         new_idx_finite_bar})
                                 .second;
 
                         /* Only insert when it is the first time this bar is
@@ -1466,7 +1456,7 @@ public:
                             edge_t death_edge =
                                 get_youngest_edge_simplex(vertices_death);
 
-                            finite_generator[location] = {
+                            finite_generator[new_idx_finite_bar] = {
                                 birth_edge.first, birth_edge.second,
                                 death_edge.first, death_edge.second};
                         }
@@ -1503,7 +1493,7 @@ public:
         })
             ;
         pivot_column_index.quiescent();
-        deaths.quiescent();
+        pivot_to_death_idx.quiescent();
         /* persistence pairs */
 #if defined(SORT_BARCODES)
         std::vector<std::pair<value_t, value_t>> persistence_pair;
@@ -1513,17 +1503,17 @@ public:
         std::vector<size_t> ordered_location;
         pivot_column_index.foreach (
             [&](const typename entry_hash_map::value_type& x) {
-                auto it = deaths.find(x.first);
-                if (it == deaths.end())
+                auto it = pivot_to_death_idx.find(x.first);
+                if (it == pivot_to_death_idx.end())
                     return;
-                value_t death = diameters[get_index(it->second)];
+                value_t death = death_diams[get_index(it->second)];
                 value_t birth =
                     get_diameter(columns_to_reduce[get_index(x.second)]);
-                if (death > birth * ratio) {
+                if (death > birth) {
                     /* We push the order of the generator simplices by when
                      * they are inserted as bars. This can be done because
-                     * get_index(it->second) is equivalent to `location`
-                     * in the core algorithm
+                     * get_index(it->second) is equivalent to
+                     * `new_idx_finite_bar` in the core algorithm
                      */
                     ordered_location.push_back(get_index(it->second));
 #if defined(SORT_BARCODES)
