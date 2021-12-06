@@ -31,6 +31,9 @@ from sklearn.utils.validation import column_or_1d
 from ..modules import gph_ripser, gph_ripser_coeff, gph_collapser
 
 
+MAX_COEFF_SUPPORTED = gph_ripser.get_max_coefficient_field_supported()
+
+
 def _compute_ph_vr_dense(DParam, maxHomDim, thresh=-1, coeff=2, n_threads=1,
                          return_generators=False):
     if coeff == 2:
@@ -509,11 +512,10 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             "`collapse_edges` and `return_generators`cannot both be True."
         )
 
-    max_coeff_supported = gph_ripser.get_max_coefficient_field_supported()
     if coeff != 2 and \
-            not _is_prime_and_larger_than_2(coeff, max_coeff_supported):
+            not _is_prime_and_larger_than_2(coeff, MAX_COEFF_SUPPORTED):
         raise ValueError("coeff value not supported, coeff value must be prime"
-                         " and lower than {}".format(max_coeff_supported))
+                         " and lower than {}".format(MAX_COEFF_SUPPORTED))
 
     use_sparse_computer = True
     is_dm_sparse_and_upper_triangular = False
