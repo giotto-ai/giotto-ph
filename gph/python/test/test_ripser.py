@@ -234,8 +234,8 @@ def test_gens_edge_in_dm_and_sorted():
 
 def test_gens_with_collapser():
     """This test ensures that you cannot use collapser and
-    retrieve representative simplices. This is a temporary behavior."""
-    X = squareform(pdist(np.random.random((100, 3))))
+    retrieve generators. This is a temporary behavior."""
+    X = squareform(pdist(np.random.random((10, 3))))
 
     with pytest.raises(NotImplementedError):
         ripser(X, metric='precomputed', collapse_edges=True,
@@ -385,3 +385,20 @@ def test_equivariance_regression():
         dgms_offset = ripser(dm - offset, **kwargs)["dgms"]
         for dim in range(maxdim + 1):
             assert_array_equal(dgms_offset[dim], dgms_orig[dim] - offset)
+
+
+def test_unsupported_coefficient():
+    from gph.modules import gph_ripser
+
+    X = squareform(pdist(np.random.random((10, 3))))
+
+    # Verifies that an exception is thrown if the coefficient value passed
+    # is not a prime number
+    with pytest.raises(ValueError):
+        ripser(X, metric='precomputed', coeff=4)
+
+    # Verifies that an exception is thrown if the coefficient value passed
+    # is bigger that the maximal value supported
+    with pytest.raises(ValueError):
+        ripser(X, metric='precomputed',
+               coeff=gph_ripser.get_max_coefficient_field_supported()+1)
