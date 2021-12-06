@@ -387,8 +387,7 @@ def test_equivariance_regression():
             assert_array_equal(dgms_offset[dim], dgms_orig[dim] - offset)
 
 
-@pytest.mark.parametrize('metric', ['euclidean', 'minkowski'])
-def test_optimized_distance_matrix(metric):
+def test_optimized_distance_matrix():
     """Ensure that using the optimized distance matrix computation when using
     threshold produces the same results than using one with a threshold who
     correspond to the enclosing radius.
@@ -397,9 +396,8 @@ def test_optimized_distance_matrix(metric):
     maxdim = 2
     enclosing_radius = 0.8884447324918705
 
-    dgms = ripser(X, metric=metric,  maxdim=maxdim)["dgms"]
-    dgms_thresh = ripser(X, metric=metric, maxdim=maxdim,
-                         thresh=enclosing_radius)["dgms"]
+    dgms = ripser(X,  maxdim=maxdim)["dgms"]
+    dgms_thresh = ripser(X, maxdim=maxdim, thresh=enclosing_radius)["dgms"]
 
     for dim, dgm in enumerate(dgms):
         assert_array_equal(dgm, dgms_thresh[dim])
