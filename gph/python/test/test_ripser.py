@@ -396,7 +396,7 @@ def test_optimized_distance_matrix():
     maxdim = 2
     enclosing_radius = 0.8884447324918705
 
-    dgms = ripser(X,  maxdim=maxdim)["dgms"]
+    dgms = ripser(X, maxdim=maxdim)["dgms"]
     dgms_thresh = ripser(X, maxdim=maxdim, thresh=enclosing_radius)["dgms"]
 
     for dim, dgm in enumerate(dgms):
