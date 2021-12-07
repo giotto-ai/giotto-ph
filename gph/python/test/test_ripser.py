@@ -234,8 +234,8 @@ def test_gens_edge_in_dm_and_sorted():
 
 def test_gens_with_collapser():
     """This test ensures that you cannot use collapser and
-    retrieve representative simplices. This is a temporary behavior."""
-    X = squareform(pdist(np.random.random((100, 3))))
+    retrieve generators. This is a temporary behavior."""
+    X = squareform(pdist(np.random.random((10, 3))))
 
     with pytest.raises(NotImplementedError):
         ripser(X, metric='precomputed', collapse_edges=True,
@@ -385,3 +385,49 @@ def test_equivariance_regression():
         dgms_offset = ripser(dm - offset, **kwargs)["dgms"]
         for dim in range(maxdim + 1):
             assert_array_equal(dgms_offset[dim], dgms_orig[dim] - offset)
+
+
+def test_optimized_distance_matrix():
+    """Ensure that using the optimized distance matrix computation when using
+    threshold produces the same results than using one with a threshold who
+    correspond to the enclosing radius.
+    """
+    X = np.random.default_rng(0).random((100, 3))
+    maxdim = 2
+    enclosing_radius = 0.8884447324918705
+
+    dgms = ripser(X, maxdim=maxdim)["dgms"]
+    dgms_thresh = ripser(X, maxdim=maxdim, thresh=enclosing_radius)["dgms"]
+
+    for dim, dgm in enumerate(dgms):
+        assert_array_equal(dgm, dgms_thresh[dim])
+
+
+def test_dense_finite_thresh_zero_edges():
+    """Check that if a dense distance matrix and a finite threshold are passed,
+    and some edges are zero, these edges are not treated as absent. Serves as
+    a regression test for issue #55."""
+    dm = np.array([[0., 0.],
+                   [0., 0.]])
+    dgm_0 = ripser(dm)["dgms"][0]
+    dgm_0_finite_thresh = ripser(dm, thresh=1.)["dgms"][0]
+    dgm_0_exp = np.array([[0., np.inf]])
+    assert_array_equal(dgm_0, dgm_0_exp)
+    assert_array_equal(dgm_0_finite_thresh, dgm_0_exp)
+
+
+def test_unsupported_coefficient():
+    from gph.modules import gph_ripser
+
+    X = squareform(pdist(np.random.random((10, 3))))
+
+    # Verifies that an exception is thrown if the coefficient value passed
+    # is not a prime number
+    with pytest.raises(ValueError):
+        ripser(X, metric='precomputed', coeff=4)
+
+    # Verifies that an exception is thrown if the coefficient value passed
+    # is bigger that the maximal value supported
+    with pytest.raises(ValueError):
+        ripser(X, metric='precomputed',
+               coeff=gph_ripser.get_max_coefficient_field_supported()+1)

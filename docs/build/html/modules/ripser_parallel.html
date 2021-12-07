@@ -84,20 +84,43 @@
 <h1>ripser_parallel<a class="headerlink" href="#ripser-parallel" title="Permalink to this headline"></a></h1>
 <section id="module-gph.ripser_parallel">
 <span id="gph-ripser-parallel-function"></span><h2>gph.ripser_parallel function<a class="headerlink" href="#module-gph.ripser_parallel" title="Permalink to this headline"></a></h2>
-<p>Compute persistence diagrams for X data array.</p>
-<p>If X is a point cloud, it will be converted to a distance matrix
-using the chosen metric.</p>
+<p>Compute persistence diagrams from an input dense array or sparse matrix.</p>
+<p>If <cite>X</cite> represents a point cloud, a distance matrix will be internally
+created using the chosen metric and its Vietoris–Rips persistent homology
+will be computed.</p>
 <section id="parameters">
 <h3>Parameters<a class="headerlink" href="#parameters" title="Permalink to this headline"></a></h3>
 <dl>
-<dt>X<span class="classifier">ndarray of shape (n_samples, n_features)</span></dt><dd><p>A numpy array of either data or distance matrix. Can also be a sparse
-distance matrix of type scipy.sparse</p>
+<dt>X<span class="classifier">ndarray or sparse matrix</span></dt><dd><p>If <cite>metric</cite> is not set to <code class="docutils literal notranslate"><span class="pre">&quot;precomputed&quot;</span></code>, input data of shape
+<code class="docutils literal notranslate"><span class="pre">(n_samples,</span> <span class="pre">n_features)</span></code> representing a point cloud. Otherwise,
+dense or sparse input data of shape <code class="docutils literal notranslate"><span class="pre">(n_samples,</span> <span class="pre">n_samples)</span></code>
+representing a distance matrix or adjacency matrix of a weighted
+undirected graph, with the following conventions:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Diagonal entries indicate vertex weights, i.e. the filtration
+parameters at which vertices appear.</p></li>
+<li><p>If <cite>X</cite> is dense, only its upper diagonal portion (including the
+diagonal) is considered.</p></li>
+<li><p>If <cite>X</cite> is sparse, it does not need to be upper diagonal or
+symmetric. If only one of entry (i, j) and (j, i) is stored, its
+value is taken as the weight of the undirected edge {i, j}. If
+both are stored, the value in the upper diagonal is taken.
+Off-diagonal entries which are not explicitly stored are treated
+as infinite, indicating absent edges.</p></li>
+<li><p>Entries of <cite>X</cite> should be compatible with a filtration, i.e. the
+the value at index (i, j) should be no smaller than the values at
+diagonal indices (i, i) and (j, j).</p></li>
+</ul>
+</div></blockquote>
 </dd>
 <dt>maxdim<span class="classifier">int, optional, default: <code class="docutils literal notranslate"><span class="pre">1</span></code></span></dt><dd><p>Maximum homology dimension computed. Will compute all dimensions lower
 than or equal to this value.</p>
 </dd>
-<dt>thresh<span class="classifier">float, optional, default: <code class="docutils literal notranslate"><span class="pre">numpy.inf</span></code></span></dt><dd><p>Maximum distances considered when constructing filtration. If
-<code class="docutils literal notranslate"><span class="pre">numpy.inf</span></code>, compute the entire filtration.</p>
+<dt>thresh<span class="classifier">float, optional, default: <code class="docutils literal notranslate"><span class="pre">numpy.inf</span></code></span></dt><dd><p>Maximum value of the Vietoris–Rips filtration parameter. Points whose
+distance is greater than this value will never be connected by an edge.
+If <code class="docutils literal notranslate"><span class="pre">numpy.inf</span></code>, compute the entire filtration. Otherwise, and if
+<cite>metric</cite> is not <code class="docutils literal notranslate"><span class="pre">&quot;precomputed&quot;</span></code>, see <cite>nearest_neighbors_params</cite>.</p>
 </dd>
 <dt>coeff<span class="classifier">int prime, optional, default: <code class="docutils literal notranslate"><span class="pre">2</span></code></span></dt><dd><p>Compute homology with coefficients in the prime field Z/pZ for p=coeff.</p>
 </dd>
@@ -106,14 +129,28 @@ feature array. If set to <code class="docutils literal notranslate"><span class=
 as a distance matrix or of adjacency matrices of a weighted undirected
 graph. If a string, it must be one of the options allowed by
 <code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.spatial.distance.pdist()</span></code> for its metric parameter, or a
-or a metric listed in
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">sklearn.pairwise.PAIRWISE_DISTANCE_FUNCTIONS</span></code>, including
-<code class="docutils literal notranslate"><span class="pre">'euclidean'</span></code>, <code class="docutils literal notranslate"><span class="pre">'manhattan'</span></code> or <code class="docutils literal notranslate"><span class="pre">'cosine'</span></code>. If a callable, it
-should take pairs of vectors (1D arrays) as input and, for each two
-vectors in a pair, it should return a scalar indicating the
+metric listed in <code class="xref py py-obj docutils literal notranslate"><span class="pre">sklearn.pairwise.PAIRWISE_DISTANCE_FUNCTIONS</span></code>,
+including <code class="docutils literal notranslate"><span class="pre">'euclidean'</span></code>, <code class="docutils literal notranslate"><span class="pre">'manhattan'</span></code> or <code class="docutils literal notranslate"><span class="pre">'cosine'</span></code>. If a
+callable, it should take pairs of vectors (1D arrays) as input and, for
+each two vectors in a pair, it should return a scalar indicating the
 distance/dissimilarity between them.</p>
 </dd>
 <dt>metric_params<span class="classifier">dict, optional, default: <code class="docutils literal notranslate"><span class="pre">{}</span></code></span></dt><dd><p>Additional parameters to be passed to the distance function.</p>
+</dd>
+<dt>nearest_neighbors_params<span class="classifier">dict, optional, default: <code class="docutils literal notranslate"><span class="pre">{}</span></code></span></dt><dd><p>Additional parameters that can be passed when <cite>thresh</cite> is finite and
+<cite>metric</cite> is not <code class="docutils literal notranslate"><span class="pre">&quot;precomputed&quot;</span></code>. Allowed keys and values are as
+follows:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;algorithm&quot;</span></code>: <code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;ball_tree&quot;</span></code> | <code class="docutils literal notranslate"><span class="pre">&quot;kd_tree&quot;</span></code> |
+<code class="docutils literal notranslate"><span class="pre">&quot;brute&quot;</span></code> (default when not passed: <code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;leaf_size&quot;</span></code>: int (default when not passed: <code class="docutils literal notranslate"><span class="pre">30</span></code>)</p></li>
+</ul>
+</div></blockquote>
+<p>These are passed as keyword arguments to an instance of
+<code class="xref py py-class docutils literal notranslate"><span class="pre">sklearn.neighbors.NearestNeighbors</span></code> to compute the thresholded
+distance matrix in a sparse format. See the relevant
+<a class="reference external" href="https://scikit-learn.org/stable/modules/neighbors.html">scikit-learn User Guide</a>.</p>
 </dd>
 <dt>weights<span class="classifier"><code class="docutils literal notranslate"><span class="pre">&quot;DTM&quot;</span></code>, ndarray or None, optional, default: <code class="docutils literal notranslate"><span class="pre">None</span></code></span></dt><dd><p>If not <code class="docutils literal notranslate"><span class="pre">None</span></code>, the persistence of a weighted Vietoris-Rips filtration
 is computed as described in <a class="footnote-reference brackets" href="#id16" id="id1">6</a>, and this parameter determines the

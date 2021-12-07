@@ -12,7 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.6, 3.7, 3.8, 3.9, '3.10']
         include:
           - os: ubuntu-latest
             path: ~/.cache/pip
@@ -62,13 +62,12 @@ jobs:
         continue-on-error: true
         with:
           path: ${{ matrix.path_ccache }}
-            # TODO: When updating c++ backend, use new date
-          key: ${{ runner.os }}-ccache-${{ matrix.python-version }}-21-02-12
+            # TODO: When updating c++ backend, use new date (yy-mm-dd)
+          key: ${{ runner.os }}-ccache-${{ matrix.python-version }}-21-11-08
 
-      - name: Install dependencies
+      - name: Upgrade pip and setuptools
         run: |
-          # The --upgrade and --upgrade-strategy eager flags ensure that pip will always install the latest allowed version of all the dependencies.
-          python -m pip install --upgrade --upgrade-strategy eager -r requirements.txt
+          python -m pip install --upgrade pip setuptools
 
       - name: Build giotto-ph on Linux and MacOs
         if: ${{ runner.os != 'Windows' }}
