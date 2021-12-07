@@ -258,15 +258,16 @@ def _pc_to_sparse_dm_with_threshold(X, thresh, nearest_neighbors_params,
     """Compute a sparse matrix of pairwise distances between points in a point
     cloud, removing all distances larger than a threshold.
 
-    Return the output as an upper triangular sparse matrix in CSR format."""
+    Return the output as an upper triangular sparse matrix in COO format."""
 
     neigh = NearestNeighbors(radius=thresh,
                              metric=metric,
                              metric_params=metric_params,
                              n_jobs=n_threads,
                              **nearest_neighbors_params).fit(X)
-    # Upper triangular CSR output
-    dm = triu(neigh.radius_neighbors_graph(mode="distance"))
+    # Upper triangular COO output
+    dm = triu(neigh.radius_neighbors_graph(mode="distance"),
+              format="coo")
 
     return dm
 
