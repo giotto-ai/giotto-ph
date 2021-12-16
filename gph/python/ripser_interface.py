@@ -295,7 +295,8 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
 
     If `X` represents a point cloud, a distance matrix will be internally
     created using the chosen metric and its Vietoris–Rips persistent homology
-    will be computed.
+    will be computed. Computations in homology dimensions 1 and above can be
+    parallelized, see `n_threads`.
 
     Parameters
     ----------
@@ -409,9 +410,9 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         also ``True``.
 
     n_threads : int, optional, default: ``1``
-        Maximum number of threads available to use during persistent
-        homology computation. When passing ``-1``, it will try to use the
-        maximal number of threads available on the host machine.
+        Maximum number of threads to be used during the computation in homology
+        dimensions 1 and above. ``-1`` means that the maximum number of threads
+        available on the host machine will be used if possible.
 
     return_generators : bool, optional, default: ``False``
         Whether to return information on the simplex pairs and essential
