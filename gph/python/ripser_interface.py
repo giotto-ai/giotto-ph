@@ -317,7 +317,7 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
               Off-diagonal entries which are not explicitly stored are treated
               as infinite, indicating absent edges.
             - Entries of `X` should be compatible with a filtration, i.e. the
-              the value at index (i, j) should be no smaller than the values at
+              value at index (i, j) should be no smaller than the values at
               diagonal indices (i, i) and (j, j).
 
     maxdim : int, optional, default: ``1``
