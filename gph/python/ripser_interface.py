@@ -277,7 +277,8 @@ def _is_prime_and_larger_than_2(x, N):
     if not x % 2 or x > N:
         return False
 
-    # https://stackoverflow.com/questions/2068372/fastest-way-to-list-all-primes-below-n-in-python/3035188#3035188
+    # https://stackoverflow.com/questions/2068372/fastest-way-to-list-all-
+    # primes-below-n-in-python/3035188#3035188
     sieve = [True] * (x + 1)
     for i in range(3, int(math.sqrt(x)) + 1, 2):
         if sieve[i]:
