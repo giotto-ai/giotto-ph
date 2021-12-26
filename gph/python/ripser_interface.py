@@ -449,8 +449,8 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                 Essential simplices corresponding to infinite bars in dimension
                 0, with one vertex for each birth.
             index 3: list (length maxdim) of int ndarray with 2 columns
-                Essential simplices corresponding to infinite bars in dimensions
-                1 to maxdim, with 2 vertices (edge) for each birth.
+                Essential simplices corresponding to infinite bars in
+                dimensions 1 to maxdim, with 2 vertices (edge) for each birth.
 
     Notes
     -----
@@ -479,9 +479,9 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
            `DOI: 10.21105/joss.00925
            <https://doi.org/10.21105/joss.00925>`_.
    
-    .. [2] U. Bauer, "Ripser: efficient computation of Vietoris–Rips persistence
-           barcodes", *J Appl. and Comput. Topology*, **5**, pp. 391–423, 2021;
-           `DOI: 10.1007/s41468-021-00071-5
+    .. [2] U. Bauer, "Ripser: efficient computation of Vietoris–Rips
+           persistence barcodes", *J Appl. and Comput. Topology*, **5**, pp.
+           391–423, 2021; `DOI: 10.1007/s41468-021-00071-5
            <https://doi.org/10.1007/s41468-021-00071-5>`_.
 
     .. [3] D. Morozov and A. Nigmetov, "Towards Lockfree Persistent Homology";
