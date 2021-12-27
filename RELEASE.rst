@@ -1,3 +1,35 @@
+Release 0.2.1
+=============
+
+Minor release bringing bug fixes and performance improvements.
+
+Major Features and Improvements
+-------------------------------
+
+- Miscellaneous improvements including verification that ``coeff`` is a prime, improvements to the Python bindings (see "Backwards-Incompatible Changes" below), updated C++ preprocessor directives and code style fixes (`#50 <https://github.com/giotto-ai/giotto-ph/pull/50>`_).
+- An unnecessary binary search for 0-dimensional simplices is now avoided in the C++ backend, leading to faster runtimes (`#51 <https://github.com/giotto-ai/giotto-ph/pull/51>`_).
+- ``scikit-learn``'s ``NearestNeighbors`` is now used for computing sparse thresholded distance matrices, leading to large benefits on memory consumption and runtime in many cases of interest (`#54 <https://github.com/giotto-ai/giotto-ph/pull/54>`_).
+- General improvements to the documentation (`#54 <https://github.com/giotto-ai/giotto-ph/pull/54>`_ and `#58 <https://github.com/giotto-ai/giotto-ph/pull/58>`_).
+
+Bug Fixes
+---------
+
+- A bug in computing sparse thresholded distance matrices has been fixed (`#54 <https://github.com/giotto-ai/giotto-ph/pull/54>`_).
+
+Backwards-Incompatible Changes
+------------------------------
+
+- Barcodes are now returned as (lists of) arrays of dtype ``numpy.float32`` instead of ``numpy.float64``, since single-precision floats are used internally by the C++ backend (`#50 <https://github.com/giotto-ai/giotto-ph/pull/50>`_).
+
+Thanks to our Contributors
+--------------------------
+
+This release contains contributions from many people:
+
+Julian Burella Pérez and Umberto Lupo.
+
+We are also grateful to all who filed issues or helped resolve them, asked and answered questions, and were part of inspiring discussions.
+
 Release 0.2.0
 =============
 
