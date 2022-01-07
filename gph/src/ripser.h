@@ -1387,7 +1387,8 @@ public:
         flagPersGen::essential_higher_t essential_generator(
             columns_to_reduce.size());
         flagPersGen::finite_higher_t finite_generator(columns_to_reduce.size());
-        cocycles_t cocycles(columns_to_reduce.size());
+        cocycles_t cocycles_finite(columns_to_reduce.size());
+        cocycles_t cocycles_essential(columns_to_reduce.size());
 
         foreach (columns_to_reduce, [&](index_t index_column_to_reduce,
                                         bool first,
@@ -1558,10 +1559,9 @@ public:
 
                         if (return_cocycles) {
                             // Representative cocycle
-                            size_t idx_ = idx_cocycles++;
                             working_reduction_column.push(column_to_reduce);
                             compute_cocycles(working_reduction_column, dim,
-                                    cocycles[idx_]);
+                                    cocycles_finite[new_idx_finite_bar]);
                         }
 
                         break;
@@ -1602,10 +1602,9 @@ public:
 
                     if (return_cocycles) {
                         // Representative cocycle
-                        size_t idx_ = idx_cocycles++;
                         working_reduction_column.push(column_to_reduce);
                         compute_cocycles(working_reduction_column, dim,
-                                         cocycles[idx_]);
+                                         cocycles_essential[idx_]);
                     }
                 }
             }
@@ -1704,12 +1703,17 @@ public:
         if (return_cocycles) {
 #if defined(SORT_BARCODES)
             for (const auto ordered_idx : indexes)
-                cocycles_by_dim[dim].push_back(
-                        cocycles[ordered_location[ordered_idx]]);
+                cocycles_by_dim[dim].push_back(std::move(
+                            cocycles_finite[ordered_location[ordered_idx]]));
 #else
             for (const auto ordered_idx : ordered_location)
-                cocycles_by_dim[dim].push_back(cocycles[ordered_idx]);
+                cocycles_by_dim[dim].push_back(std::move(
+                            cocycles_finite[ordered_idx]));
 #endif
+            for (size_t i = 0; i < idx_essential; ++i) {
+                cocycles_by_dim[dim].push_back(
+                    std::move(cocycles_essential[i]));
+            }
         }
     }
 
