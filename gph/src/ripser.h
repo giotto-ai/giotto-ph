@@ -1347,8 +1347,7 @@ public:
         return edge;
     }
 
-    inline void compute_cocycles(WorkingColumn cocycle, index_t dim,
-                                 cocycle_t& cocycles)
+    inline cocycle_t compute_cocycles(WorkingColumn cocycle, index_t dim)
     {
         thread_local diameter_entry_t cocycle_e;
         thread_local std::vector<index_t> cocycle_simplex;
@@ -1366,7 +1365,7 @@ public:
                 normalize(get_coefficient(cocycle_e), modulus));
             cocycle.pop();
         }
-        cocycles = thiscocycle;
+        return thiscocycle;
     }
 
     void compute_pairs(const std::vector<diameter_index_t>& columns_to_reduce,
@@ -1560,8 +1559,8 @@ public:
                         if (return_cocycles) {
                             // Representative cocycle
                             working_reduction_column.push(column_to_reduce);
-                            compute_cocycles(working_reduction_column, dim,
-                                    cocycles_finite[new_idx_finite_bar]);
+                            cocycles_finite[new_idx_finite_bar] =
+                                compute_cocycles(working_reduction_column, dim);
                         }
 
                         break;
@@ -1603,8 +1602,8 @@ public:
                     if (return_cocycles) {
                         // Representative cocycle
                         working_reduction_column.push(column_to_reduce);
-                        compute_cocycles(working_reduction_column, dim,
-                                         cocycles_essential[idx_]);
+                        cocycles_essential[idx_] =
+                            compute_cocycles(working_reduction_column, dim);
                     }
                 }
             }
