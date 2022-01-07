@@ -95,7 +95,7 @@ const size_t num_coefficient_bits = 8;
 constexpr value_t inf_value = std::numeric_limits<value_t>::infinity();
 
 using barcodes_t = std::vector<value_t>;
-using cocycle_t = std::vector<int>;
+using cocycle_t = std::vector<index_t>;
 using cocycles_t = std::vector<cocycle_t>;
 
 
@@ -1358,8 +1358,8 @@ public:
             cocycle_simplex.clear();
             get_simplex_vertices(get_index(cocycle_e), dim, n,
                                  std::back_inserter(cocycle_simplex));
-            for (size_t k = 0; k < cocycle_simplex.size(); k++) {
-                thiscocycle.push_back((int) cocycle_simplex[k]);
+            for (auto& cocycle : cocycle_simplex) {
+                thiscocycle.push_back(cocycle);
             }
             thiscocycle.push_back(
                 normalize(get_coefficient(cocycle_e), modulus));
