@@ -1650,7 +1650,8 @@ public:
          * sorting barcodes. See https://stackoverflow.com/a/17554343
          */
         if (persistence_pair.size()) {
-            if (return_flag_persistence_generators) {
+            if (return_flag_persistence_generators ||
+                return_cocycles) {
                 indexes.resize(ordered_location.size());
                 std::iota(indexes.begin(), indexes.end(), 0);
                 std::sort(indexes.begin(), indexes.end(),
