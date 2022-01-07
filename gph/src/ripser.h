@@ -1419,10 +1419,11 @@ public:
             diameter_entry_t e;
             bool is_essential = false;
 
+            index_t pivot_idx;
             while (true) {
-                if (get_index(pivot) != -1) {
-                    auto pair =
-                        pivot_column_index.find(get_index(get_entry(pivot)));
+                pivot_idx = get_index(pivot);
+                if (pivot_idx != -1) {
+                    auto pair = pivot_column_index.find(pivot_idx);
                     if (pair != pivot_column_index.end()) {
                         entry_t old_entry_column_to_add;
                         index_t index_column_to_add;
@@ -1472,7 +1473,7 @@ public:
                             retire_column(index_column_to_reduce,
                                           working_reduction_column,
                                           reduction_matrix, columns_to_reduce,
-                                          dim, get_index(pivot),
+                                          dim, pivot_idx,
                                           memory_manager);
 
                             if (pivot_column_index.update(
@@ -1496,12 +1497,11 @@ public:
                         retire_column(index_column_to_reduce,
                                       working_reduction_column,
                                       reduction_matrix, columns_to_reduce, dim,
-                                      get_index(pivot), memory_manager);
+                                      pivot_idx, memory_manager);
 
                         // equivalent to CAS in the original algorithm
                         auto insertion_result = pivot_column_index.insert(
-                            {get_index(get_entry(pivot)),
-                             make_entry(index_column_to_reduce,
+                            {pivot_idx, make_entry(index_column_to_reduce,
                                         get_coefficient(pivot))});
                         if (!insertion_result
                                  .second)  // failed to insert, somebody
@@ -1632,7 +1632,7 @@ public:
                     /* We push the order of the generator simplices by when
                      * they are inserted as bars. This can be done because
                      * get_index(it->second) is equivalent to
-                     * `new_idx_finite_bar` in the core algorithm
+                     * `new_idx_fin_bar` in the core algorithm
                      */
                     ordered_location.push_back(get_index(it->second));
 #if defined(SORT_BARCODES)
