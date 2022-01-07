@@ -19,4 +19,4 @@ computation of persistent homology for different filtrations."""
 # 'X.Y.dev0' is the canonical version of 'X.Y.dev'
 #
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"

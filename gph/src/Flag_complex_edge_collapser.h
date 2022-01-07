@@ -22,6 +22,7 @@
 #define FLAG_COMPLEX_EDGE_COLLAPSER_H_
 
 #include <algorithm>  // for std::includes
+#include <limits>  // for std::numeric_limits
 #include <iostream>
 #include <iterator>  // for std::inserter
 #include <numeric>

@@ -14,6 +14,30 @@
 
 namespace py = pybind11;
 
+/* This function allows a conversion from a vector of vector into a
+ * vector of numpy arrays. This would be translated in Python into a
+ * List[np.array, ...]
+ */
+std::vector<py::array_t<value_t>>
+to_numpy_barcodes(std::vector<barcodes_t> barcodes)
+{
+    auto mat = std::vector<py::array_t<value_t>>(barcodes.size());
+
+    size_t i = 0;
+    for (auto& barcode : barcodes) {
+        auto arr = py::array_t<value_t>(
+            py::buffer_info(barcode.data(),
+                            sizeof(value_t),  // itemsize
+                            py::format_descriptor<value_t>::format(),
+                            barcode.size()  // shape
+                            ));
+
+        mat[i++] = arr;
+    }
+
+    return mat;
+}
+
 #if defined USE_COEFFICIENTS
 PYBIND11_MODULE(gph_ripser_coeff, m)
 {
@@ -35,11 +59,12 @@ PYBIND11_MODULE(gph_ripser, m)
     // ImportError: generic_type: type "ripserResults" is already registered!
     // When same python module imports gtda_ripser and gtda_ripser_coeff
     py::class_<ripserResults>(m, "ripserResults", py::module_local())
-        .def_readwrite("births_and_deaths_by_dim",
-                       &ripserResults::births_and_deaths_by_dim)
+        .def("births_and_deaths_by_dim",
+             [&](ripserResults& res) {
+                 return to_numpy_barcodes(res.births_and_deaths_by_dim);
+             })
         .def_readwrite("flag_persistence_generators_by_dim",
-                       &ripserResults::flag_persistence_generators)
-        .def_readwrite("num_edges", &ripserResults::num_edges);
+                       &ripserResults::flag_persistence_generators);
 
     m.def(
         "rips_dm",
@@ -52,23 +77,12 @@ PYBIND11_MODULE(gph_ripser, m)
                 compressed_lower_distance_matrix(
                     compressed_upper_distance_matrix(std::move(distances)));
 
-            // TODO: This seems like a dummy parameter at the moment
-            float ratio = 1.0;
-            int num_edges = 0;
-
-            for (auto d : dist.distances) {
-                if (d <= threshold)
-                    ++num_edges;
-            }
-
             ripserResults res;
-            ripser<compressed_lower_distance_matrix> r(std::move(dist), dim_max,
-                                                       threshold, ratio,
-                                                       modulus, num_threads,
-                                                       return_generators);
+            ripser<compressed_lower_distance_matrix> r(
+                std::move(dist), dim_max, threshold, modulus,
+                num_threads, return_generators);
             r.compute_barcodes();
             r.copy_results(res);
-            res.num_edges = num_edges;
             return res;
         },
         "D"_a, "N"_a, "modulus"_a, "dim_max"_a, "threshold"_a, "num_threads"_a,
@@ -83,27 +97,21 @@ PYBIND11_MODULE(gph_ripser, m)
             auto J_ = static_cast<index_t*>(J.request().ptr);
             auto V_ = static_cast<value_t*>(V.request().ptr);
 
-            // TODO: This seems like a dummy parameter at the moment
-            const float ratio = 1.0;
             // Setup distance matrix and figure out threshold
             ripser<sparse_distance_matrix> r(
                 sparse_distance_matrix(I_, J_, V_, NEdges, N, threshold),
-                dim_max, threshold, ratio, modulus, num_threads,
+                dim_max, threshold, modulus, num_threads,
                 return_generators);
             r.compute_barcodes();
-            // Report the number of edges that were added
-            int num_edges = 0;
-            for (int idx = 0; idx < NEdges; idx++) {
-                if (I_[idx] < J_[idx] && V_[idx] <= threshold) {
-                    num_edges++;
-                }
-            }
+
             ripserResults res;
             r.copy_results(res);
-            res.num_edges = num_edges;
             return res;
         },
         "I"_a, "J"_a, "V"_a, "NEdges"_a, "N"_a, "modulus"_a, "dim_max"_a,
         "threshold"_a, "num_threads"_a, "return_generators"_a,
         "ripser sparse distance matrix");
+
+    m.def("get_max_coefficient_field_supported",
+          []() { return (uintptr_t(1) << num_coefficient_bits) - 1; });
 }
