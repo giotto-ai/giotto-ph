@@ -1616,9 +1616,7 @@ public:
 template <>
 value_t ripser<compressed_lower_distance_matrix>::get_vertex_birth(index_t i)
 {
-    // TODO: Dummy for now; nonzero vertex births are only done through
-    // sparse matrices at the moment
-    return 0.0;
+    return dist(i, i);
 }
 
 template <>
