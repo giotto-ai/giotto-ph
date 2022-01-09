@@ -605,7 +605,7 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             )
     else:
         # Only consider strict upper diagonal
-        DParam = squareform(dm, checks=False).astype(np.float32)
+        DParam = dm[np.triu_indices(dm.shape[0])].astype(np.float32)
         res = _compute_ph_vr_dense(DParam, maxdim, thresh, coeff, n_threads,
                                    return_generators)
 
