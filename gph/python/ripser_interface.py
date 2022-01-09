@@ -570,13 +570,12 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                 thresh = _ideal_thresh(dm, thresh)
                 compute_enclosing_radius = True
 
-        if nonzero_in_diag:
+        if nonzero_in_diag and collapse_edges:
             # Convert to sparse format, because currently that's the only one
             # handling nonzero births
             (row, col) = np.triu_indices_from(dm)
             data = dm[(row, col)]
-            if collapse_edges:
-                row, col, data = _collapse_coo(row, col, data, thresh)
+            row, col, data = _collapse_coo(row, col, data, thresh)
         elif collapse_edges:
             row, col, data = gph_collapser.\
                 flag_complex_collapse_edges_dense(dm.astype(np.float32),
