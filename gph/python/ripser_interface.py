@@ -558,17 +558,15 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         if weights is not None:
             dm = _compute_weights(dm, weights, weight_params, n_points)
 
-        compute_enclosing_radius = False
+        apply_user_threshold = thresh != np.inf
         nonzero_in_diag = (dm.diagonal() != 0).any()
-        if not nonzero_in_diag:
+        if not nonzero_in_diag and not apply_user_threshold:
             # Compute ideal threshold only when a distance matrix is passed
             # as input without specifying any threshold
             # We check if any element and if no entries is present in the
             # diagonal. This allows to have the enclosing radius before
             # calling collapser if computed
-            if thresh == np.inf:
-                thresh = _ideal_thresh(dm, thresh)
-                compute_enclosing_radius = True
+            thresh = _ideal_thresh(dm, thresh)
 
         if nonzero_in_diag and collapse_edges:
             # Convert to sparse format, because currently that's the only one
@@ -580,7 +578,7 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             row, col, data = gph_collapser.\
                 flag_complex_collapse_edges_dense(dm.astype(np.float32),
                                                   thresh)
-        elif not compute_enclosing_radius:
+        elif apply_user_threshold:
             # If the user specifies a threshold, we use a sparse representation
             # like Ripser does
             row, col = np.nonzero(dm <= thresh)
