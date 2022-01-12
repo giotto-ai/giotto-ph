@@ -21,8 +21,7 @@ import math
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
-from scipy.sparse import issparse, csr_matrix, coo_matrix, triu
-from scipy.spatial.distance import squareform
+from scipy.sparse import issparse, csr_matrix, triu
 from sklearn.exceptions import EfficiencyWarning
 from sklearn.metrics.pairwise import pairwise_distances
 from sklearn.neighbors import NearestNeighbors, kneighbors_graph
