@@ -297,7 +297,13 @@ struct compressed_distance_matrix {
                 rows[i][j] = mat(i, j);
     }
 
-    value_t operator()(const index_t i, const index_t j) const;
+    inline value_t mat_tri_val(const index_t min, const index_t max) const;
+
+    value_t operator()(const index_t i, const index_t j) const
+    {
+        const auto& p = std::minmax(i, j);
+        return mat_tri_val(p.first, p.second);
+    }
 
     size_t size() const { return rows.size(); }
     void init_rows();
@@ -329,17 +335,19 @@ void compressed_upper_distance_matrix::init_rows()
 }
 
 template <>
-value_t compressed_lower_distance_matrix::operator()(const index_t i,
-                                                     const index_t j) const
+inline value_t
+compressed_lower_distance_matrix::mat_tri_val(const index_t min,
+                                              const index_t max) const
 {
-    return i < j ? rows[j][i] : rows[i][j];
+    return rows[max][min];
 }
 
 template <>
-value_t compressed_upper_distance_matrix::operator()(const index_t i,
-                                                     const index_t j) const
+inline value_t
+compressed_upper_distance_matrix::mat_tri_val(const index_t min,
+                                              const index_t max) const
 {
-    return i > j ? rows[j][i] : rows[i][j];
+    return rows[min][max];
 }
 
 struct sparse_distance_matrix {
