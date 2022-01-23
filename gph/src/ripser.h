@@ -317,18 +317,18 @@ typedef compressed_distance_matrix<UPPER_TRIANGULAR>
 template <>
 void compressed_lower_distance_matrix::init_rows()
 {
-	value_t* pointer = &distances[0];
-	for (size_t i = 0, k = 1; i < size(); ++i, ++k) {
-		rows[i] = pointer;
-		pointer += k;
-	}
+    value_t* pointer = &distances[0];
+    for (size_t i = 0, k = 1; i < size(); ++i, ++k) {
+        rows[i] = pointer;
+        pointer += k;
+    }
 }
 
 template <>
 void compressed_upper_distance_matrix::init_rows()
 {
     value_t* pointer = &distances[0];
-    for (size_t i = 0, k = size()-1; i < size(); ++i, --k) {
+    for (size_t i = 0, k = size() - 1; i < size(); ++i, --k) {
         rows[i] = pointer;
         pointer += k;
     }
