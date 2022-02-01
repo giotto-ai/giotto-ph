@@ -275,25 +275,29 @@ enum compressed_matrix_layout { LOWER_TRIANGULAR, UPPER_TRIANGULAR };
 
 template <compressed_matrix_layout Layout>
 struct compressed_distance_matrix {
+    std::vector<value_t> diagonal;
     std::vector<value_t> distances;
     std::vector<value_t*> rows;
 
-    compressed_distance_matrix(std::vector<value_t>&& _distances)
+    compressed_distance_matrix(std::vector<value_t>&& _distances,
+                               std::vector<value_t>&& _diagonal)
         : distances(std::move(_distances)),
-          rows((-1 + std::sqrt(1 + 8 * distances.size())) / 2)
+          rows((1 + std::sqrt(1 + 8 * distances.size())) / 2),
+          diagonal(std::move(_diagonal))
     {
-        assert(distances.size() == size() * (size() + 1) / 2);
+        assert(distances.size() == size() * (size() - 1) / 2);
         init_rows();
     }
 
     template <typename DistanceMatrix>
     compressed_distance_matrix(const DistanceMatrix& mat)
-        : distances(mat.size() * (mat.size() + 1) / 2), rows(mat.size())
+        : distances(mat.size() * (mat.size() - 1) / 2), rows(mat.size()),
+          diagonal(mat.diagonal)
     {
         init_rows();
 
-        for (size_t i = 0; i < size(); ++i)
-            for (size_t j = 0; j <= i; ++j)
+        for (size_t i = 1; i < size(); ++i)
+            for (size_t j = 0; j < i; ++j)
                 rows[i][j] = mat(i, j);
     }
 
@@ -318,19 +322,19 @@ template <>
 void compressed_lower_distance_matrix::init_rows()
 {
     value_t* pointer = &distances[0];
-    for (size_t i = 0, k = 1; i < size(); ++i, ++k) {
+    for (size_t i = 1; i < size(); ++i) {
         rows[i] = pointer;
-        pointer += k;
+        pointer += i;
     }
 }
 
 template <>
 void compressed_upper_distance_matrix::init_rows()
 {
-    value_t* pointer = &distances[0];
-    for (size_t i = 0, k = size() - 1; i < size(); ++i, --k) {
+    value_t* pointer = &distances[0] - 1;
+    for (size_t i = 0; i < size() - 1; ++i) {
         rows[i] = pointer;
-        pointer += k;
+        pointer += size() - i - 2;
     }
 }
 
@@ -1624,7 +1628,7 @@ public:
 template <>
 value_t ripser<compressed_lower_distance_matrix>::get_vertex_birth(index_t i)
 {
-    return dist(i, i);
+    return dist.diagonal[i];
 }
 
 template <>
