@@ -22,6 +22,7 @@ from warnings import catch_warnings, simplefilter
 
 import numpy as np
 from scipy.sparse import issparse, csr_matrix, triu
+from scipy.spatial.distance import squareform
 from sklearn.exceptions import EfficiencyWarning
 from sklearn.metrics.pairwise import pairwise_distances
 from sklearn.neighbors import NearestNeighbors, kneighbors_graph
@@ -33,16 +34,14 @@ from ..modules import gph_ripser, gph_ripser_coeff, gph_collapser
 MAX_COEFF_SUPPORTED = gph_ripser.get_max_coefficient_field_supported()
 
 
-def _compute_ph_vr_dense(DParam, maxHomDim, thresh=-1, coeff=2, n_threads=1,
-                         return_generators=False):
+def _compute_ph_vr_dense(DParam, diagonal, maxHomDim, thresh=-1, coeff=2,
+                         n_threads=1, return_generators=False):
     if coeff == 2:
-        ret = gph_ripser.rips_dm(DParam, DParam.shape[0], coeff,
-                                 maxHomDim, thresh, n_threads,
-                                 return_generators)
+        ret = gph_ripser.rips_dm(DParam, diagonal, coeff, maxHomDim, thresh,
+                                 n_threads, return_generators)
     else:
-        ret = gph_ripser_coeff.rips_dm(DParam, DParam.shape[0], coeff,
-                                       maxHomDim, thresh, n_threads,
-                                       return_generators)
+        ret = gph_ripser_coeff.rips_dm(DParam, diagonal, coeff, maxHomDim,
+                                       thresh, n_threads, return_generators)
     return ret
 
 
@@ -601,9 +600,10 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             )
     else:
         # Only consider strict upper diagonal
-        DParam = dm[np.triu_indices(dm.shape[0])].astype(np.float32)
-        res = _compute_ph_vr_dense(DParam, maxdim, thresh, coeff, n_threads,
-                                   return_generators)
+        diagonal = np.diagonal(dm).astype(np.float32)
+        DParam = squareform(dm, checks=False).astype(np.float32)
+        res = _compute_ph_vr_dense(DParam, diagonal, maxdim, thresh,
+                                   coeff, n_threads, return_generators)
 
     # Unwrap persistence diagrams
     # Barcodes must match the inner type of C++ core filtration value.
