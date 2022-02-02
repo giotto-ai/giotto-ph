@@ -431,3 +431,24 @@ def test_unsupported_coefficient():
     with pytest.raises(ValueError):
         ripser(X, metric='precomputed',
                coeff=gph_ripser.get_max_coefficient_field_supported()+1)
+
+
+@settings(deadline=500)
+@given(dm_dense=get_dense_distance_matrices())
+def test_non_0_diagonal_internal_representation(dm_dense):
+    """Checks that when passing a full distance matrix with non zero values
+    in the diagonal in dense or sparse format. Produces the exact same results
+    """
+
+    diagonal = np.random.random(dm_dense.shape[0])
+
+    # Ensure that all entries are bigger than the diagonal
+    dm_dense = dm_dense + 1
+    np.fill_diagonal(dm_dense, diagonal)
+
+    dgms1 = ripser(dm_dense, maxdim=2, metric='precomputed')['dgms']
+    dgms2 = ripser(coo_matrix(dm_dense), maxdim=2,
+                   metric='precomputed')['dgms']
+
+    for bars1, bars2 in zip(dgms1, dgms2):
+        assert_array_equal(bars1, bars2)
