@@ -436,10 +436,9 @@ def test_unsupported_coefficient():
 @settings(deadline=500)
 @given(dm_dense=get_dense_distance_matrices())
 def test_non_0_diagonal_internal_representation(dm_dense):
-    """Checks that when passing a full distance matrix with non zero values
-    in the diagonal in dense or sparse format. Produces the exact same results
-    """
-
+    """Checks that, when passing a full distance matrix with non-zero values in
+    the diagonal, the result is the same regardless of whether the input is in
+    dense or sparse format."""
     diagonal = np.random.random(dm_dense.shape[0])
 
     # Ensure that all entries are bigger than the diagonal
