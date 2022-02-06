@@ -982,6 +982,7 @@ public:
         for (auto e : edges) {
             if (get_diameter(e) == std::numeric_limits<value_t>::infinity())
                 continue;
+
             get_simplex_vertices(get_index(e), 1, n, vertices_of_edge.rbegin());
             index_t v1 = vertices_of_edge[0];
             index_t v2 = vertices_of_edge[1];
@@ -1331,9 +1332,10 @@ public:
                                false);
                 pivot = get_pivot(working_coboundary);
             }
-            diameter_entry_t e;
 
+            diameter_entry_t e;
             bool is_essential = false;
+
             while (true) {
                 if (get_index(pivot) != -1) {
                     auto pair =
@@ -1474,14 +1476,14 @@ public:
                     }
                 } else {
                     is_essential = true;
-
-                    // TODO: these will need special attention, if output
-                    // happens after the reduction, not during
                     break;
                 }
             }
 
             if (is_essential) {
+                // TODO: these will need special attention, if output
+                // happens after the reduction, not during
+
                 value_t birth = get_diameter(column_to_reduce);
                 /* Infinite birth means the bar is never born and should
                  * not be included. */
