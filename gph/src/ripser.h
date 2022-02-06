@@ -94,6 +94,7 @@ typedef uint16_t coefficient_t;
 using barcodes_t = std::vector<value_t>;
 
 const size_t num_coefficient_bits = 8;
+constexpr value_t inf_value = std::numeric_limits<value_t>::infinity();
 
 // 1L on windows is ALWAYS 32 bits, when on unix systems is pointer size
 static const index_t max_simplex_index =
@@ -394,7 +395,7 @@ struct sparse_distance_matrix {
                              index_diameter_t{j, vertex_births[j]});
         return (neighbor != neighbors[i].end() && get_index(*neighbor) == j)
                    ? get_diameter(*neighbor)
-                   : std::numeric_limits<value_t>::infinity();
+                   : inf_value;
     }
 
     size_t size() const { return neighbors.size(); }
@@ -713,7 +714,7 @@ public:
     value_t compute_diameter(const index_t index, const index_t dim) const
     {
         std::vector<index_t> vertices;
-        value_t diam = -std::numeric_limits<value_t>::infinity();
+        value_t diam = -inf_value;
 
         vertices.resize(dim + 1);
         get_simplex_vertices(index, dim, dist.size(), vertices.rbegin());
@@ -980,7 +981,7 @@ public:
         value_t birth, death;
         diameter_index_t birth_vertex;
         for (auto e : edges) {
-            if (get_diameter(e) == std::numeric_limits<value_t>::infinity())
+            if (get_diameter(e) == inf_value)
                 continue;
 
             get_simplex_vertices(get_index(e), 1, n, vertices_of_edge.rbegin());
@@ -1017,8 +1018,7 @@ public:
         for (index_t i = 0; i < n; ++i) {
             if (dset.find(i) == i) {
                 births_and_deaths_by_dim[0].push_back(dset.get_birth(i));
-                births_and_deaths_by_dim[0].push_back(
-                    std::numeric_limits<value_t>::infinity());
+                births_and_deaths_by_dim[0].push_back(inf_value);
                 if (return_flag_persistence_generators) {
                     flag_persistence_generators.essential_0.push_back(
                         dset.get_birth_idx(i));
@@ -1245,7 +1245,7 @@ public:
     edge_t
     get_youngest_edge_simplex(const std::vector<index_t>& vertices_simplex)
     {
-        value_t diam = -std::numeric_limits<value_t>::infinity();
+        value_t diam = -inf_value;
         edge_t edge;
 
         for (index_t i = 0; i < vertices_simplex.size(); ++i) {
@@ -1430,8 +1430,7 @@ public:
 
                         // Infinite death indicates an essential bar in disguise
                         value_t death = get_diameter(pivot);
-                        is_essential =
-                            (death == std::numeric_limits<value_t>::infinity());
+                        is_essential = (death == inf_value);
                         if (!is_essential) {
                             /* Pairs should only be extracted if insertion was
                              * first one! */
@@ -1487,8 +1486,7 @@ public:
                 value_t birth = get_diameter(column_to_reduce);
                 /* Infinite birth means the bar is never born and should
                  * not be included. */
-                bool is_born =
-                    (birth != std::numeric_limits<value_t>::infinity());
+                bool is_born = (birth != inf_value);
                 if (is_born) {
                     auto idx_ = idx_essential++;
                     essential_pair[idx_] = birth;
@@ -1578,8 +1576,7 @@ public:
 #endif
             for (size_t i = 0; i < idx_essential; ++i) {
                 births_and_deaths_by_dim[dim].push_back(essential_pair[i]);
-                births_and_deaths_by_dim[dim].push_back(
-                    std::numeric_limits<value_t>::infinity());
+                births_and_deaths_by_dim[dim].push_back( inf_value);
             }
         }
 
