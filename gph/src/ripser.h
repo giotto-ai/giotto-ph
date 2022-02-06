@@ -1429,14 +1429,14 @@ public:
                                            // extra atomic load
 
                         // Infinite death indicates an essential bar in disguise
-                        is_essential = (get_diameter(pivot) == inf_value);
+                        value_t death = get_diameter(pivot);
+                        is_essential = (death == inf_value);
 
                         if (!is_essential) {
                             /* Pairs should only be extracted if insertion was
                              * first one! */
                             const auto new_idx_finite_bar = idx_finite_bar++;
-                            death_diams[new_idx_finite_bar] =
-                                get_diameter(pivot);
+                            death_diams[new_idx_finite_bar] = death;
                             auto first_ins =
                                 pivot_to_death_idx
                                     .insert({get_index(get_entry(pivot)),
