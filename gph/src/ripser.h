@@ -1429,25 +1429,27 @@ public:
                                            // extra atomic load
 
                         // Infinite death indicates an essential bar in disguise
-                        value_t death = get_diameter(pivot);
-                        is_essential = (death == inf_value);
+                        is_essential = (get_diameter(pivot) == inf_value);
+
                         if (!is_essential) {
                             /* Pairs should only be extracted if insertion was
                              * first one! */
                             const auto new_idx_finite_bar = idx_finite_bar++;
-                            death_diams[new_idx_finite_bar] = get_diameter(pivot);
+                            death_diams[new_idx_finite_bar] =
+                                get_diameter(pivot);
                             auto first_ins =
                                 pivot_to_death_idx
-                                .insert({get_index(get_entry(pivot)),
-                                        new_idx_finite_bar})
-                                .second;
+                                    .insert({get_index(get_entry(pivot)),
+                                             new_idx_finite_bar})
+                                    .second;
 
                             /* Only insert when it is the first time this bar is
                              * encountered
                              */
-                            if (first_ins && return_flag_persistence_generators) {
-                                // Inessential flag persistence generators in dim >
-                                // 0
+                            if (first_ins &&
+                                return_flag_persistence_generators) {
+                                // Inessential flag persistence generators in
+                                // dim > 0
                                 std::vector<index_t> vertices_birth(dim + 1);
                                 std::vector<index_t> vertices_death(dim + 2);
 
@@ -1456,9 +1458,9 @@ public:
                                 index_t death_idx = get_index(get_entry(pivot));
 
                                 get_simplex_vertices(birth_idx, dim, n,
-                                        vertices_birth.rbegin());
+                                                     vertices_birth.rbegin());
                                 get_simplex_vertices(death_idx, dim + 1, n,
-                                        vertices_death.rbegin());
+                                                     vertices_death.rbegin());
 
                                 edge_t birth_edge =
                                     get_youngest_edge_simplex(vertices_birth);
@@ -1483,11 +1485,10 @@ public:
                 // TODO: these will need special attention, if output
                 // happens after the reduction, not during
 
-                value_t birth = get_diameter(column_to_reduce);
+                const value_t birth = get_diameter(column_to_reduce);
                 /* Infinite birth means the bar is never born and should
                  * not be included. */
-                bool is_born = (birth != inf_value);
-                if (is_born) {
+                if (birth != inf_value) {
                     auto idx_ = idx_essential++;
                     essential_pair[idx_] = birth;
 
@@ -1576,7 +1577,7 @@ public:
 #endif
             for (size_t i = 0; i < idx_essential; ++i) {
                 births_and_deaths_by_dim[dim].push_back(essential_pair[i]);
-                births_and_deaths_by_dim[dim].push_back( inf_value);
+                births_and_deaths_by_dim[dim].push_back(inf_value);
             }
         }
 
