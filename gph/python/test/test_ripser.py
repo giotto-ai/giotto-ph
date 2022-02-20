@@ -454,3 +454,25 @@ def test_non_0_diagonal_internal_representation(dm_dense):
 
     for bars1, bars2 in zip(dgms1, dgms2):
         assert_array_equal(bars1, bars2)
+
+
+def test_infinite_deaths_always_essential():
+    """Regression test for issue #37"""
+    diamond_dm = np.array(
+        [[0,      1,      np.inf, 1,      1,      1],
+         [0,      0,      1,      np.inf, 1,      1],
+         [0,      0,      0,      1,      1,      1],
+         [0,      0,      0,      0,      1,      1],
+         [0,      0,      0,      0,      0,      np.inf],
+         [0,      0,      0,      0,      0,      0]],
+        dtype=np.float64
+    )
+    diamond_dm += diamond_dm.T
+
+    gens = ripser(diamond_dm, metric="precomputed", maxdim=2,
+                  return_generators=True)["gens"]
+
+    gens_fin_dim1 = gens[1][1]
+
+    # With this example no finite generators in dimension 1 shall be found
+    assert len(gens_fin_dim1) == 0
