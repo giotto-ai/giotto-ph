@@ -297,12 +297,12 @@ def test_gens_order_vertices_higher_dimension():
     one in the reverse colexicographic order used to build the simplexwise
     refinement of the Vietoris-Rips filtration."""
     diamond = np.array(
-        [[0,      1,      100,    1,      1,      1  ],
-         [0,      0,      1,      100,    1,      1  ],
-         [0,      0,      0,      1,      1,      1  ],
-         [0,      0,      0,      0,      1,      1  ],
-         [0,      0,      0,      0,      0,      100],
-         [0,      0,      0,      0,      0,      0  ]],
+        [[0,      1,    100,      1,      1,      1],
+         [0,      0,      1,    100,      1,      1],
+         [0,      0,      0,      1,      1,      1],
+         [0,      0,      0,      0,      1,      1],
+         [0,      0,      0,      0,      0,    100],
+         [0,      0,      0,      0,      0,      0]],
         dtype=np.float64)
 
     diamond += diamond.T
