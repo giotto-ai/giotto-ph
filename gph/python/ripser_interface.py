@@ -557,7 +557,6 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             dm = _compute_weights(dm, weights, weight_params, n_points)
 
         apply_user_threshold = thresh != np.inf
-        nonzero_in_diag = (dm.diagonal() != 0).any()
         if not apply_user_threshold:
             # Compute ideal threshold only when a distance matrix is passed
             # as input without specifying any threshold
@@ -566,16 +565,17 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             # calling collapser if computed
             thresh = _ideal_thresh(dm, thresh)
 
-        if nonzero_in_diag and collapse_edges:
-            # Convert to sparse format, because currently that's the only one
-            # handling nonzero births
-            (row, col) = np.triu_indices_from(dm)
-            data = dm[(row, col)]
-            row, col, data = _collapse_coo(row, col, data, thresh)
-        elif collapse_edges:
-            row, col, data = gph_collapser.\
-                flag_complex_collapse_edges_dense(dm.astype(np.float32),
-                                                  thresh)
+        if collapse_edges:
+            if (dm.diagonal() != 0).any():
+                # Convert to sparse format, because currently that's the only
+                # one handling nonzero births
+                (row, col) = np.triu_indices_from(dm)
+                data = dm[(row, col)]
+                row, col, data = _collapse_coo(row, col, data, thresh)
+            else:
+                row, col, data = gph_collapser.\
+                    flag_complex_collapse_edges_dense(dm.astype(np.float32),
+                                                      thresh)
         elif apply_user_threshold:
             # If the user specifies a threshold, we use a sparse representation
             # like Ripser does
