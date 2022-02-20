@@ -558,7 +558,7 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
 
         apply_user_threshold = thresh != np.inf
         nonzero_in_diag = (dm.diagonal() != 0).any()
-        if not nonzero_in_diag and not apply_user_threshold:
+        if not apply_user_threshold:
             # Compute ideal threshold only when a distance matrix is passed
             # as input without specifying any threshold
             # We check if any element and if no entries is present in the
