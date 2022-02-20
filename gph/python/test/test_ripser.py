@@ -10,6 +10,12 @@ from scipy.spatial.distance import pdist, squareform
 from gph import ripser_parallel as ripser
 
 
+def make_dm_symmetric(dm):
+    # Extract strict upper diagonal and make symmetric
+    dm = np.triu(dm.astype(np.float32), k=1)
+    return dm + dm.T
+
+
 @composite
 def get_dense_distance_matrices(draw):
     """Generate 2d dense square arrays of floats, with zero along the
@@ -22,10 +28,7 @@ def get_dense_distance_matrices(draw):
                                      exclude_min=True,
                                      width=32),
                      shape=(shapes, shapes), unique=False))
-    # Extract strict upper diagonal and make symmetric
-    dm = np.triu(dm.astype(np.float32), k=1)
-    dm = dm + dm.T
-    return dm
+    return make_dm_symmetric(dm)
 
 
 @composite
@@ -133,7 +136,7 @@ def test_collapser_with_negative_weights():
     """Test that collapser works as expected when some of the vertex and edge
     weights are negative."""
     n_points = 20
-    dm = np.random.random((n_points, n_points))
+    dm = make_dm_symmetric(np.random.random((n_points, n_points)))
     np.fill_diagonal(dm, -np.random.random(n_points))
     dm -= 0.2
     dm_sparse = coo_matrix(dm)
