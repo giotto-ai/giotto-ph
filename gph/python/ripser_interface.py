@@ -21,7 +21,7 @@ import math
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
-from scipy.sparse import issparse, csr_matrix, triu
+from scipy.sparse import issparse, csr_matrix, triu, diags
 from scipy.spatial.distance import squareform
 from sklearn.exceptions import EfficiencyWarning
 from sklearn.metrics.pairwise import pairwise_distances
@@ -566,16 +566,15 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             thresh = _ideal_thresh(dm, thresh)
 
         if collapse_edges:
+            row, col, data = gph_collapser.\
+                flag_complex_collapse_edges_dense(dm.astype(np.float32),
+                                                  thresh)
             if (dm.diagonal() != 0).any():
-                # Convert to sparse format, because currently that's the only
-                # one handling nonzero births
-                (row, col) = np.triu_indices_from(dm)
-                data = dm[(row, col)]
-                row, col, data = _collapse_coo(row, col, data, thresh)
-            else:
-                row, col, data = gph_collapser.\
-                    flag_complex_collapse_edges_dense(dm.astype(np.float32),
-                                                      thresh)
+                coo_diag = diags(dm.diagonal(), format='coo')
+                row = np.hstack([coo_diag.row, row])
+                col = np.hstack([coo_diag.col, col])
+                data = np.hstack([coo_diag.data, data])
+
         elif apply_user_threshold:
             # If the user specifies a threshold, we use a sparse representation
             # like Ripser does
