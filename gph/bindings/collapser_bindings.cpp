@@ -74,7 +74,7 @@ PYBIND11_MODULE(gph_collapser, m) {
         for (size_t k = 0; k < size; ++k)
           /* Apply threshold to the input data, ignoring lower diagonal entries
            */
-          if (col[k] >= row[k] && data[k] && data[k] <= thresh)
+          if (col[k] > row[k] && data[k] <= thresh)
             graph.push_back(Filtered_edge(row[k], col[k], data[k]));
 
         /* Start collapser */
@@ -97,8 +97,8 @@ PYBIND11_MODULE(gph_collapser, m) {
           for (size_t j = 0; j < dm.shape(1); j++)
             /* Apply threshold to the input data, ignoring lower diagonal
              * entries */
-            if (j >= i && (*(dm.data(i, j))) && (*(dm.data(i, j)) <= thresh))
-                graph.push_back(Filtered_edge(i, j, *(dm.data(i, j))));
+            if (j > i && (*(dm.data(i, j)) <= thresh))
+              graph.push_back(Filtered_edge(i, j, *(dm.data(i, j))));
 
         /* Start collapser */
         auto vec_triples = Gudhi::collapse::flag_complex_collapse_edges(graph);
