@@ -109,7 +109,7 @@ def _collapse_coo(row, col, data, thresh):
 
 def _collapse_dense(dm, thresh):
     """Run edge collapser on off-diagonal data and then reinsert diagonal
-    data if any non zero values is present"""
+    data if any non-zero value is present."""
     row, col, data = gph_collapser.flag_complex_collapse_edges_dense(
         dm.astype(np.float32), thresh)
 
