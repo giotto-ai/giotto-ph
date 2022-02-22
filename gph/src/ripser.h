@@ -302,10 +302,18 @@ struct compressed_distance_matrix {
                 rows[i][j] = mat(i, j);
     }
 
+    // This function can be removed if we decide to use C++17 by default
+    // We could replace it by a simple if constexpr (...) upper : lower
+    // This would be resolved at compilation time, just sugar syntax
     inline value_t mat_tri_val(const index_t min, const index_t max) const;
 
     value_t operator()(const index_t i, const index_t j) const
     {
+        // No variable is created, it is just sugar syntax
+        // std::minmax can be branchless if SS2 instrunctions
+        // are enable. Due to portability we cannot enable them
+        // But the code is ready if SS2 instructions are enable.
+        // Some speed-up is expected
         const auto& p = std::minmax(i, j);
         return mat_tri_val(p.first, p.second);
     }
