@@ -113,11 +113,12 @@ def _collapse_dense(dm, thresh):
     row, col, data = gph_collapser.flag_complex_collapse_edges_dense(
         dm.astype(np.float32), thresh)
 
-    if (dm.diagonal() != 0).any():
-        indices = np.arange(dm.diagonal().shape[0])
+    data_diag = dm.diagonal()
+    if (data_diag != 0).any():
+        indices = np.arange(data_diag.shape[0])
         row = np.hstack([indices, row])
         col = np.hstack([indices, col])
-        data = np.hstack([dm.diagonal(), data])
+        data = np.hstack([data_diag, data])
 
     return row, col, data
 
