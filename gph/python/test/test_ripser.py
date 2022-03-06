@@ -10,6 +10,12 @@ from scipy.spatial.distance import pdist, squareform
 from gph import ripser_parallel as ripser
 
 
+def make_dm_symmetric(dm):
+    # Extract strict upper diagonal and make symmetric
+    dm = np.triu(dm.astype(np.float32), k=1)
+    return dm + dm.T
+
+
 @composite
 def get_dense_distance_matrices(draw):
     """Generate 2d dense square arrays of floats, with zero along the
@@ -22,10 +28,7 @@ def get_dense_distance_matrices(draw):
                                      exclude_min=True,
                                      width=32),
                      shape=(shapes, shapes), unique=False))
-    # Extract strict upper diagonal and make symmetric
-    dm = np.triu(dm.astype(np.float32), k=1)
-    dm = dm + dm.T
-    return dm
+    return make_dm_symmetric(dm)
 
 
 @composite
@@ -133,7 +136,7 @@ def test_collapser_with_negative_weights():
     """Test that collapser works as expected when some of the vertex and edge
     weights are negative."""
     n_points = 20
-    dm = np.random.random((n_points, n_points))
+    dm = make_dm_symmetric(np.random.random((n_points, n_points)))
     np.fill_diagonal(dm, -np.random.random(n_points))
     dm -= 0.2
     dm_sparse = coo_matrix(dm)
@@ -294,12 +297,12 @@ def test_gens_order_vertices_higher_dimension():
     one in the reverse colexicographic order used to build the simplexwise
     refinement of the Vietoris-Rips filtration."""
     diamond = np.array(
-        [[0,      1,      100,    1,      1,      1  ],
-         [0,      0,      1,      100,    1,      1  ],
-         [0,      0,      0,      1,      1,      1  ],
-         [0,      0,      0,      0,      1,      1  ],
-         [0,      0,      0,      0,      0,      100],
-         [0,      0,      0,      0,      0,      0  ]],
+        [[0,      1,    100,      1,      1,      1],
+         [0,      0,      1,    100,      1,      1],
+         [0,      0,      0,      1,      1,      1],
+         [0,      0,      0,      0,      1,      1],
+         [0,      0,      0,      0,      0,    100],
+         [0,      0,      0,      0,      0,      0]],
         dtype=np.float64)
 
     diamond += diamond.T
@@ -431,6 +434,26 @@ def test_unsupported_coefficient():
     with pytest.raises(ValueError):
         ripser(X, metric='precomputed',
                coeff=gph_ripser.get_max_coefficient_field_supported()+1)
+
+
+@settings(deadline=500)
+@given(dm_dense=get_dense_distance_matrices())
+def test_non_0_diagonal_internal_representation(dm_dense):
+    """Checks that, when passing a full distance matrix with non-zero values in
+    the diagonal, the result is the same regardless of whether the input is in
+    dense or sparse format."""
+    diagonal = np.random.random(dm_dense.shape[0])
+
+    # Ensure that all entries are bigger than the diagonal
+    dm_dense = dm_dense + 1
+    np.fill_diagonal(dm_dense, diagonal)
+
+    dgms1 = ripser(dm_dense, maxdim=2, metric='precomputed')['dgms']
+    dgms2 = ripser(coo_matrix(dm_dense), maxdim=2,
+                   metric='precomputed')['dgms']
+
+    for bars1, bars2 in zip(dgms1, dgms2):
+        assert_array_equal(bars1, bars2)
 
 
 def test_infinite_deaths_always_essential():

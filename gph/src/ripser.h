@@ -276,12 +276,15 @@ enum compressed_matrix_layout { LOWER_TRIANGULAR, UPPER_TRIANGULAR };
 
 template <compressed_matrix_layout Layout>
 struct compressed_distance_matrix {
+    std::vector<value_t> diagonal;
     std::vector<value_t> distances;
     std::vector<value_t*> rows;
 
-    compressed_distance_matrix(std::vector<value_t>&& _distances)
+    compressed_distance_matrix(std::vector<value_t>&& _distances,
+                               std::vector<value_t>&& _diagonal)
         : distances(std::move(_distances)),
-          rows((1 + std::sqrt(1 + 8 * distances.size())) / 2)
+          rows((1 + std::sqrt(1 + 8 * distances.size())) / 2),
+          diagonal(std::move(_diagonal))
     {
         assert(distances.size() == size() * (size() - 1) / 2);
         init_rows();
@@ -289,7 +292,8 @@ struct compressed_distance_matrix {
 
     template <typename DistanceMatrix>
     compressed_distance_matrix(const DistanceMatrix& mat)
-        : distances(mat.size() * (mat.size() - 1) / 2), rows(mat.size())
+        : distances(mat.size() * (mat.size() - 1) / 2), rows(mat.size()),
+          diagonal(mat.diagonal)
     {
         init_rows();
 
@@ -298,7 +302,21 @@ struct compressed_distance_matrix {
                 rows[i][j] = mat(i, j);
     }
 
-    value_t operator()(const index_t i, const index_t j) const;
+    // This function can be removed if we decide to use C++17 by default
+    // We could replace it by a simple if constexpr (...) upper : lower
+    // This would be resolved at compilation time, just sugar syntax
+    inline value_t mat_tri_val(const index_t min, const index_t max) const;
+
+    value_t operator()(const index_t i, const index_t j) const
+    {
+        // No variable is created, it is just sugar syntax
+        // std::minmax can be branchless if SS2 instrunctions
+        // are enable. Due to portability we cannot enable them
+        // But the code is ready if SS2 instructions are enable.
+        // Some speed-up is expected
+        const auto& p = std::minmax(i, j);
+        return mat_tri_val(p.first, p.second);
+    }
 
     size_t size() const { return rows.size(); }
     void init_rows();
@@ -330,17 +348,19 @@ void compressed_upper_distance_matrix::init_rows()
 }
 
 template <>
-value_t compressed_lower_distance_matrix::operator()(const index_t i,
-                                                     const index_t j) const
+inline value_t
+compressed_lower_distance_matrix::mat_tri_val(const index_t min,
+                                              const index_t max) const
 {
-    return i == j ? 0 : i < j ? rows[j][i] : rows[i][j];
+    return rows[max][min];
 }
 
 template <>
-value_t compressed_upper_distance_matrix::operator()(const index_t i,
-                                                     const index_t j) const
+inline value_t
+compressed_upper_distance_matrix::mat_tri_val(const index_t min,
+                                              const index_t max) const
 {
-    return i == j ? 0 : i > j ? rows[j][i] : rows[i][j];
+    return rows[min][max];
 }
 
 struct sparse_distance_matrix {
@@ -1635,9 +1655,7 @@ public:
 template <>
 value_t ripser<compressed_lower_distance_matrix>::get_vertex_birth(index_t i)
 {
-    // TODO: Dummy for now; nonzero vertex births are only done through
-    // sparse matrices at the moment
-    return 0.0;
+    return dist.diagonal[i];
 }
 
 template <>
