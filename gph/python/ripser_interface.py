@@ -110,8 +110,13 @@ def _collapse_coo(row, col, data, thresh):
 def _collapse_dense(dm, thresh):
     """Run edge collapser on off-diagonal data and then reinsert diagonal
     data if any non-zero value is present."""
-    row, col, data = gph_collapser.flag_complex_collapse_edges_dense(
-        dm.astype(np.float32), thresh)
+
+    # Use 32-bit float precision here so when diagonal is extracted,
+    # it is still 32-bit in the entire function operations.
+    dm = dm.astype(np.float32)
+
+    row, col, data =\
+        gph_collapser.flag_complex_collapse_edges_dense(dm, thresh)
 
     data_diag = dm.diagonal()
     if (data_diag != 0).any():
