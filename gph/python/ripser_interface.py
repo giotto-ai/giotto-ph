@@ -115,7 +115,7 @@ def _collapse_dense(dm, thresh):
     # it is still 32-bit in the entire function operations.
     dm = dm.astype(np.float32)
 
-    row, col, data =\
+    row, col, data = \
         gph_collapser.flag_complex_collapse_edges_dense(dm, thresh)
 
     data_diag = dm.diagonal()
