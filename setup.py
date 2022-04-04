@@ -129,10 +129,8 @@ class CMakeBuild(build_ext):
                 cmake_args += ["-A", "x64"]
             build_args += ["--", "/m"]
         else:
-            # ARCHFLAGS is always set by cibuildwheel before macOS wheel builds.
-            archflags = os.getenv("ARCHFLAGS", "")
-            if "arm64" in archflags:
-                cmake_args += os.environ["CMAKE_ARGS"]
+            if "CMAKE_ARGS" in os.environ:
+                cmake_args += [item for item in os.environ["CMAKE_ARGS"].split(" ") if item]
 
             cmake_args += [f"-DCMAKE_BUILD_TYPE={cfg}"]
             build_args += ["--", "-j2"]
