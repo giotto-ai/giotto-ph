@@ -27,7 +27,7 @@ jobs:
           CIBW_TEST_COMMAND: python -m pytest {package}/gph/python/test
           CIBW_TEST_REQUIRES: pytest hypothesis
           # Should generate universal2 wheels for CP3.8 and CP3.9
-          CIBW_ARCHS_MACOS: x86_64 arm64 universal2
+          CIBW_ARCHS_MACOS: universal2
 
       # SciPy do not ship manylinux2010 wheels for Python 3.10, so we too build ours for manylinux2014
       - name: Build wheels for Python 3.10
@@ -39,7 +39,7 @@ jobs:
           CIBW_TEST_COMMAND: python -m pytest {package}/gph/python/test
           CIBW_TEST_REQUIRES: pytest hypothesis
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-          CIBW_ARCHS_MACOS: x86_64 arm64 universal2
+          CIBW_ARCHS_MACOS: universal2
 
       - uses: actions/upload-artifact@v2
         name: Upload wheels
