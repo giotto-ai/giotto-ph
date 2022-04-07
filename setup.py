@@ -129,9 +129,6 @@ class CMakeBuild(build_ext):
                 cmake_args += ["-A", "x64"]
             build_args += ["--", "/m"]
         else:
-            if "CMAKE_ARGS" in os.environ:
-                cmake_args += [item for item in os.environ["CMAKE_ARGS"].split(" ") if item]
-
             cmake_args += [f"-DCMAKE_BUILD_TYPE={cfg}"]
             build_args += ["--", "-j2"]
 
