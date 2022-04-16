@@ -705,6 +705,15 @@ public:
             return (binomial_coeff(w, k) <= idx);
         };
 
+        /* Perform step for k = 2 using the exact formula for the integer part
+         * of the real number solution of binom(n, 2) = idx. Float square root
+         * will lead to exact results in all relevant cases. */
+        if (k == 2) {
+            double to_sqrt = 2 * idx + 0.25;
+            // Exact formula, modulo numerics
+            return static_cast<index_t>(std::round(std::sqrt(to_sqrt)));
+        }
+
         const index_t cnt = n - (k - 1);
         if (pred(n) || (cnt <= 0))
             return n;
@@ -721,22 +730,13 @@ public:
                                         index_t n, OutputIterator out) const
     {
         --n;
-        /* Perform steps for k = 1 and 2 using the exact formula for the
-         * integer part of the real number solution of binom(n, 2) = idx,
-         * see below. */
-        for (index_t k = dim + 1; k > 2; --k) {
+        for (index_t k = dim + 1; k > 1; --k) {
             n = get_max_vertex(idx, k, n);
             *out++ = n;
             idx -= binomial_coeff(n, k);
         }
-
-        double to_sqrt = 2 * idx + 0.25;
-        // Exact formula, modulo numerics
-        n = static_cast<index_t>(std::round(std::sqrt(to_sqrt)));
-        *out++ = n;
-        idx -= binomial_coeff(n, 2);
+        // k = 1 is 0-simplices (vertices), and get_max_vertex(idx, 1, n) = idx
         *out = idx;
-
         return out;
     }
 
