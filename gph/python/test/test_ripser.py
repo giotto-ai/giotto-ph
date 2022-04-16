@@ -10,6 +10,12 @@ from scipy.spatial.distance import pdist, squareform
 from gph import ripser_parallel as ripser
 
 
+def make_dm_symmetric(dm):
+    # Extract strict upper diagonal and make symmetric
+    dm = np.triu(dm.astype(np.float32), k=1)
+    return dm + dm.T
+
+
 @composite
 def get_dense_distance_matrices(draw):
     """Generate 2d dense square arrays of floats, with zero along the
@@ -22,10 +28,7 @@ def get_dense_distance_matrices(draw):
                                      exclude_min=True,
                                      width=32),
                      shape=(shapes, shapes), unique=False))
-    # Extract strict upper diagonal and make symmetric
-    dm = np.triu(dm.astype(np.float32), k=1)
-    dm = dm + dm.T
-    return dm
+    return make_dm_symmetric(dm)
 
 
 @composite
@@ -133,7 +136,7 @@ def test_collapser_with_negative_weights():
     """Test that collapser works as expected when some of the vertex and edge
     weights are negative."""
     n_points = 20
-    dm = np.random.random((n_points, n_points))
+    dm = make_dm_symmetric(np.random.random((n_points, n_points)))
     np.fill_diagonal(dm, -np.random.random(n_points))
     dm -= 0.2
     dm_sparse = coo_matrix(dm)
@@ -234,8 +237,8 @@ def test_gens_edge_in_dm_and_sorted():
 
 def test_gens_with_collapser():
     """This test ensures that you cannot use collapser and
-    retrieve representative simplices. This is a temporary behavior."""
-    X = squareform(pdist(np.random.random((100, 3))))
+    retrieve generators. This is a temporary behavior."""
+    X = squareform(pdist(np.random.random((10, 3))))
 
     with pytest.raises(NotImplementedError):
         ripser(X, metric='precomputed', collapse_edges=True,
@@ -294,12 +297,12 @@ def test_gens_order_vertices_higher_dimension():
     one in the reverse colexicographic order used to build the simplexwise
     refinement of the Vietoris-Rips filtration."""
     diamond = np.array(
-        [[0,      1,      100,    1,      1,      1  ],
-         [0,      0,      1,      100,    1,      1  ],
-         [0,      0,      0,      1,      1,      1  ],
-         [0,      0,      0,      0,      1,      1  ],
-         [0,      0,      0,      0,      0,      100],
-         [0,      0,      0,      0,      0,      0  ]],
+        [[0,      1,    100,      1,      1,      1],
+         [0,      0,      1,    100,      1,      1],
+         [0,      0,      0,      1,      1,      1],
+         [0,      0,      0,      0,      1,      1],
+         [0,      0,      0,      0,      0,    100],
+         [0,      0,      0,      0,      0,      0]],
         dtype=np.float64)
 
     diamond += diamond.T
@@ -385,3 +388,91 @@ def test_equivariance_regression():
         dgms_offset = ripser(dm - offset, **kwargs)["dgms"]
         for dim in range(maxdim + 1):
             assert_array_equal(dgms_offset[dim], dgms_orig[dim] - offset)
+
+
+def test_optimized_distance_matrix():
+    """Ensure that using the optimized distance matrix computation when using
+    threshold produces the same results than using one with a threshold who
+    correspond to the enclosing radius.
+    """
+    X = np.random.default_rng(0).random((100, 3))
+    maxdim = 2
+    enclosing_radius = 0.8884447324918705
+
+    dgms = ripser(X, maxdim=maxdim)["dgms"]
+    dgms_thresh = ripser(X, maxdim=maxdim, thresh=enclosing_radius)["dgms"]
+
+    for dim, dgm in enumerate(dgms):
+        assert_array_equal(dgm, dgms_thresh[dim])
+
+
+def test_dense_finite_thresh_zero_edges():
+    """Check that if a dense distance matrix and a finite threshold are passed,
+    and some edges are zero, these edges are not treated as absent. Serves as
+    a regression test for issue #55."""
+    dm = np.array([[0., 0.],
+                   [0., 0.]])
+    dgm_0 = ripser(dm)["dgms"][0]
+    dgm_0_finite_thresh = ripser(dm, thresh=1.)["dgms"][0]
+    dgm_0_exp = np.array([[0., np.inf]])
+    assert_array_equal(dgm_0, dgm_0_exp)
+    assert_array_equal(dgm_0_finite_thresh, dgm_0_exp)
+
+
+def test_unsupported_coefficient():
+    from gph.modules import gph_ripser
+
+    X = squareform(pdist(np.random.random((10, 3))))
+
+    # Verifies that an exception is thrown if the coefficient value passed
+    # is not a prime number
+    with pytest.raises(ValueError):
+        ripser(X, metric='precomputed', coeff=4)
+
+    # Verifies that an exception is thrown if the coefficient value passed
+    # is bigger that the maximal value supported
+    with pytest.raises(ValueError):
+        ripser(X, metric='precomputed',
+               coeff=gph_ripser.get_max_coefficient_field_supported()+1)
+
+
+@settings(deadline=500)
+@given(dm_dense=get_dense_distance_matrices())
+def test_non_0_diagonal_internal_representation(dm_dense):
+    """Checks that, when passing a full distance matrix with non-zero values in
+    the diagonal, the result is the same regardless of whether the input is in
+    dense or sparse format."""
+    diagonal = np.random.random(dm_dense.shape[0])
+
+    # Ensure that all entries are bigger than the diagonal
+    dm_dense = dm_dense + 1
+    np.fill_diagonal(dm_dense, diagonal)
+
+    dgms1 = ripser(dm_dense, maxdim=2, metric='precomputed')['dgms']
+    dgms2 = ripser(coo_matrix(dm_dense), maxdim=2,
+                   metric='precomputed')['dgms']
+
+    for bars1, bars2 in zip(dgms1, dgms2):
+        assert_array_equal(bars1, bars2)
+
+
+def test_infinite_deaths_always_essential():
+    """Regression test for issue #37"""
+    diamond_dm = np.array(
+        [[0,      1,      np.inf, 1,      1,      1],
+         [0,      0,      1,      np.inf, 1,      1],
+         [0,      0,      0,      1,      1,      1],
+         [0,      0,      0,      0,      1,      1],
+         [0,      0,      0,      0,      0,      np.inf],
+         [0,      0,      0,      0,      0,      0]],
+        dtype=np.float64
+    )
+    diamond_dm += diamond_dm.T
+
+    gens = ripser(diamond_dm, metric="precomputed", maxdim=2,
+                  return_generators=True)["gens"]
+
+    gens_fin_dim1 = gens[1][1]
+
+    # With this example no finite generators in dimension 1 shall be found
+    assert len(gens_fin_dim1) == 0
