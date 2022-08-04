@@ -705,6 +705,15 @@ public:
             return (binomial_coeff(w, k) <= idx);
         };
 
+        /* Perform step for k = 2 using the exact formula for the integer part
+         * of the real number solution of binom(n, 2) = idx. Float square root
+         * will lead to exact results in all relevant cases. */
+        if (k == 2) {
+            double to_sqrt = 2 * idx + 0.25;
+            // Exact formula, modulo numerics
+            return static_cast<index_t>(std::round(std::sqrt(to_sqrt)));
+        }
+
         const index_t cnt = n - (k - 1);
         if (pred(n) || (cnt <= 0))
             return n;
