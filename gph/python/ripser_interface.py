@@ -18,7 +18,6 @@
 # SOFTWARE.
 
 import math
-import time
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
