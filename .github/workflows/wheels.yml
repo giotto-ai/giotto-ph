@@ -28,7 +28,19 @@ jobs:
           CIBW_TEST_REQUIRES: pytest hypothesis
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
           # Should generate universal2 wheels for CP3.8 -- CP3.10
-          CIBW_ARCHS_MACOS: x86_64 universal2
+          CIBW_ARCHS_MACOS: universal2
+
+      - name: Build Python 3.7 wheels for macOS x86_64 (Intel)
+        uses: pypa/cibuildwheel@v2.3.1
+        env:
+          # Specify which Python versions to build wheels
+          # https://cibuildwheel.readthedocs.io/en/stable/options/#build-skip
+          CIBW_BUILD: "cp37-*"
+          CIBW_PLATFORM: "macos"
+          CIBW_BEFORE_BUILD: python -m pip install cmake
+          CIBW_TEST_COMMAND: python -m pytest {package}/gph/python/test
+          CIBW_TEST_REQUIRES: pytest hypothesis
+          CIBW_ARCHS_MACOS: x86_64
 
       - uses: actions/upload-artifact@v2
         name: Upload wheels
