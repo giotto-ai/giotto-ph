@@ -21,7 +21,7 @@ import math
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
-from scipy.sparse import issparse, csr_matrix, coo_matrix, triu
+from scipy.sparse import issparse, csr_matrix, triu
 from scipy.spatial.distance import squareform
 from sklearn.exceptions import EfficiencyWarning
 from sklearn.metrics.pairwise import pairwise_distances
@@ -34,16 +34,14 @@ from ..modules import gph_ripser, gph_ripser_coeff, gph_collapser
 MAX_COEFF_SUPPORTED = gph_ripser.get_max_coefficient_field_supported()
 
 
-def _compute_ph_vr_dense(DParam, maxHomDim, thresh=-1, coeff=2, n_threads=1,
-                         return_generators=False):
+def _compute_ph_vr_dense(DParam, diagonal, maxHomDim, thresh=-1, coeff=2,
+                         n_threads=1, return_generators=False):
     if coeff == 2:
-        ret = gph_ripser.rips_dm(DParam, DParam.shape[0], coeff,
-                                 maxHomDim, thresh, n_threads,
-                                 return_generators)
+        ret = gph_ripser.rips_dm(DParam, diagonal, coeff, maxHomDim, thresh,
+                                 n_threads, return_generators)
     else:
-        ret = gph_ripser_coeff.rips_dm(DParam, DParam.shape[0], coeff,
-                                       maxHomDim, thresh, n_threads,
-                                       return_generators)
+        ret = gph_ripser_coeff.rips_dm(DParam, diagonal, coeff, maxHomDim,
+                                       thresh, n_threads, return_generators)
     return ret
 
 
@@ -106,6 +104,27 @@ def _collapse_coo(row, col, data, thresh):
     return (np.hstack([row_diag, row]),
             np.hstack([col_diag, col]),
             np.hstack([data_diag, data]))
+
+
+def _collapse_dense(dm, thresh):
+    """Run edge collapser on off-diagonal data and then reinsert diagonal
+    data if any non-zero value is present."""
+
+    # Use 32-bit float precision here so when diagonal is extracted,
+    # it is still 32-bit in the entire function operations.
+    dm = dm.astype(np.float32)
+
+    row, col, data = \
+        gph_collapser.flag_complex_collapse_edges_dense(dm, thresh)
+
+    data_diag = dm.diagonal()
+    if (data_diag != 0).any():
+        indices = np.arange(data_diag.shape[0])
+        row = np.hstack([indices, row])
+        col = np.hstack([indices, col])
+        data = np.hstack([data_diag, data])
+
+    return row, col, data
 
 
 def _compute_dtm_weights(dm, n_neighbors, weights_r):
@@ -558,30 +577,19 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         if weights is not None:
             dm = _compute_weights(dm, weights, weight_params, n_points)
 
-        compute_enclosing_radius = False
-        nonzero_in_diag = (dm.diagonal() != 0).any()
-        if not nonzero_in_diag:
+        apply_user_threshold = thresh != np.inf
+        if not apply_user_threshold:
             # Compute ideal threshold only when a distance matrix is passed
             # as input without specifying any threshold
             # We check if any element and if no entries is present in the
             # diagonal. This allows to have the enclosing radius before
             # calling collapser if computed
-            if thresh == np.inf:
-                thresh = _ideal_thresh(dm, thresh)
-                compute_enclosing_radius = True
+            thresh = _ideal_thresh(dm, thresh)
 
-        if nonzero_in_diag:
-            # Convert to sparse format, because currently that's the only one
-            # handling nonzero births
-            (row, col) = np.triu_indices_from(dm)
-            data = dm[(row, col)]
-            if collapse_edges:
-                row, col, data = _collapse_coo(row, col, data, thresh)
-        elif collapse_edges:
-            row, col, data = gph_collapser.\
-                flag_complex_collapse_edges_dense(dm.astype(np.float32),
-                                                  thresh)
-        elif not compute_enclosing_radius:
+        if collapse_edges:
+            row, col, data = _collapse_dense(dm, thresh)
+
+        elif apply_user_threshold:
             # If the user specifies a threshold, we use a sparse representation
             # like Ripser does
             row, col = np.nonzero(dm <= thresh)
@@ -604,10 +612,11 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             return_generators
             )
     else:
-        # Only consider strict upper diagonal
+        # Only consider upper diagonal
+        diagonal = np.diagonal(dm).astype(np.float32)
         DParam = squareform(dm, checks=False).astype(np.float32)
-        res = _compute_ph_vr_dense(DParam, maxdim, thresh, coeff, n_threads,
-                                   return_generators)
+        res = _compute_ph_vr_dense(DParam, diagonal, maxdim, thresh,
+                                   coeff, n_threads, return_generators)
 
     # Unwrap persistence diagrams
     # Barcodes must match the inner type of C++ core filtration value.
