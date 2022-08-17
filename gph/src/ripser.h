@@ -1554,14 +1554,16 @@ public:
                                     birth_edge.first, birth_edge.second,
                                     death_edge.first, death_edge.second};
                             }
+
+                            if (return_cocycles) {
+                                // Representative cocycle
+                                working_reduction_column.push(column_to_reduce);
+                                cocycles_finite[new_idx_finite_bar] =
+                                    compute_cocycles(working_reduction_column,
+                                                     dim);
+                            }
                         }
 
-                        if (return_cocycles) {
-                            // Representative cocycle
-                            working_reduction_column.push(column_to_reduce);
-                            cocycles_finite[new_idx_finite_bar] =
-                                compute_cocycles(working_reduction_column, dim);
-                        }
 
                         break;
                     }
