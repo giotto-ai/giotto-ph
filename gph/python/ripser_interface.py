@@ -678,7 +678,7 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                 ccl = np.reshape(np.array(ccl, dtype=np.int64), [n, dim + 2])
                 ccl[:, -1] = np.mod(ccl[:, -1], coeff)
                 cocycles[dim].append(ccl)
-        cocycles = np.asarray(cocycles)
+        cocycles = np.asarray(cocycles, dtype=object)
 
         ret["cocycles"] = cocycles
 
