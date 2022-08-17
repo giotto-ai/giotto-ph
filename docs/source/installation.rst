@@ -10,7 +10,7 @@ Dependencies
 
 The latest stable version of ``giotto-ph`` requires:
 
-- Python (>= 3.6)
+- Python (>= 3.7)
 - NumPy (>= 1.19.1)
 - SciPy (>= 1.5.0)
 - scikit-learn (>= 0.23.1)
