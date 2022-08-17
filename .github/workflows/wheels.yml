@@ -24,7 +24,7 @@ jobs:
           # Skip 32 bit architectures, musllinux, and i686
           CIBW_SKIP: "*-win32 *-musllinux_x86_64 *_i686"
           CIBW_BEFORE_BUILD: python -m pip install cmake
-          CIBW_TEST_COMMAND: python -m pytest --pyargs gph
+          CIBW_TEST_COMMAND: python -m pytest gph
           CIBW_TEST_REQUIRES: pytest hypothesis
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
           # Should generate universal2 wheels for CP3.8 -- CP3.10
