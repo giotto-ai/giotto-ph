@@ -94,6 +94,7 @@ typedef uint16_t coefficient_t;
 using barcodes_t = std::vector<value_t>;
 
 const size_t num_coefficient_bits = 8;
+constexpr value_t inf_value = std::numeric_limits<value_t>::infinity();
 
 // 1L on windows is ALWAYS 32 bits, when on unix systems is pointer size
 static const index_t max_simplex_index =
@@ -275,12 +276,15 @@ enum compressed_matrix_layout { LOWER_TRIANGULAR, UPPER_TRIANGULAR };
 
 template <compressed_matrix_layout Layout>
 struct compressed_distance_matrix {
+    std::vector<value_t> diagonal;
     std::vector<value_t> distances;
     std::vector<value_t*> rows;
 
-    compressed_distance_matrix(std::vector<value_t>&& _distances)
+    compressed_distance_matrix(std::vector<value_t>&& _distances,
+                               std::vector<value_t>&& _diagonal)
         : distances(std::move(_distances)),
-          rows((1 + std::sqrt(1 + 8 * distances.size())) / 2)
+          rows((1 + std::sqrt(1 + 8 * distances.size())) / 2),
+          diagonal(std::move(_diagonal))
     {
         assert(distances.size() == size() * (size() - 1) / 2);
         init_rows();
@@ -288,7 +292,8 @@ struct compressed_distance_matrix {
 
     template <typename DistanceMatrix>
     compressed_distance_matrix(const DistanceMatrix& mat)
-        : distances(mat.size() * (mat.size() - 1) / 2), rows(mat.size())
+        : distances(mat.size() * (mat.size() - 1) / 2), rows(mat.size()),
+          diagonal(mat.diagonal)
     {
         init_rows();
 
@@ -297,7 +302,21 @@ struct compressed_distance_matrix {
                 rows[i][j] = mat(i, j);
     }
 
-    value_t operator()(const index_t i, const index_t j) const;
+    // This function can be removed if we decide to use C++17 by default
+    // We could replace it by a simple if constexpr (...) upper : lower
+    // This would be resolved at compilation time, just sugar syntax
+    inline value_t mat_tri_val(const index_t min, const index_t max) const;
+
+    value_t operator()(const index_t i, const index_t j) const
+    {
+        // No variable is created, it is just sugar syntax
+        // std::minmax can be branchless if SS2 instrunctions
+        // are enable. Due to portability we cannot enable them
+        // But the code is ready if SS2 instructions are enable.
+        // Some speed-up is expected
+        const auto& p = std::minmax(i, j);
+        return mat_tri_val(p.first, p.second);
+    }
 
     size_t size() const { return rows.size(); }
     void init_rows();
@@ -329,17 +348,19 @@ void compressed_upper_distance_matrix::init_rows()
 }
 
 template <>
-value_t compressed_lower_distance_matrix::operator()(const index_t i,
-                                                     const index_t j) const
+inline value_t
+compressed_lower_distance_matrix::mat_tri_val(const index_t min,
+                                              const index_t max) const
 {
-    return i == j ? 0 : i < j ? rows[j][i] : rows[i][j];
+    return rows[max][min];
 }
 
 template <>
-value_t compressed_upper_distance_matrix::operator()(const index_t i,
-                                                     const index_t j) const
+inline value_t
+compressed_upper_distance_matrix::mat_tri_val(const index_t min,
+                                              const index_t max) const
 {
-    return i == j ? 0 : i > j ? rows[j][i] : rows[i][j];
+    return rows[min][max];
 }
 
 struct sparse_distance_matrix {
@@ -394,7 +415,7 @@ struct sparse_distance_matrix {
                              index_diameter_t{j, vertex_births[j]});
         return (neighbor != neighbors[i].end() && get_index(*neighbor) == j)
                    ? get_diameter(*neighbor)
-                   : std::numeric_limits<value_t>::infinity();
+                   : inf_value;
     }
 
     size_t size() const { return neighbors.size(); }
@@ -684,6 +705,15 @@ public:
             return (binomial_coeff(w, k) <= idx);
         };
 
+        /* Perform step for k = 2 using the exact formula for the integer part
+         * of the real number solution of binom(n, 2) = idx. Float square root
+         * will lead to exact results in all relevant cases. */
+        if (k == 2) {
+            double to_sqrt = 2 * idx + 0.25;
+            // Exact formula, modulo numerics
+            return static_cast<index_t>(std::round(std::sqrt(to_sqrt)));
+        }
+
         const index_t cnt = n - (k - 1);
         if (pred(n) || (cnt <= 0))
             return n;
@@ -713,7 +743,7 @@ public:
     value_t compute_diameter(const index_t index, const index_t dim) const
     {
         std::vector<index_t> vertices;
-        value_t diam = -std::numeric_limits<value_t>::infinity();
+        value_t diam = -inf_value;
 
         vertices.resize(dim + 1);
         get_simplex_vertices(index, dim, dist.size(), vertices.rbegin());
@@ -980,6 +1010,9 @@ public:
         value_t birth, death;
         diameter_index_t birth_vertex;
         for (auto e : edges) {
+            if (get_diameter(e) == inf_value)
+                continue;
+
             get_simplex_vertices(get_index(e), 1, n, vertices_of_edge.rbegin());
             index_t v1 = vertices_of_edge[0];
             index_t v2 = vertices_of_edge[1];
@@ -1014,8 +1047,7 @@ public:
         for (index_t i = 0; i < n; ++i) {
             if (dset.find(i) == i) {
                 births_and_deaths_by_dim[0].push_back(dset.get_birth(i));
-                births_and_deaths_by_dim[0].push_back(
-                    std::numeric_limits<value_t>::infinity());
+                births_and_deaths_by_dim[0].push_back(inf_value);
                 if (return_flag_persistence_generators) {
                     flag_persistence_generators.essential_0.push_back(
                         dset.get_birth_idx(i));
@@ -1242,7 +1274,7 @@ public:
     edge_t
     get_youngest_edge_simplex(const std::vector<index_t>& vertices_simplex)
     {
-        value_t diam = -std::numeric_limits<value_t>::infinity();
+        value_t diam = -inf_value;
         edge_t edge;
 
         for (index_t i = 0; i < vertices_simplex.size(); ++i) {
@@ -1329,7 +1361,9 @@ public:
                                false);
                 pivot = get_pivot(working_coboundary);
             }
+
             diameter_entry_t e;
+            bool is_essential = false;
 
             while (true) {
                 if (get_index(pivot) != -1) {
@@ -1423,49 +1457,69 @@ public:
                                            // the new pair; could elide an
                                            // extra atomic load
 
-                        /* Pairs should be extracted if insertion was
-                         * first one ! */
-                        const auto new_idx_finite_bar = idx_finite_bar++;
-                        death_diams[new_idx_finite_bar] = get_diameter(pivot);
-                        auto first_ins =
-                            pivot_to_death_idx
-                                .insert({get_index(get_entry(pivot)),
-                                         new_idx_finite_bar})
-                                .second;
+                        // Infinite death indicates an essential bar in disguise
+                        value_t death = get_diameter(pivot);
+                        is_essential = (death == inf_value);
 
-                        /* Only insert when it is the first time this bar is
-                         * encountered
-                         */
-                        if (return_flag_persistence_generators && first_ins) {
-                            // Inessential flag persistence generators in dim >
-                            // 0
-                            std::vector<index_t> vertices_birth(dim + 1);
-                            std::vector<index_t> vertices_death(dim + 2);
+                        if (!is_essential) {
+                            /* Pairs should only be extracted if insertion was
+                             * first one! */
+                            const auto new_idx_finite_bar = idx_finite_bar++;
+                            death_diams[new_idx_finite_bar] = death;
+                            auto first_ins =
+                                pivot_to_death_idx
+                                    .insert({get_index(get_entry(pivot)),
+                                             new_idx_finite_bar})
+                                    .second;
 
-                            index_t birth_idx =
-                                get_index(get_entry(column_to_reduce));
-                            index_t death_idx = get_index(get_entry(pivot));
+                            /* Only insert when it is the first time this bar is
+                             * encountered
+                             */
+                            if (first_ins &&
+                                return_flag_persistence_generators) {
+                                // Inessential flag persistence generators in
+                                // dim > 0
+                                std::vector<index_t> vertices_birth(dim + 1);
+                                std::vector<index_t> vertices_death(dim + 2);
 
-                            get_simplex_vertices(birth_idx, dim, n,
-                                                 vertices_birth.rbegin());
-                            get_simplex_vertices(death_idx, dim + 1, n,
-                                                 vertices_death.rbegin());
+                                index_t birth_idx =
+                                    get_index(get_entry(column_to_reduce));
+                                index_t death_idx = get_index(get_entry(pivot));
 
-                            edge_t birth_edge =
-                                get_youngest_edge_simplex(vertices_birth);
-                            edge_t death_edge =
-                                get_youngest_edge_simplex(vertices_death);
+                                get_simplex_vertices(birth_idx, dim, n,
+                                                     vertices_birth.rbegin());
+                                get_simplex_vertices(death_idx, dim + 1, n,
+                                                     vertices_death.rbegin());
 
-                            finite_generator[new_idx_finite_bar] = {
-                                birth_edge.first, birth_edge.second,
-                                death_edge.first, death_edge.second};
+                                edge_t birth_edge =
+                                    get_youngest_edge_simplex(vertices_birth);
+                                edge_t death_edge =
+                                    get_youngest_edge_simplex(vertices_death);
+
+                                finite_generator[new_idx_finite_bar] = {
+                                    birth_edge.first, birth_edge.second,
+                                    death_edge.first, death_edge.second};
+                            }
                         }
 
                         break;
                     }
                 } else {
+                    is_essential = true;
+                    break;
+                }
+            }
+
+            if (is_essential) {
+                // TODO: these will need special attention, if output
+                // happens after the reduction, not during
+
+                const value_t birth = get_diameter(column_to_reduce);
+                /* Infinite birth means the bar is never born and should
+                 * not be included. */
+                if (birth != inf_value) {
                     auto idx_ = idx_essential++;
-                    essential_pair[idx_] = get_diameter(column_to_reduce);
+                    essential_pair[idx_] = birth;
 
                     if (return_flag_persistence_generators) {
                         // Essential flag persistence generators in dim > 0
@@ -1483,12 +1537,9 @@ public:
                         essential_generator[idx_] = {birth_edge.first,
                                                      birth_edge.second};
                     }
-
-                    // TODO: these will need special attention, if output
-                    // happens after the reduction, not during
-                    break;
                 }
             }
+
             return index_column_to_reduce;
         })
             ;
@@ -1554,11 +1605,8 @@ public:
                       std::greater<>());
 #endif
             for (size_t i = 0; i < idx_essential; ++i) {
-                if (!std::isinf(essential_pair[i])) {
-                    births_and_deaths_by_dim[dim].push_back(essential_pair[i]);
-                    births_and_deaths_by_dim[dim].push_back(
-                        std::numeric_limits<value_t>::infinity());
-                }
+                births_and_deaths_by_dim[dim].push_back(essential_pair[i]);
+                births_and_deaths_by_dim[dim].push_back(inf_value);
             }
         }
 
@@ -1616,9 +1664,7 @@ public:
 template <>
 value_t ripser<compressed_lower_distance_matrix>::get_vertex_birth(index_t i)
 {
-    // TODO: Dummy for now; nonzero vertex births are only done through
-    // sparse matrices at the moment
-    return 0.0;
+    return dist.diagonal[i];
 }
 
 template <>

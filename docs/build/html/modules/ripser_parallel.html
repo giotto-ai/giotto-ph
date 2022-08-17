@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ripser_parallel &mdash; giotto-ph 0.2.0 documentation</title>
+  <title>ripser_parallel &mdash; giotto-ph 0.2.2 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -14,6 +14,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
         <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -81,15 +82,16 @@
            <div itemprop="articleBody">
              
   <section id="ripser-parallel">
-<h1>ripser_parallel<a class="headerlink" href="#ripser-parallel" title="Permalink to this headline"></a></h1>
+<h1>ripser_parallel<a class="headerlink" href="#ripser-parallel" title="Permalink to this heading"></a></h1>
 <section id="module-gph.ripser_parallel">
-<span id="gph-ripser-parallel-function"></span><h2>gph.ripser_parallel function<a class="headerlink" href="#module-gph.ripser_parallel" title="Permalink to this headline"></a></h2>
+<span id="gph-ripser-parallel-function"></span><h2>gph.ripser_parallel function<a class="headerlink" href="#module-gph.ripser_parallel" title="Permalink to this heading"></a></h2>
 <p>Compute persistence diagrams from an input dense array or sparse matrix.</p>
 <p>If <cite>X</cite> represents a point cloud, a distance matrix will be internally
 created using the chosen metric and its Vietoris–Rips persistent homology
-will be computed.</p>
+will be computed. Computations in homology dimensions 1 and above can be
+parallelized, see <cite>n_threads</cite>.</p>
 <section id="parameters">
-<h3>Parameters<a class="headerlink" href="#parameters" title="Permalink to this headline"></a></h3>
+<h3>Parameters<a class="headerlink" href="#parameters" title="Permalink to this heading"></a></h3>
 <dl>
 <dt>X<span class="classifier">ndarray or sparse matrix</span></dt><dd><p>If <cite>metric</cite> is not set to <code class="docutils literal notranslate"><span class="pre">&quot;precomputed&quot;</span></code>, input data of shape
 <code class="docutils literal notranslate"><span class="pre">(n_samples,</span> <span class="pre">n_features)</span></code> representing a point cloud. Otherwise,
@@ -109,7 +111,7 @@ both are stored, the value in the upper diagonal is taken.
 Off-diagonal entries which are not explicitly stored are treated
 as infinite, indicating absent edges.</p></li>
 <li><p>Entries of <cite>X</cite> should be compatible with a filtration, i.e. the
-the value at index (i, j) should be no smaller than the values at
+value at index (i, j) should be no smaller than the values at
 diagonal indices (i, i) and (j, j).</p></li>
 </ul>
 </div></blockquote>
@@ -192,9 +194,9 @@ where the latter corresponds to <span class="math notranslate nohighlight">\(n\)
 to computing persistence. Cannot be <code class="docutils literal notranslate"><span class="pre">True</span></code> if <cite>return_generators</cite> is
 also <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
 </dd>
-<dt>n_threads<span class="classifier">int, optional, default: <code class="docutils literal notranslate"><span class="pre">1</span></code></span></dt><dd><p>Maximum number of threads available to use during persistent
-homology computation. When passing <code class="docutils literal notranslate"><span class="pre">-1</span></code>, it will try to use the
-maximal number of threads available on the host machine.</p>
+<dt>n_threads<span class="classifier">int, optional, default: <code class="docutils literal notranslate"><span class="pre">1</span></code></span></dt><dd><p>Maximum number of threads to be used during the computation in homology
+dimensions 1 and above. <code class="docutils literal notranslate"><span class="pre">-1</span></code> means that the maximum number of threads
+available on the host machine will be used if possible.</p>
 </dd>
 <dt>return_generators<span class="classifier">bool, optional, default: <code class="docutils literal notranslate"><span class="pre">False</span></code></span></dt><dd><p>Whether to return information on the simplex pairs and essential
 simplices corresponding to the finite and infinite bars (respectively)
@@ -205,7 +207,7 @@ the return dictionary under the key <cite>gens</cite>. Cannot be <code class="do
 </dl>
 </section>
 <section id="returns">
-<h3>Returns<a class="headerlink" href="#returns" title="Permalink to this headline"></a></h3>
+<h3>Returns<a class="headerlink" href="#returns" title="Permalink to this heading"></a></h3>
 <p>A dictionary holding the results of the computation. Keys and values are as
 follows:</p>
 <blockquote>
@@ -230,8 +232,8 @@ death.</p>
 <dt>index 2: 1D int ndarray</dt><dd><p>Essential simplices corresponding to infinite bars in dimension
 0, with one vertex for each birth.</p>
 </dd>
-<dt>index 3: list (length maxdim) of int ndarray with 2 columns</dt><dd><p>Essential simplices corresponding to infinite bars in dimensions
-1 to maxdim, with 2 vertices (edge) for each birth.</p>
+<dt>index 3: list (length maxdim) of int ndarray with 2 columns</dt><dd><p>Essential simplices corresponding to infinite bars in
+dimensions 1 to maxdim, with 2 vertices (edge) for each birth.</p>
 </dd>
 </dl>
 </dd>
@@ -239,7 +241,7 @@ death.</p>
 </div></blockquote>
 </section>
 <section id="notes">
-<h3>Notes<a class="headerlink" href="#notes" title="Permalink to this headline"></a></h3>
+<h3>Notes<a class="headerlink" href="#notes" title="Permalink to this heading"></a></h3>
 <p>The C++ backend and Python API for the computation of Vietoris–Rips
 persistent homology are developments of the ones in the
 <a class="reference external" href="https://github.com/scikit-tda/ripser.py">ripser.py</a> project <a class="footnote-reference brackets" href="#id9" id="id4">1</a>, with
@@ -265,7 +267,7 @@ representation is used in the following cases:</p>
 <a class="reference external" href="https://github.com/GUDHI/gudhi-devel">GUDHI’s</a> C++ implementation.</p>
 </section>
 <section id="references">
-<h3>References<a class="headerlink" href="#references" title="Permalink to this headline"></a></h3>
+<h3>References<a class="headerlink" href="#references" title="Permalink to this heading"></a></h3>
 <dl class="footnote brackets">
 <dt class="label" id="id9"><span class="brackets"><a class="fn-backref" href="#id4">1</a></span></dt>
 <dd><p>C. Tralie et al, “Ripser.py: A Lean Persistent Homology Library for
@@ -273,9 +275,9 @@ Python”, <em>Journal of Open Source Software</em>, <a href="#id10"><span class
 <a class="reference external" href="https://doi.org/10.21105/joss.00925">DOI: 10.21105/joss.00925</a>.</p>
 </dd>
 <dt class="label" id="id12"><span class="brackets"><a class="fn-backref" href="#id5">2</a></span></dt>
-<dd><p>U. Bauer, “Ripser: efficient computation of Vietoris–Rips persistence
-barcodes”, <em>J Appl. and Comput. Topology</em>, <strong>5</strong>, pp. 391–423, 2021;
-<a class="reference external" href="https://doi.org/10.1007/s41468-021-00071-5">DOI: 10.1007/s41468-021-00071-5</a>.</p>
+<dd><p>U. Bauer, “Ripser: efficient computation of Vietoris–Rips
+persistence barcodes”, <em>J Appl. and Comput. Topology</em>, <strong>5</strong>, pp.
+391–423, 2021; <a class="reference external" href="https://doi.org/10.1007/s41468-021-00071-5">DOI: 10.1007/s41468-021-00071-5</a>.</p>
 </dd>
 <dt class="label" id="id13"><span class="brackets"><a class="fn-backref" href="#id6">3</a></span></dt>
 <dd><p>D. Morozov and A. Nigmetov, “Towards Lockfree Persistent Homology”;
