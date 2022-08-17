@@ -484,7 +484,7 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
 
         'cocycles': list (size maxdim) of list of ndarray, optional
             For each dimension less than `maxdim`, a list of representative
-            cocycles. Each representative cocycle in dimension 'd' is
+            cocycles. Each representative cocycle in dimension ``d`` is
             represented as a ndarray of '(k,d+1)' elements. Each non zero value
             of the cocycle is laid out in a row, first the 'd' indices of the
             simplex and then the value of the cocycle on the simplex. The
