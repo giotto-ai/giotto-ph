@@ -34,14 +34,15 @@ from ..modules import gph_ripser, gph_ripser_coeff, gph_collapser
 MAX_COEFF_SUPPORTED = gph_ripser.get_max_coefficient_field_supported()
 
 
-def _compute_ph_vr_dense(DParam, maxHomDim, thresh=-1, coeff=2, n_threads=1,
-                         return_generators=False, return_cocycles=False):
+def _compute_ph_vr_dense(DParam, diagonal, maxHomDim, thresh=-1, coeff=2,
+                         n_threads=1, return_generators=False,
+                         return_cocycles=False):
     if coeff == 2:
-        ret = gph_ripser.rips_dm(DParam, DParam.shape[0], coeff,
+        ret = gph_ripser.rips_dm(DParam, diagonal, coeff,
                                  maxHomDim, thresh, n_threads,
                                  return_generators, return_cocycles)
     else:
-        ret = gph_ripser_coeff.rips_dm(DParam, DParam.shape[0], coeff,
+        ret = gph_ripser_coeff.rips_dm(DParam, diagonal, coeff,
                                        maxHomDim, thresh, n_threads,
                                        return_generators, return_cocycles)
     return ret
