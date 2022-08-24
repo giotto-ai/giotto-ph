@@ -20,8 +20,8 @@ sys.path.insert(0, os.path.abspath(os.path.join('..','..')))
 # -- Project information -----------------------------------------------------
 
 project = 'giotto-ph'
-copyright = '2021, L2F SA'
-author = 'Julian Burella Perez'
+copyright = '2022, L2F SA'
+author = 'Julian Burella Perez and Umberto Lupo'
 
 # The full version, including alpha/beta/rc tags
 release = '0.2.2'
