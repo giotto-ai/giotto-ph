@@ -89,7 +89,7 @@ public:
 
 typedef float value_t;
 typedef int64_t index_t;
-typedef uint16_t coefficient_t;
+typedef int16_t coefficient_t;
 
 const size_t num_coefficient_bits = 8;
 constexpr value_t inf_value = std::numeric_limits<value_t>::infinity();
