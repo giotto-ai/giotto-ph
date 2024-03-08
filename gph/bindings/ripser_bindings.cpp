@@ -39,15 +39,13 @@ to_numpy_barcodes(std::vector<barcodes_t> barcodes)
 }
 
 #if defined USE_COEFFICIENTS
-PYBIND11_MODULE(gph_ripser_coeff, m)
-{
+PYBIND11_MODULE(gph_ripser_coeff, m) {
 #else
-PYBIND11_MODULE(gph_ripser, m)
-{
+PYBIND11_MODULE(gph_ripser, m) {
 #endif
 
-    using namespace pybind11::literals;
-    m.doc() = "Ripser python interface";
+  using namespace pybind11::literals;
+  m.doc() = "Ripser python interface";
 
     py::class_<flagPersGen>(m, "flagPersGen", py::module_local())
         .def_readwrite("finite_0", &flagPersGen::finite_0)
@@ -63,6 +61,7 @@ PYBIND11_MODULE(gph_ripser, m)
              [&](ripserResults& res) {
                  return to_numpy_barcodes(res.births_and_deaths_by_dim);
              })
+        .def_readwrite("cocycles_by_dim", &ripserResults::cocycles_by_dim)
         .def_readwrite("flag_persistence_generators_by_dim",
                        &ripserResults::flag_persistence_generators);
 
@@ -70,7 +69,7 @@ PYBIND11_MODULE(gph_ripser, m)
         "rips_dm",
         [](py::array_t<value_t>& D, py::array_t<value_t>& diag, int modulus,
            int dim_max, float threshold, int num_threads,
-           bool return_generators) {
+           bool return_generators, const bool do_cocycles) {
             // Setup distance matrix and figure out threshold
             auto D_ = static_cast<value_t*>(D.request().ptr);
             std::vector<value_t> distances(D_, D_ + D.size());
@@ -84,20 +83,21 @@ PYBIND11_MODULE(gph_ripser, m)
 
             ripserResults res;
             ripser<compressed_lower_distance_matrix> r(
-                std::move(dist), dim_max, threshold, modulus, num_threads,
-                return_generators);
+                std::move(dist), dim_max, threshold, modulus,
+                num_threads, return_generators, do_cocycles);
             r.compute_barcodes();
             r.copy_results(res);
             return res;
         },
-        "D"_a, "diag"_a, "modulus"_a, "dim_max"_a, "threshold"_a,
-        "num_threads"_a, "return_generators"_a, "ripser distance matrix");
+        "D"_a, "N"_a, "modulus"_a, "dim_max"_a, "threshold"_a, "num_threads"_a,
+        "return_generators"_a, "do_cocycles"_a, "ripser distance matrix");
 
     m.def(
         "rips_dm_sparse",
         [](py::array_t<index_t>& I, py::array_t<index_t>& J,
            py::array_t<value_t>& V, int NEdges, int N, int modulus, int dim_max,
-           float threshold, int num_threads, bool return_generators) {
+           float threshold, int num_threads, bool return_generators, 
+           const bool do_cocycles) {
             auto I_ = static_cast<index_t*>(I.request().ptr);
             auto J_ = static_cast<index_t*>(J.request().ptr);
             auto V_ = static_cast<value_t*>(V.request().ptr);
@@ -105,7 +105,8 @@ PYBIND11_MODULE(gph_ripser, m)
             // Setup distance matrix and figure out threshold
             ripser<sparse_distance_matrix> r(
                 sparse_distance_matrix(I_, J_, V_, NEdges, N, threshold),
-                dim_max, threshold, modulus, num_threads, return_generators);
+                dim_max, threshold, modulus, num_threads,
+                return_generators, do_cocycles);
             r.compute_barcodes();
 
             ripserResults res;
@@ -113,7 +114,7 @@ PYBIND11_MODULE(gph_ripser, m)
             return res;
         },
         "I"_a, "J"_a, "V"_a, "NEdges"_a, "N"_a, "modulus"_a, "dim_max"_a,
-        "threshold"_a, "num_threads"_a, "return_generators"_a,
+        "threshold"_a, "num_threads"_a, "return_generators"_a, "do_cocycles"_a,
         "ripser sparse distance matrix");
 
     m.def("get_max_coefficient_field_supported",
