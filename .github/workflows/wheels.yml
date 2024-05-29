@@ -38,5 +38,5 @@ jobs:
           TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
         run: |
-          twine check .wheelhouse/*.whl
-          twine upload .wheelhouse/*.whl
+          twine check ./wheelhouse/*.whl
+          twine upload ./wheelhouse/*.whl
