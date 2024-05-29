@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.3.1
+        uses: pypa/cibuildwheel@v2.18.1
         env:
           # Specify which Python versions to build wheels
           # https://cibuildwheel.readthedocs.io/en/stable/options/#build-skip
