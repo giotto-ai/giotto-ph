@@ -33,7 +33,7 @@ jobs:
       - name: Set-up python 3.10 for upload
         uses: actions/setup-python@v5
         with:
-          pytho-version: "pypy3.10"
+          pytho-version: "3.10"
         env:
           TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
