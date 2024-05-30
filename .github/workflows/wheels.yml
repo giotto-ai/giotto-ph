@@ -44,4 +44,4 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
         run: |
           twine check ./wheelhouse/*.whl
-          twine upload ./wheelhouse/*.whl
+          twine upload --skip-existing ./wheelhouse/*.whl
