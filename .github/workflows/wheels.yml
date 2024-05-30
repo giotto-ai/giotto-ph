@@ -30,10 +30,15 @@ jobs:
           # Should generate universal2 wheels for CP3.8 -- CP3.11
           CIBW_ARCHS_MACOS: x86_64 universal2
 
-      - name: Publish
+      - name: Set-up python 3.10 for upload
+        uses: actions/setup-python@v5
+        with:
+          pytho-version: "pypy3.10"
         env:
           TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      - name: Publish
         run: |
+          pip install twine
           twine check ./wheelhouse/*.whl
           twine upload --skip-existing ./wheelhouse/*.whl
