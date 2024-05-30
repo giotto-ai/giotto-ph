@@ -30,13 +30,8 @@ jobs:
           # Should generate universal2 wheels for CP3.8 -- CP3.11
           CIBW_ARCHS_MACOS: x86_64 universal2
 
-      - uses: actions/upload-artifact@v2
-        name: Upload artifacts
-        with:
-          path: ./wheelhouse/*.whl
-
       - name: Install twine dependency
-        run: pip install twine
+        run: python -m pip install twine
 
       - name: Publish
         env:
