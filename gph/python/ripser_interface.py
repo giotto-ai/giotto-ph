@@ -35,26 +35,31 @@ MAX_COEFF_SUPPORTED = gph_ripser.get_max_coefficient_field_supported()
 
 
 def _compute_ph_vr_dense(DParam, diagonal, maxHomDim, thresh=-1, coeff=2,
-                         n_threads=1, return_generators=False):
+                         n_threads=1, return_generators=False,
+                         return_cocycles=False):
     if coeff == 2:
-        ret = gph_ripser.rips_dm(DParam, diagonal, coeff, maxHomDim, thresh,
-                                 n_threads, return_generators)
+        ret = gph_ripser.rips_dm(DParam, diagonal, coeff,
+                                 maxHomDim, thresh, n_threads,
+                                 return_generators, return_cocycles)
     else:
-        ret = gph_ripser_coeff.rips_dm(DParam, diagonal, coeff, maxHomDim,
-                                       thresh, n_threads, return_generators)
+        ret = gph_ripser_coeff.rips_dm(DParam, diagonal, coeff,
+                                       maxHomDim, thresh, n_threads,
+                                       return_generators, return_cocycles)
     return ret
 
 
 def _compute_ph_vr_sparse(I, J, V, N, maxHomDim, thresh=-1, coeff=2,
-                          n_threads=1, return_generators=False):
+                          n_threads=1, return_generators=False,
+                          return_cocycles=False):
     if coeff == 2:
         ret = gph_ripser.rips_dm_sparse(I, J, V, I.size, N, coeff,
                                         maxHomDim, thresh, n_threads,
-                                        return_generators)
+                                        return_generators, return_cocycles)
     else:
         ret = gph_ripser_coeff.rips_dm_sparse(I, J, V, I.size, N, coeff,
                                               maxHomDim, thresh, n_threads,
-                                              return_generators)
+                                              return_generators,
+                                              return_cocycles)
     return ret
 
 
@@ -310,7 +315,8 @@ def _is_prime_and_larger_than_2(x, N):
 def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                     metric_params={}, nearest_neighbors_params={},
                     weights=None, weight_params=None, collapse_edges=False,
-                    n_threads=1, return_generators=False):
+                    n_threads=1, return_generators=False,
+                    return_cocycles=False):
     """Compute persistence diagrams from an input dense array or sparse matrix.
 
     If `X` represents a point cloud, a distance matrix will be internally
@@ -441,6 +447,10 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
         the return dictionary under the key `gens`. Cannot be ``True`` if
         `collapse_edges` is also ``True``.
 
+    return_cocycles: bool, optional, default: ``False``
+        Computed cocycles will be available in the `cocycles` value
+        of the return dictionary.
+
     Returns
     -------
     A dictionary holding the results of the computation. Keys and values are as
@@ -472,6 +482,15 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
                 Essential simplices corresponding to infinite bars in
                 dimensions 1 to maxdim, with 2 vertices (edge) for each birth.
 
+        'cocycles': list (size maxdim) of list of ndarray, optional
+            For each dimension less than `maxdim`, a list of representative
+            cocycles. Each representative cocycle in dimension ``d`` is
+            represented as a ndarray of ``(k, d + 1)`` elements. Each non zero value
+            of the cocycle is laid out in a row, first the 'd' indices of the
+            simplex and then the value of the cocycle on the simplex. The
+            indices of the simplex reference the original point cloud.
+            'cocycles' are only available if 'return_cocycles' is True.
+
     Notes
     -----
     The C++ backend and Python API for the computation of Vietoris–Rips
@@ -498,7 +517,7 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
            Python", *Journal of Open Source Software*, **3**(29), 2021;
            `DOI: 10.21105/joss.00925
            <https://doi.org/10.21105/joss.00925>`_.
-   
+
     .. [2] U. Bauer, "Ripser: efficient computation of Vietoris–Rips
            persistence barcodes", *J Appl. and Comput. Topology*, **5**, pp.
            391–423, 2021; `DOI: 10.1007/s41468-021-00071-5
@@ -609,14 +628,16 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             thresh,
             coeff,
             n_threads,
-            return_generators
+            return_generators,
+            return_cocycles
             )
     else:
         # Only consider upper diagonal
         diagonal = np.diagonal(dm).astype(np.float32)
         DParam = squareform(dm, checks=False).astype(np.float32)
-        res = _compute_ph_vr_dense(DParam, diagonal, maxdim, thresh,
-                                   coeff, n_threads, return_generators)
+        res = _compute_ph_vr_dense(DParam, diagonal, maxdim, thresh, coeff,
+                                   n_threads, return_generators,
+                                   return_cocycles)
 
     # Unwrap persistence diagrams
     # Barcodes must match the inner type of C++ core filtration value.
@@ -644,5 +665,21 @@ def ripser_parallel(X, maxdim=1, thresh=np.inf, coeff=2, metric="euclidean",
             for x in res.flag_persistence_generators_by_dim.essential_higher
             ]
         ret['gens'] = (finite_0, finite_higher, essential_0, essential_higher)
+
+    # Unwrap cocycles
+    if return_cocycles:
+        nb_dim = len(res.cocycles_by_dim)
+        cocycles = []
+        for dim in range(nb_dim):
+            cocycles.append([])
+            for j in range(len(res.cocycles_by_dim[dim])):
+                ccl = res.cocycles_by_dim[dim][j]
+                n = int(len(ccl) / (dim + 2))
+                ccl = np.reshape(np.array(ccl, dtype=np.int64), [n, dim + 2])
+                ccl[:, -1] = np.mod(ccl[:, -1], coeff)
+                cocycles[dim].append(ccl)
+        cocycles = np.asarray(cocycles, dtype=object)
+
+        ret["cocycles"] = cocycles
 
     return ret
