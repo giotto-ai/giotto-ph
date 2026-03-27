@@ -30,6 +30,7 @@
 #include <tuple>        // for std::tie
 #include <type_traits>  // for std::decay
 #include <vector>
+#include <cstdint>
 
 namespace Gudhi
 {
