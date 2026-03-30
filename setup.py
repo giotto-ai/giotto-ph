@@ -2,13 +2,12 @@
 """giotto repository for PH computation."""
 
 import os
-import codecs
 import re
 import sys
 import platform
 import subprocess
 
-from distutils.version import LooseVersion
+from packaging.version import Version
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
 
@@ -24,7 +23,7 @@ with open("requirements.txt") as f:
 
 DISTNAME = "giotto-ph"
 DESCRIPTION = "High performance tool for Persistent Homology computations."
-with codecs.open("README.rst", encoding="utf-8-sig") as f:
+with open("README.rst", encoding="utf-8-sig") as f:
     LONG_DESCRIPTION = f.read()
 if platform.system() == "Windows":
     LONG_DESCRIPTION = "giotto-ph at https://github.com/giotto-ai/giotto-ph"
@@ -50,7 +49,10 @@ CLASSIFIERS = ["Intended Audience :: Science/Research",
                "Programming Language :: Python :: 3.8",
                "Programming Language :: Python :: 3.9",
                "Programming Language :: Python :: 3.10",
-               "Programming Language :: Python :: 3.11"]
+               "Programming Language :: Python :: 3.11",
+               "Programming Language :: Python :: 3.12",
+               "Programming Language :: Python :: 3.13",
+               "Programming Language :: Python :: 3.14"]
 KEYWORDS = "machine learning, topological data analysis, persistent " \
            "homology"
 INSTALL_REQUIRES = requirements
@@ -94,9 +96,9 @@ class CMakeBuild(build_ext):
                 )
 
         if platform.system() == "Windows":
-            cmake_version = LooseVersion(re.search(r"version\s*([\d.]+)",
-                                                   out.decode()).group(1))
-            if cmake_version < "3.1.0":
+            cmake_version = Version(re.search(r"version\s*([\d.]+)",
+                                               out.decode()).group(1))
+            if cmake_version < Version("3.1.0"):
                 raise RuntimeError("CMake >= 3.1.0 is required on Windows")
 
         self.install_dependencies()
